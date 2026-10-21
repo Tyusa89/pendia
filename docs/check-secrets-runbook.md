@@ -36,8 +36,10 @@ is `ES256` (fields `kty, crv, x, y, kid`). It must NOT contain `d`. Then confirm
 
 ## Local tests (no deploy, no network, no secrets)
 ```sh
-deno test --no-config --node-modules-dir=none --allow-env supabase/functions/check-secrets/handler.test.ts
+deno test --allow-env supabase/functions/check-secrets/handler.test.ts
 ```
+(`jose@5.9.6` is a devDependency, so Deno resolves it from the project's node_modules. The original
+`--no-config --node-modules-dir=none` invocation also works once the package is cached.)
 Covers: 405 / 410 closed-window (even with a perfect token) / window boundary; missing, garbage, tampered,
 foreign-key, wrong-kid, HS256 alg-confusion, wrong issuer/audience/role, expired, no-`sub` tokens; 403 for another
 user; 200 booleans-only with a sentinel secret that must never appear in the response; missing/blank secret →
