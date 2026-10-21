@@ -8,3 +8,8 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+## Architecture rules
+- All Lovable Cloud data access goes through `src/services/index.ts`; routes/components never call the client directly (keeps features incremental).
+- Every app table carries `family_id`; RLS uses `is_family_member()` / `is_family_organizer()` security-definer helpers.
+- Demo family is seeded in the migration; users join it via the `join_demo_family()` RPC.
