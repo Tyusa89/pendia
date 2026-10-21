@@ -2,6 +2,8 @@
 .SYNOPSIS
   Coordinated run for the check-secrets probe (Windows PowerShell 5.1 and PowerShell 7+).
 .DESCRIPTION
+  info        No network, works with the window closed: prints your token's alg, kid, minutes to expiry and whether the kid
+              matches the pinned key. Run this BEFORE go. Never prints the token.
   probe       Confirm the new code is deployed (no auth, no window needed): waits for the x-fn-version header.
   closed      Window CLOSED (before go-live / after expiry): every POST must be refused with 410 before auth.
   negative    Window OPEN: unauthorized-caller tests (405 / 401 / 401 / 401).
@@ -13,15 +15,16 @@
   .\scripts\check-secrets-run.ps1 -Mode probe
 #>
 param(
-  [Parameter(Mandatory = $true)][ValidateSet('probe', 'closed', 'negative', 'authorized')][string]$Mode,
-  [string]$ExpectedVersion = 'pinned-jwk-2'
+  [Parameter(Mandatory = $true)][ValidateSet('info', 'probe', 'closed', 'negative', 'authorized')][string]$Mode,
+  [string]$ExpectedVersion = 'pinned-jwk-2',
+  [string]$PinnedKid = '72b5e943-b371-428c-83df-c19f302cb328'
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Net.Http
 
 $Url = $env:PENDIA_FN_URL
-if (-not $Url) { Write-Host 'Set $env:PENDIA_FN_URL first.'; exit 2 }
+if ($Mode -ne 'info' -and -not $Url) { Write-Host 'Set $env:PENDIA_FN_URL first.'; exit 2 }
 $Jwt = $env:PENDIA_JWT
 $script:Failed = $false
 $client = New-Object System.Net.Http.HttpClient
@@ -68,12 +71,18 @@ function Show-TokenInfo([string]$t) {
     $p = ConvertFrom-B64Url $parts[1] | ConvertFrom-Json
     $mins = [math]::Round((([DateTimeOffset]::FromUnixTimeSeconds([long]$p.exp)) - [DateTimeOffset]::UtcNow).TotalMinutes, 1)
     Write-Host "token header: alg=$($h.alg) kid=$($h.kid); expires in $mins min"
-    if ($h.alg -ne 'ES256') { Write-Host 'WARNING: token is not ES256; the function will refuse it.' }
+    if ($h.alg -ne 'ES256') { Write-Host 'token is not ES256; the function will refuse it: do not arm.'; $script:Failed = $true }
+    if ($h.kid -eq $PinnedKid) { Write-Host 'kid MATCHES the pinned key.' } else { Write-Host "kid does NOT match the pinned key ($PinnedKid): do not arm." ; $script:Failed = $true }
     if ($mins -lt 20) { Write-Host 'WARNING: token expires soon; sign in again for a fresh one.' }
   } catch { Write-Host 'WARNING: PENDIA_JWT does not look like a JWT.' }
 }
 
 switch ($Mode) {
+  'info' {
+    if (-not $Jwt) { Write-Host 'Set $env:PENDIA_JWT.'; exit 3 }
+    Show-TokenInfo $Jwt
+    if ($script:Failed) { exit 1 } else { exit 0 }
+  }
   'probe' {
     for ($i = 1; $i -le 30; $i++) {
       $r = Send-Probe 'GET' $null
@@ -88,7 +97,7 @@ switch ($Mode) {
     Expect 'GET (wrong method)' 405 (Send-Probe 'GET' $null).Status
     Expect 'POST, no Authorization' 410 (Send-Probe 'POST' $null).Status
     Expect 'POST, garbage bearer' 410 (Send-Probe 'POST' 'not.a.jwt').Status
-    if ($Jwt) { Expect 'POST, real token (still refused: window closed)' 410 (Send-Probe 'POST' $Jwt).Status }
+    if ($Jwt) { Show-TokenInfo $Jwt; Expect 'POST, real token (still refused: window closed)' 410 (Send-Probe 'POST' $Jwt).Status }
     if ($script:Failed) { exit 1 } else { exit 0 }
   }
   'negative' {
