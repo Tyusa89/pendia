@@ -1,24 +1,87 @@
-# Pixel Perfect Matchmaker
+# Pendia
 
-Implement exactly the screenshot and nothing else
+Pendia records a doctor's visit (with consent), transcribes it with speaker labels, and turns what the
+**doctor** said into family action: confirmed medication changes, tasks with named owners delivered by SMS,
+watch items, a weekly coverage schedule, handoff notes, and a 5-line Sunday digest sent to each family member
+in their own language. Only the organizer uses the app; everyone else works by SMS.
 
-This project was built with [Lovable](https://lovable.dev).
+Built for the Meta Global AI Developer Hackathon (Startup track). **All data in this repo is synthetic.**
 
-## Build with Lovable
+> Not medical advice. Check with your doctor or pharmacist. Pendia restates what the doctor said; it never
+> suggests doses, diagnoses, interactions, or treatment.
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/5942e04f-3398-42f2-bd0d-7f812c9a2d9d).
+## Status
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
+| Phase | Scope | State |
+|---|---|---|
+| 1 | Schema, RLS, auth, family/member management, demo seed | done, awaiting review |
+| 2 | Consent, recording, `transcribeVisit()`, speaker mapping | not started |
+| 3 | Spark extraction + review screen | not started |
+| 4 | Twilio SMS loop | not started |
+| 5 | Coverage, handoffs, bilingual digest | not started |
+| 6 | Demo mode + polish | not started |
 
-## Development
+## Meta models (Standard tier only)
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+| Use | Model | Notes |
+|---|---|---|
+| Transcription | `muse-voice-transcribe-1.0` | DIARIZATION mode; per-turn speaker labels + timestamps. Patient medication names are passed as keyword-biasing context. |
+| Extraction / translation | `muse-spark-1.3` | Structured output; runs only on turns a human mapped to the doctor. |
+| Fridge chart (Phase 6, optional) | `muse-image-1.0` | First thing cut if time is short. |
+
+**Privacy choice:** the app never calls any model ID containing `-contributor`. The Contributor tier trains on
+inputs, and Pendia handles health conversations, so only Standard-tier models are used. All Meta and Twilio
+calls run server-side in Supabase Edge Functions; API keys live in Supabase secrets, never in client code or
+this repo.
+
+## Architecture
+
+- **Front end:** React 19 + TanStack Start (Lovable scaffold), Tailwind 4, shadcn/ui. All data access goes
+  through `src/services/index.ts`.
+- **Back end:** Supabase (Postgres, Auth, Storage, RLS). Migrations live in `supabase/migrations/`.
+- **Tables:** `family, member, care_recipient, visit, medication, med_change, task, watch_item, shift, handoff, digest`.
+  Every table carries `family_id`.
+
+### Security model (enforced in Postgres, not just the UI)
+
+- **Family isolation:** every policy is scoped by `family_id`; a member of family A cannot read or write family B.
+  Cross-family foreign keys (e.g. assigning a task to another family's member) are rejected by trigger, and
+  `family_id` is immutable after insert.
+- **Per-person visibility:** `member.can_see_meds / can_see_visits / can_see_schedule` gate reads of
+  medications + med changes, visits, and shifts + handoffs. Organizers see everything.
+- **Organizer-only writes.** SMS-driven writes (DONE, YES, handoffs) happen in edge functions with the service role.
+  Edge functions must also respect the visibility flags when composing texts and digests.
+- **Confirm guard:** a med change is created `pending`; only a signed-in family member can confirm it, and the
+  database stamps `confirmed_by` / `confirmed_at` (the client cannot spoof them). Confirmed changes are frozen.
+- **No anonymous access:** `anon` has no table privileges.
+
+## Setup
 
 ```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
+bun install
+bun run dev        # local dev server
+bun run test       # unit tests (vitest)
+npx tsc --noEmit   # typecheck
 ```
+
+Copy the Supabase URL and publishable key into `.env` (the Lovable scaffold already provides them). Secrets
+for Meta and Twilio are added in Supabase → Edge Functions → Secrets (Phases 2 and 4); never commit them.
+
+### Database
+
+Apply `supabase/migrations/*.sql` in order. The deployed project already has them applied.
+
+### RLS / integrity tests
+
+`supabase/tests/rls.test.sql` is a single `DO` block that builds synthetic families and users, asserts
+isolation, visibility, the confirm guard, and the demo seed, then **always raises** so nothing persists.
+Run it in the Supabase SQL editor (or any SQL client): the error message `PASS: N assertions` means success,
+`FAIL: ...` names the broken assertion.
+
+### Demo data
+
+Signing in and tapping **Open demo family** calls `join_demo_family()`, which creates a private copy for that
+user: Grandma Rosa; Maria (organizer, English), Carlos (Spanish), Jenny (English, no medication access);
+Lisinopril 10 mg daily plus other meds; next week's coverage with the only gap Tuesday 2–6 PM; and last week's
+digest in English and Spanish. Seed phone numbers are fictional (555-01xx). Set Carlos's number to a real phone
+on the Family page to receive texts in the demo.
