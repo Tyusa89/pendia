@@ -57,6 +57,8 @@ version header instead of assuming:
 1. Merge. Deploys are not instant.
 2. `scripts/check-secrets-run.(sh|ps1) probe` polls `GET` until `x-fn-version` equals the expected version.
    A missing or old version means the new code is not live: stop, do not arm the window.
+   `info` mode (no network, works while the window is closed) prints your token's `kid` and whether it matches the
+   pinned key. It must say MATCHES before go. (`negative` cannot do this check while closed: it exits 4 on the 410.)
 3. `closed` mode must pass (405 / 410 / 410 / 410) **while the window is still closed**.
 4. Only then does the go-live commit set `ACTIVE_UNTIL_MS` (now + 15 min). Re-run `probe` to confirm it deployed
    (bump `VERSION` in the same commit so the probe can tell old from new).
