@@ -592,6 +592,85 @@ describe("appointment details: cancel and archive", () => {
     expect(store.rows[0]!.archived_at).toBeNull();
   });
 
+  it("mark completed asks first; 'Keep it' does nothing; confirming completes it, keeps every detail, and moves it to Past", async () => {
+    resetStore([
+      makeRow({
+        id: "m1",
+        provider_name: "Dr. Done",
+        office_address: "1 Example Rd",
+        notes: "Bring list",
+        transcript: [{ speaker: "A", text: "synthetic" }],
+        scheduled_start: "2026-11-12T15:00:00Z",
+      }),
+    ]);
+    const before = JSON.stringify(store.rows[0]);
+    renderWithClient(
+      <>
+        {summary(store.rows[0]!)}
+        {list()}
+      </>,
+    );
+    await screen.findByRole("tab", { name: "Upcoming (1)" });
+    await click("Mark visit completed");
+    expect(await screen.findByText("Mark this visit as completed?")).toBeInTheDocument();
+    expect(screen.getByText(/nothing is recorded or summarized automatically/)).toBeInTheDocument();
+    await click("Keep it");
+    expect(calls.complete).not.toHaveBeenCalled();
+    await click("Mark visit completed");
+    await act(async () => {
+      fireEvent.click(
+        within(screen.getByRole("alertdialog")).getByRole("button", { name: "Mark completed" }),
+      );
+    });
+    await waitFor(() => expect(calls.complete).toHaveBeenCalledWith("m1"));
+    await waitFor(() =>
+      expect(screen.getByRole("tab", { name: "Upcoming (0)" })).toBeInTheDocument(),
+    );
+    expect(screen.getByRole("tab", { name: "Past (1)" })).toBeInTheDocument();
+    expect(JSON.parse(JSON.stringify({ ...store.rows[0], status: "scheduled" }))).toEqual(
+      JSON.parse(before),
+    ); // status is the ONLY thing that changed
+    expect(store.rows[0]!.status).toBe("completed");
+    expect(toastSpy.success).toHaveBeenCalledWith("Marked as completed");
+  });
+
+  it("a failed completion shows the error and leaves the appointment scheduled", async () => {
+    resetStore([makeRow({ id: "m2", scheduled_start: "2026-11-12T15:00:00Z" })]);
+    calls.complete.mockImplementationOnce(() => {
+      throw new Error("Could not save. Try again.");
+    });
+    renderWithClient(summary(store.rows[0]!));
+    await click("Mark visit completed");
+    await act(async () => {
+      fireEvent.click(
+        within(await screen.findByRole("alertdialog")).getByRole("button", {
+          name: "Mark completed",
+        }),
+      );
+    });
+    await waitFor(() => expect(toastSpy.error).toHaveBeenCalledWith("Could not save. Try again."));
+    expect(store.rows[0]!.status).toBe("scheduled");
+  });
+
+  it("no completion control for canceled, completed or archived appointments", async () => {
+    for (const over of [
+      { status: "canceled" },
+      { status: "completed" },
+      { archived_at: "2026-11-01T00:00:00Z" },
+    ]) {
+      const { unmount } = renderWithClient(summary(makeRow(over)));
+      expect(
+        screen.queryByRole("button", { name: /Mark visit completed/ }),
+      ).not.toBeInTheDocument();
+      unmount();
+    }
+  });
+
+  it("members get no completion control", async () => {
+    renderWithClient(summary(makeRow({}), false));
+    expect(screen.queryByRole("button", { name: /Mark visit completed/ })).not.toBeInTheDocument();
+  });
+
   it("members see the details but none of the edit, cancel or archive controls", async () => {
     renderWithClient(summary(makeRow({ provider_name: "Dr. ReadOnly" }), false));
     expect(screen.queryByRole("link", { name: /Edit appointment/ })).not.toBeInTheDocument();

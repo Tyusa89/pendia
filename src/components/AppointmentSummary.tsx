@@ -1,7 +1,15 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Archive, ArchiveRestore, CalendarX, MapPin, Pencil, Phone } from "lucide-react";
+import {
+  Archive,
+  ArchiveRestore,
+  CalendarCheck,
+  CalendarX,
+  MapPin,
+  Pencil,
+  Phone,
+} from "lucide-react";
 import { toast } from "sonner";
 import { AppointmentFlags } from "@/components/AppointmentFlags";
 import {
@@ -19,7 +27,7 @@ import { isBlank, type Appointment } from "@/lib/appointments";
 import { formatInZone } from "@/lib/zoned-time";
 import { visitService } from "@/services";
 
-type Confirm = "cancel" | "archive" | null;
+type Confirm = "cancel" | "complete" | "archive" | null;
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -51,21 +59,25 @@ export function AppointmentSummary({
       qc.invalidateQueries({ queryKey: ["visit", visit.id] }),
     ]);
   const run = useMutation({
-    mutationFn: async (action: "cancel" | "archive" | "unarchive") =>
+    mutationFn: async (action: "cancel" | "complete" | "archive" | "unarchive") =>
       action === "cancel"
         ? visitService.cancelAppointment(visit.id)
-        : action === "archive"
-          ? visitService.archiveAppointment(visit.id)
-          : visitService.unarchiveAppointment(visit.id),
+        : action === "complete"
+          ? visitService.completeAppointment(visit.id)
+          : action === "archive"
+            ? visitService.archiveAppointment(visit.id)
+            : visitService.unarchiveAppointment(visit.id),
     onSuccess: async (_d, action) => {
       setConfirm(null);
       await refresh();
       toast.success(
         action === "cancel"
           ? "Appointment canceled"
-          : action === "archive"
-            ? "Appointment archived"
-            : "Appointment restored",
+          : action === "complete"
+            ? "Marked as completed"
+            : action === "archive"
+              ? "Appointment archived"
+              : "Appointment restored",
       );
     },
     onError: (e) => {
@@ -133,12 +145,17 @@ export function AppointmentSummary({
       )}
 
       {canWrite && (
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           <Button asChild variant="outline" className="h-12">
             <Link to="/visits/edit/$id" params={{ id: visit.id }}>
               <Pencil /> Edit appointment
             </Link>
           </Button>
+          {visit.status === "scheduled" && !visit.archived_at && (
+            <Button type="button" className="h-12" onClick={() => setConfirm("complete")}>
+              <CalendarCheck /> Mark visit completed
+            </Button>
+          )}
           {visit.status === "scheduled" && !visit.archived_at && (
             <Button
               type="button"
@@ -176,12 +193,18 @@ export function AppointmentSummary({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {confirm === "cancel" ? "Cancel this appointment?" : "Archive this appointment?"}
+              {confirm === "cancel"
+                ? "Cancel this appointment?"
+                : confirm === "complete"
+                  ? "Mark this visit as completed?"
+                  : "Archive this appointment?"}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {confirm === "cancel"
-                ? "It stays in your records, marked as canceled. This does not contact the office, so please cancel with them directly too."
-                : "It moves out of Upcoming and Past into Archived. Nothing is deleted, and you can restore it any time."}
+              {confirm === "complete"
+                ? "It moves to Past as completed. All its details stay as they are, and nothing is recorded or summarized automatically."
+                : confirm === "cancel"
+                  ? "It stays in your records, marked as canceled. This does not contact the office, so please cancel with them directly too."
+                  : "It moves out of Upcoming and Past into Archived. Nothing is deleted, and you can restore it any time."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -193,7 +216,11 @@ export function AppointmentSummary({
                 if (confirm) run.mutate(confirm);
               }}
             >
-              {confirm === "cancel" ? "Cancel appointment" : "Archive"}
+              {confirm === "cancel"
+                ? "Cancel appointment"
+                : confirm === "complete"
+                  ? "Mark completed"
+                  : "Archive"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

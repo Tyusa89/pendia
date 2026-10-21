@@ -113,6 +113,10 @@ export const visitService = {
   async cancelAppointment(id: string) {
     return ok(await supabase.from("visit").update({ status: "canceled" }).eq("id", id).select().single()) as Visit;
   },
+  /** Only changes `status`. Details, recordings, transcript and consent are untouched. Organizer-only via RLS. */
+  async completeAppointment(id: string) {
+    return ok(await supabase.from("visit").update({ status: "completed" }).eq("id", id).select().single()) as Visit;
+  },
   async archiveAppointment(id: string) {
     return ok(await supabase.from("visit").update({ archived_at: new Date().toISOString() }).eq("id", id).select().single()) as Visit;
   },
