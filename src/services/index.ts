@@ -151,3 +151,5 @@ export const digestService = {
     return ok(await supabase.from("digest").select("*").eq("family_id", familyId).order("week", { ascending: false }).limit(10));
   },
 };
+
+export * from "./recordings";

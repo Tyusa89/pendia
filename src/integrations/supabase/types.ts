@@ -133,6 +133,13 @@ export type Database = {
           shift_id: string | null
           unusual: string | null
           watch_answers: Json
+          audio_mime: string | null
+          audio_path: string | null
+          audio_size_bytes: number | null
+          audio_wav_mime: string | null
+          audio_wav_path: string | null
+          audio_wav_size_bytes: number | null
+          duration_seconds: number | null
         }
         Insert: {
           ate?: boolean | null
@@ -145,6 +152,13 @@ export type Database = {
           shift_id?: string | null
           unusual?: string | null
           watch_answers?: Json
+          audio_mime?: string | null
+          audio_path?: string | null
+          audio_size_bytes?: number | null
+          audio_wav_mime?: string | null
+          audio_wav_path?: string | null
+          audio_wav_size_bytes?: number | null
+          duration_seconds?: number | null
         }
         Update: {
           ate?: boolean | null
@@ -157,6 +171,13 @@ export type Database = {
           shift_id?: string | null
           unusual?: string | null
           watch_answers?: Json
+          audio_mime?: string | null
+          audio_path?: string | null
+          audio_size_bytes?: number | null
+          audio_wav_mime?: string | null
+          audio_wav_path?: string | null
+          audio_wav_size_bytes?: number | null
+          duration_seconds?: number | null
         }
         Relationships: [
           {

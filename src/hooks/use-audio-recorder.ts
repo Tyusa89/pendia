@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { browserPcm, type PcmCapture, type PcmPrepared, type PcmProvider } from "@/lib/pcm-capture";
 
 /** Hard stop so a forgotten recording can't grow without bound in memory. */
 export const MAX_RECORDING_SECONDS = 600;
@@ -13,6 +14,8 @@ export interface RecordedAudio {
   url: string;
   mimeType: string;
   durationSec: number;
+  /** 16 kHz mono 16-bit PCM WAV captured in parallel (transcription-ready copy), or null if the browser could not capture it. */
+  wav: Blob | null;
 }
 
 export const RECORDER_ERROR_MESSAGES: Record<RecorderErrorCode, string> = {
@@ -79,7 +82,10 @@ function classify(err: unknown): RecorderErrorCode {
  * object URL for playback. The microphone is released as soon as recording stops, is discarded, or the
  * component unmounts.
  */
-export function useAudioRecorder() {
+export function useAudioRecorder(options: { pcm?: PcmProvider } = {}) {
+  const pcm = options.pcm ?? browserPcm;
+  const pcmRef = useRef(pcm);
+  pcmRef.current = pcm;
   const [status, setStatusState] = useState<RecorderStatus>("idle");
   const [errorCode, setErrorCode] = useState<RecorderErrorCode | null>(null);
   const [notice, setNotice] = useState<RecorderNotice | null>(null);
@@ -96,6 +102,9 @@ export function useAudioRecorder() {
   const startedAtRef = useRef(0);
   const discardRef = useRef(false);
   const noticeRef = useRef<RecorderNotice | null>(null);
+  const captureRef = useRef<PcmCapture | null>(null);
+  const preparedRef = useRef<PcmPrepared | null>(null);
+  const [wavUnavailable, setWavUnavailable] = useState(false);
 
   const currentStatus = (): RecorderStatus => statusRef.current;
 
@@ -114,16 +123,25 @@ export function useAudioRecorder() {
     streamRef.current = null;
   }, []);
 
+  /** Drops the PCM side: a not-yet-attached audio context, and/or an active capture. */
+  const releasePcm = useCallback(() => {
+    if (preparedRef.current) pcmRef.current.release(preparedRef.current);
+    preparedRef.current = null;
+    captureRef.current?.abort();
+    captureRef.current = null;
+  }, []);
+
   const fail = useCallback(
     (code: RecorderErrorCode) => {
       clearTimer();
       releaseStream();
+      releasePcm();
       recorderRef.current = null;
       if (!mounted.current) return;
       setErrorCode(code);
       setStatus("error");
     },
-    [clearTimer, releaseStream, setStatus],
+    [clearTimer, releasePcm, releaseStream, setStatus],
   );
 
   const start = useCallback(async () => {
@@ -137,19 +155,38 @@ export function useAudioRecorder() {
 
     if (!isRecordingSupported()) return fail("unsupported");
 
+    // Must happen synchronously inside the tap: iOS Safari only lets a user gesture start an AudioContext.
+    preparedRef.current = pcmRef.current.prepare();
+    setWavUnavailable(false);
     setStatus("requesting");
     let stream: MediaStream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch (e) {
       if (currentStatus() === "requesting") fail(classify(e));
+      else releasePcm();
       return;
     }
     // Discarded or unmounted while the permission prompt was open: don't keep the mic.
     if (!mounted.current || currentStatus() !== "requesting") {
       stream.getTracks().forEach((t) => t.stop());
+      releasePcm();
       return;
     }
+
+    // Start the PCM tap on the same stream, just before the recorder, so both cover the same audio.
+    const prepared = preparedRef.current;
+    preparedRef.current = null; // attach() takes ownership (it closes the context itself on failure)
+    const capture = prepared
+      ? await pcmRef.current.attach(prepared, stream, { maxSeconds: MAX_RECORDING_SECONDS })
+      : null;
+    if (!mounted.current || currentStatus() !== "requesting") {
+      capture?.abort();
+      stream.getTracks().forEach((t) => t.stop());
+      return;
+    }
+    captureRef.current = capture;
+    setWavUnavailable(!capture);
 
     let recorder: MediaRecorder;
     const mime = pickMimeType();
@@ -167,22 +204,41 @@ export function useAudioRecorder() {
     };
     recorder.onerror = () => fail("failed");
     recorder.onstop = () => {
-      clearTimer();
-      const durationSec = Math.max(0, (Date.now() - startedAtRef.current) / 1000);
-      const type = recorder.mimeType || mime || "audio/webm";
-      const chunks = chunksRef.current;
-      chunksRef.current = [];
-      releaseStream();
-      recorderRef.current = null;
-      if (discardRef.current || !mounted.current) {
-        if (mounted.current) setStatus("idle");
-        return;
-      }
-      if (!chunks.some((c) => c.size > 0)) return fail("failed");
-      setTake({ blob: new Blob(chunks, { type }), mimeType: type, durationSec });
-      setElapsedSec(Math.floor(durationSec));
-      setNotice(noticeRef.current);
-      setStatus("stopped");
+      void (async () => {
+        clearTimer();
+        const durationSec = Math.max(0, (Date.now() - startedAtRef.current) / 1000);
+        const type = recorder.mimeType || mime || "audio/webm";
+        const chunks = chunksRef.current;
+        chunksRef.current = [];
+        releaseStream();
+        recorderRef.current = null;
+        const activeCapture = captureRef.current;
+        captureRef.current = null;
+        if (discardRef.current || !mounted.current) {
+          activeCapture?.abort();
+          if (mounted.current) setStatus("idle");
+          return;
+        }
+        if (!chunks.some((c) => c.size > 0)) {
+          activeCapture?.abort();
+          return fail("failed");
+        }
+        const pcmResult = activeCapture ? await activeCapture.stop() : null;
+        if (discardRef.current || !mounted.current) {
+          if (mounted.current) setStatus("idle");
+          return;
+        }
+        if (activeCapture && !pcmResult) setWavUnavailable(true);
+        setTake({
+          blob: new Blob(chunks, { type }),
+          mimeType: type,
+          durationSec,
+          wav: pcmResult?.wav ?? null,
+        });
+        setElapsedSec(Math.floor(durationSec));
+        setNotice(noticeRef.current);
+        setStatus("stopped");
+      })();
     };
 
     // The OS or another app can take the microphone away mid-recording.
@@ -213,7 +269,7 @@ export function useAudioRecorder() {
         recorderRef.current.stop();
       }
     }, 250);
-  }, [clearTimer, fail, releaseStream, setStatus]);
+  }, [clearTimer, fail, releasePcm, releaseStream, setStatus]);
 
   const stop = useCallback(() => {
     if (statusRef.current === "recording" && recorderRef.current?.state === "recording")
@@ -226,13 +282,14 @@ export function useAudioRecorder() {
     if (recorderRef.current?.state === "recording") recorderRef.current.stop();
     clearTimer();
     releaseStream();
+    releasePcm();
     noticeRef.current = null;
     setTake(null);
     setErrorCode(null);
     setNotice(null);
     setElapsedSec(0);
     setStatus("idle");
-  }, [clearTimer, releaseStream, setStatus]);
+  }, [clearTimer, releasePcm, releaseStream, setStatus]);
 
   useEffect(() => {
     mounted.current = true;
@@ -242,8 +299,9 @@ export function useAudioRecorder() {
       if (recorderRef.current?.state === "recording") recorderRef.current.stop();
       clearTimer();
       releaseStream();
+      releasePcm();
     };
-  }, [clearTimer, releaseStream]);
+  }, [clearTimer, releasePcm, releaseStream]);
 
   // The playback URL is created and revoked by the SAME effect, keyed on the blob. If React tears effects down and
   // re-runs them while keeping state (Fast Refresh, StrictMode, Activity) a fresh URL is made instead of leaving a
@@ -269,6 +327,8 @@ export function useAudioRecorder() {
     start,
     stop,
     discard,
+    /** True when the transcription-ready WAV copy could not be captured on this browser/take. */
+    wavUnavailable,
     supported: isRecordingSupported(),
   };
 }
