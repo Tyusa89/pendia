@@ -64,7 +64,7 @@ function VisitDetail({ me }: { me: Member }) {
               <ArrowRight className="size-5 text-primary" />
               <span className="rounded-lg bg-accent px-3 py-1 font-semibold">{c.after}</span>
             </div>
-            <p className="mt-2 text-sm text-muted-foreground">Heard at {c.source_timestamp} · {c.speaker_label}</p>
+            <p className="mt-2 text-sm text-muted-foreground">Heard at {c.source_seconds != null ? `${Math.floor(c.source_seconds / 60)}:${String(Math.round(c.source_seconds % 60)).padStart(2, "0")}` : "—"} · {c.speaker_label}</p>
             {c.status === "pending" ? (
               <Button variant="success" className="mt-4 w-full" disabled={confirm.isPending} onClick={() => confirm.mutate(c.id)}>
                 <Check /> Confirm this change
