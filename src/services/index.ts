@@ -1,0 +1,144 @@
+// Service layer: every Lovable Cloud call goes through here so features can grow incrementally.
+import { supabase } from "@/integrations/supabase/client";
+import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
+
+export type Family = Tables<"family">;
+export type Member = Tables<"member">;
+export type CareRecipient = Tables<"care_recipient">;
+export type Visit = Tables<"visit">;
+export type Medication = Tables<"medication">;
+export type MedChange = Tables<"med_change">;
+export type Task = Tables<"task">;
+export type WatchItem = Tables<"watch_item">;
+export type Shift = Tables<"shift">;
+export type Handoff = Tables<"handoff">;
+export type Digest = Tables<"digest">;
+export type TranscriptLine = { speaker: string; t: string; text: string };
+
+function ok<T>(res: { data: T; error: { message: string } | null }): NonNullable<T> {
+  if (res.error) throw new Error(res.error.message);
+  return res.data as NonNullable<T>;
+}
+
+// ---------- Auth ----------
+export const authService = {
+  async currentUserId() {
+    const { data } = await supabase.auth.getUser();
+    return data.user?.id ?? null;
+  },
+  signIn: (email: string, password: string) => supabase.auth.signInWithPassword({ email, password }),
+  signUp: (email: string, password: string) =>
+    supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin } }),
+  signOut: () => supabase.auth.signOut(),
+};
+
+// ---------- Family ----------
+export const familyService = {
+  /** The user's family (first membership), or null. */
+  async getMyFamily(): Promise<{ family: Family; me: Member } | null> {
+    const uid = await authService.currentUserId();
+    if (!uid) return null;
+    const rows = ok(
+      await supabase.from("member").select("*, family(*)").eq("user_id", uid).order("created_at").limit(1),
+    );
+    const row = rows[0] as (Member & { family: Family }) | undefined;
+    if (!row) return null;
+    const { family, ...me } = row;
+    return { family, me };
+  },
+  async createFamily(name: string, myName: string) {
+    const uid = await authService.currentUserId();
+    if (!uid) throw new Error("Not signed in");
+    const fam = ok(await supabase.from("family").insert({ name, created_by: uid }).select().single()) as Family;
+    ok(await supabase.from("member").insert({ family_id: fam.id, user_id: uid, name: myName, role: "organizer" }));
+    return fam;
+  },
+  async joinDemo() {
+    return ok(await supabase.rpc("join_demo_family"));
+  },
+  async listMembers(familyId: string) {
+    return ok(await supabase.from("member").select("*").eq("family_id", familyId).order("created_at"));
+  },
+  async addMember(m: TablesInsert<"member">) {
+    return ok(await supabase.from("member").insert(m).select().single());
+  },
+  async updateMember(id: string, patch: TablesUpdate<"member">) {
+    return ok(await supabase.from("member").update(patch).eq("id", id).select().single());
+  },
+  async getRecipient(familyId: string) {
+    const rows = ok(await supabase.from("care_recipient").select("*").eq("family_id", familyId).limit(1));
+    return rows[0] ?? null;
+  },
+  async saveRecipient(familyId: string, name: string, notes: string, id?: string) {
+    if (id) return ok(await supabase.from("care_recipient").update({ name, notes }).eq("id", id).select().single());
+    return ok(await supabase.from("care_recipient").insert({ family_id: familyId, name, notes }).select().single());
+  },
+};
+
+// ---------- Visits ----------
+export const visitService = {
+  async list(familyId: string) {
+    return ok(await supabase.from("visit").select("*").eq("family_id", familyId).order("date", { ascending: false }));
+  },
+  async get(id: string) {
+    const visit = ok(await supabase.from("visit").select("*").eq("id", id).single()) as Visit;
+    const [changes, tasks, watch] = await Promise.all([
+      supabase.from("med_change").select("*").eq("visit_id", id).order("created_at"),
+      supabase.from("task").select("*").eq("source_visit_id", id).order("due_date"),
+      supabase.from("watch_item").select("*").eq("source_visit_id", id).order("created_at"),
+    ]);
+    return { visit, changes: ok(changes), tasks: ok(tasks), watch: ok(watch) };
+  },
+  async confirmChange(id: string, memberId: string) {
+    return ok(
+      await supabase.from("med_change").update({ status: "confirmed", confirmed_by: memberId }).eq("id", id).select().single(),
+    );
+  },
+};
+
+// ---------- Medications ----------
+export const medicationService = {
+  async list(familyId: string) {
+    return ok(await supabase.from("medication").select("*").eq("family_id", familyId).order("name"));
+  },
+  async add(m: TablesInsert<"medication">) {
+    return ok(await supabase.from("medication").insert(m).select().single());
+  },
+};
+
+// ---------- Coverage ----------
+export const shiftService = {
+  async listRange(familyId: string, fromIso: string, toIso: string) {
+    return ok(
+      await supabase.from("shift").select("*").eq("family_id", familyId).gte("start", fromIso).lt("start", toIso).order("start"),
+    );
+  },
+  async claim(id: string, memberId: string) {
+    return ok(
+      await supabase.from("shift").update({ assigned_member_id: memberId, status: "claimed" }).eq("id", id).select().single(),
+    );
+  },
+};
+
+// ---------- Handoffs ----------
+export const handoffService = {
+  async list(familyId: string) {
+    return ok(await supabase.from("handoff").select("*").eq("family_id", familyId).order("created_at", { ascending: false }));
+  },
+  async create(h: TablesInsert<"handoff">) {
+    return ok(await supabase.from("handoff").insert(h).select().single());
+  },
+  async activeWatchItems(familyId: string) {
+    const today = new Date().toISOString().slice(0, 10);
+    return ok(
+      await supabase.from("watch_item").select("*").eq("family_id", familyId).or(`ends_on.is.null,ends_on.gte.${today}`),
+    );
+  },
+};
+
+// ---------- Digest ----------
+export const digestService = {
+  async latest(familyId: string) {
+    return ok(await supabase.from("digest").select("*").eq("family_id", familyId).order("week", { ascending: false }).limit(10));
+  },
+};

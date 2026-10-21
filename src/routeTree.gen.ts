@@ -10,33 +10,143 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedCoverageRouteImport } from './routes/_authenticated/coverage'
+import { Route as AuthenticatedDigestRouteImport } from './routes/_authenticated/digest'
+import { Route as AuthenticatedFamilyRouteImport } from './routes/_authenticated/family'
+import { Route as AuthenticatedHandoffsRouteImport } from './routes/_authenticated/handoffs'
+import { Route as AuthenticatedMedsRouteImport } from './routes/_authenticated/meds'
+import { Route as AuthenticatedVisitsIndexRouteImport } from './routes/_authenticated/visits.index'
+import { Route as AuthenticatedVisitsIdRouteImport } from './routes/_authenticated/visits.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedCoverageRoute = AuthenticatedCoverageRouteImport.update({
+  id: '/coverage',
+  path: '/coverage',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDigestRoute = AuthenticatedDigestRouteImport.update({
+  id: '/digest',
+  path: '/digest',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedFamilyRoute = AuthenticatedFamilyRouteImport.update({
+  id: '/family',
+  path: '/family',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedHandoffsRoute = AuthenticatedHandoffsRouteImport.update({
+  id: '/handoffs',
+  path: '/handoffs',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMedsRoute = AuthenticatedMedsRouteImport.update({
+  id: '/meds',
+  path: '/meds',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedVisitsIndexRoute =
+  AuthenticatedVisitsIndexRouteImport.update({
+    id: '/visits/',
+    path: '/visits/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedVisitsIdRoute = AuthenticatedVisitsIdRouteImport.update({
+  id: '/visits/$id',
+  path: '/visits/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/coverage': typeof AuthenticatedCoverageRoute
+  '/digest': typeof AuthenticatedDigestRoute
+  '/family': typeof AuthenticatedFamilyRoute
+  '/handoffs': typeof AuthenticatedHandoffsRoute
+  '/meds': typeof AuthenticatedMedsRoute
+  '/visits/$id': typeof AuthenticatedVisitsIdRoute
+  '/visits/': typeof AuthenticatedVisitsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/coverage': typeof AuthenticatedCoverageRoute
+  '/digest': typeof AuthenticatedDigestRoute
+  '/family': typeof AuthenticatedFamilyRoute
+  '/handoffs': typeof AuthenticatedHandoffsRoute
+  '/meds': typeof AuthenticatedMedsRoute
+  '/visits/$id': typeof AuthenticatedVisitsIdRoute
+  '/visits': typeof AuthenticatedVisitsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/_authenticated/coverage': typeof AuthenticatedCoverageRoute
+  '/_authenticated/digest': typeof AuthenticatedDigestRoute
+  '/_authenticated/family': typeof AuthenticatedFamilyRoute
+  '/_authenticated/handoffs': typeof AuthenticatedHandoffsRoute
+  '/_authenticated/meds': typeof AuthenticatedMedsRoute
+  '/_authenticated/visits/$id': typeof AuthenticatedVisitsIdRoute
+  '/_authenticated/visits/': typeof AuthenticatedVisitsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/coverage'
+    | '/digest'
+    | '/family'
+    | '/handoffs'
+    | '/meds'
+    | '/visits/$id'
+    | '/visits/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/coverage'
+    | '/digest'
+    | '/family'
+    | '/handoffs'
+    | '/meds'
+    | '/visits/$id'
+    | '/visits'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/_authenticated/coverage'
+    | '/_authenticated/digest'
+    | '/_authenticated/family'
+    | '/_authenticated/handoffs'
+    | '/_authenticated/meds'
+    | '/_authenticated/visits/$id'
+    | '/_authenticated/visits/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +158,99 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/coverage': {
+      id: '/_authenticated/coverage'
+      path: '/coverage'
+      fullPath: '/coverage'
+      preLoaderRoute: typeof AuthenticatedCoverageRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/digest': {
+      id: '/_authenticated/digest'
+      path: '/digest'
+      fullPath: '/digest'
+      preLoaderRoute: typeof AuthenticatedDigestRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/family': {
+      id: '/_authenticated/family'
+      path: '/family'
+      fullPath: '/family'
+      preLoaderRoute: typeof AuthenticatedFamilyRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/handoffs': {
+      id: '/_authenticated/handoffs'
+      path: '/handoffs'
+      fullPath: '/handoffs'
+      preLoaderRoute: typeof AuthenticatedHandoffsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/meds': {
+      id: '/_authenticated/meds'
+      path: '/meds'
+      fullPath: '/meds'
+      preLoaderRoute: typeof AuthenticatedMedsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/visits/': {
+      id: '/_authenticated/visits/'
+      path: '/visits'
+      fullPath: '/visits/'
+      preLoaderRoute: typeof AuthenticatedVisitsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/visits/$id': {
+      id: '/_authenticated/visits/$id'
+      path: '/visits/$id'
+      fullPath: '/visits/$id'
+      preLoaderRoute: typeof AuthenticatedVisitsIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedCoverageRoute: typeof AuthenticatedCoverageRoute
+  AuthenticatedDigestRoute: typeof AuthenticatedDigestRoute
+  AuthenticatedFamilyRoute: typeof AuthenticatedFamilyRoute
+  AuthenticatedHandoffsRoute: typeof AuthenticatedHandoffsRoute
+  AuthenticatedMedsRoute: typeof AuthenticatedMedsRoute
+  AuthenticatedVisitsIdRoute: typeof AuthenticatedVisitsIdRoute
+  AuthenticatedVisitsIndexRoute: typeof AuthenticatedVisitsIndexRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedCoverageRoute: AuthenticatedCoverageRoute,
+  AuthenticatedDigestRoute: AuthenticatedDigestRoute,
+  AuthenticatedFamilyRoute: AuthenticatedFamilyRoute,
+  AuthenticatedHandoffsRoute: AuthenticatedHandoffsRoute,
+  AuthenticatedMedsRoute: AuthenticatedMedsRoute,
+  AuthenticatedVisitsIdRoute: AuthenticatedVisitsIdRoute,
+  AuthenticatedVisitsIndexRoute: AuthenticatedVisitsIndexRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
