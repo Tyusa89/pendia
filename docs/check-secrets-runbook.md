@@ -25,6 +25,10 @@ It returns booleans only, never logs, and never calls Meta. It is deleted after 
 
 Every response carries `x-fn-version`, so a deploy can be confirmed with an unauthenticated GET.
 
+## Pinned key
+Pinned in `pinned-key.ts` (kid `72b5e943-b371-428c-83df-c19f302cb328`, ES256 / P-256, no `d`), read once from the
+project's published signing key; no runtime JWKS fetching. Tests assert it imports as a usable ES256 key.
+
 ## Getting the pinned key (public, safe to paste into chat)
 From your own machine (the sandbox cannot reach your project):
 ```powershell
@@ -38,8 +42,10 @@ is `ES256` (fields `kty, crv, x, y, kid`). It must NOT contain `d`. Then confirm
 ```sh
 deno test --allow-env supabase/functions/check-secrets/handler.test.ts
 ```
-(`jose@5.9.6` is a devDependency, so Deno resolves it from the project's node_modules. The original
-`--no-config --node-modules-dir=none` invocation also works once the package is cached.)
+(`jose@5.9.6` is a devDependency, so Deno resolves it from the project's `node_modules`. **Prerequisite: run
+`bun install` first**; without it this form fails with "Could not find jose in a node_modules folder". The isolated
+form `deno test --no-config --node-modules-dir=none --allow-env <file>` has no such prerequisite. Both forms were
+run against the same 19 tests and agree.)
 Covers: 405 / 410 closed-window (even with a perfect token) / window boundary; missing, garbage, tampered,
 foreign-key, wrong-kid, HS256 alg-confusion, wrong issuer/audience/role, expired, no-`sub` tokens; 403 for another
 user; 200 booleans-only with a sentinel secret that must never appear in the response; missing/blank secret →
