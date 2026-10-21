@@ -475,56 +475,92 @@ export type Database = {
       }
       visit: {
         Row: {
+          archived_at: string | null
           audio_path: string | null
           audio_url: string | null
+          confirmation_status: string
           consent_at: string | null
           consent_by: string | null
           consent_text: string | null
           created_at: string
           date: string
-          doctor: string
+          doctor: string | null
           duration_seconds: number | null
           family_id: string
           id: string
+          notes: string | null
+          office_address: string | null
+          office_name: string | null
+          office_phone: string | null
+          provider_name: string | null
+          reason: string | null
+          reminder_prefs: Json
+          scheduled_end: string | null
+          scheduled_start: string | null
           speaker_map: Json
           speaker_map_confirmed_at: string | null
           speaker_map_confirmed_by: string | null
+          status: string
           summary: string | null
           transcript: Json
         }
         Insert: {
+          archived_at?: string | null
           audio_path?: string | null
           audio_url?: string | null
+          confirmation_status?: string
           consent_at?: string | null
           consent_by?: string | null
           consent_text?: string | null
           created_at?: string
           date: string
-          doctor: string
+          doctor?: string | null
           duration_seconds?: number | null
           family_id: string
           id?: string
+          notes?: string | null
+          office_address?: string | null
+          office_name?: string | null
+          office_phone?: string | null
+          provider_name?: string | null
+          reason?: string | null
+          reminder_prefs?: Json
+          scheduled_end?: string | null
+          scheduled_start?: string | null
           speaker_map?: Json
           speaker_map_confirmed_at?: string | null
           speaker_map_confirmed_by?: string | null
+          status?: string
           summary?: string | null
           transcript?: Json
         }
         Update: {
+          archived_at?: string | null
           audio_path?: string | null
           audio_url?: string | null
+          confirmation_status?: string
           consent_at?: string | null
           consent_by?: string | null
           consent_text?: string | null
           created_at?: string
           date?: string
-          doctor?: string
+          doctor?: string | null
           duration_seconds?: number | null
           family_id?: string
           id?: string
+          notes?: string | null
+          office_address?: string | null
+          office_name?: string | null
+          office_phone?: string | null
+          provider_name?: string | null
+          reason?: string | null
+          reminder_prefs?: Json
+          scheduled_end?: string | null
+          scheduled_start?: string | null
           speaker_map?: Json
           speaker_map_confirmed_at?: string | null
           speaker_map_confirmed_by?: string | null
+          status?: string
           summary?: string | null
           transcript?: Json
         }

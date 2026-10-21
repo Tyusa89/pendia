@@ -4,20 +4,23 @@ import { ArrowLeft, ArrowRight, Check, Eye, Mic } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Empty, Panel, WithFamily } from "@/components/AppShell";
+import { AppointmentSummary } from "@/components/AppointmentSummary";
 import { useMembers } from "@/hooks/use-family";
+import { findOverlaps } from "@/lib/appointments";
 import { formatTimestamp } from "@/lib/format";
 import { visitService, type Member, type TranscriptLine } from "@/services";
 
 export const Route = createFileRoute("/_authenticated/visits/$id")({
   head: () => ({ meta: [{ title: "Visit details — Pendia" }, { name: "description", content: "Summary, medication changes and tasks from a doctor visit." }] }),
-  component: () => <WithFamily>{({ me }) => <VisitDetail me={me} />}</WithFamily>,
+  component: () => <WithFamily>{({ me, family }) => <VisitDetail me={me} timeZone={family.timezone} />}</WithFamily>,
 });
 
-function VisitDetail({ me }: { me: Member }) {
+function VisitDetail({ me, timeZone }: { me: Member; timeZone: string }) {
   const { id } = Route.useParams();
   const qc = useQueryClient();
   const { data } = useQuery({ queryKey: ["visit", id], queryFn: () => visitService.get(id) });
   const { data: members = [] } = useMembers(me.family_id);
+  const { data: allVisits = [] } = useQuery({ queryKey: ["visits", me.family_id], queryFn: () => visitService.list(me.family_id) });
   const nameOf = (mid: string | null) => members.find((m) => m.id === mid)?.name ?? "Unassigned";
   const confirm = useMutation({
     mutationFn: (cid: string) => visitService.confirmChange(cid),
@@ -35,8 +38,15 @@ function VisitDetail({ me }: { me: Member }) {
         <p className="text-sm font-semibold uppercase tracking-wide text-primary">
           {new Date(visit.date + "T12:00").toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
         </p>
-        <h1 className="mt-1 text-3xl font-semibold">{visit.doctor}</h1>
+        <h1 className="mt-1 text-3xl font-semibold">{visit.provider_name?.trim() || visit.doctor?.trim() || "Appointment"}</h1>
       </div>
+
+      <AppointmentSummary
+        visit={visit}
+        timeZone={timeZone}
+        canWrite={me.role === "organizer"}
+        overlapCount={findOverlaps(allVisits).get(visit.id)?.length ?? 0}
+      />
 
       <Panel>
         <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold"><Mic className="size-5 text-primary" /> Recording</h2>

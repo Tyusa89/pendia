@@ -19,6 +19,8 @@ import { Route as AuthenticatedHandoffsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedMedsRouteImport } from './routes/_authenticated/meds'
 import { Route as AuthenticatedVisitsIndexRouteImport } from './routes/_authenticated/visits.index'
 import { Route as AuthenticatedVisitsIdRouteImport } from './routes/_authenticated/visits.$id'
+import { Route as AuthenticatedVisitsNewRouteImport } from './routes/_authenticated/visits.new'
+import { Route as AuthenticatedVisitsEditIdRouteImport } from './routes/_authenticated/visits.edit.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -70,6 +72,17 @@ const AuthenticatedVisitsIdRoute = AuthenticatedVisitsIdRouteImport.update({
   path: '/visits/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedVisitsNewRoute = AuthenticatedVisitsNewRouteImport.update({
+  id: '/visits/new',
+  path: '/visits/new',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedVisitsEditIdRoute =
+  AuthenticatedVisitsEditIdRouteImport.update({
+    id: '/visits/edit/$id',
+    path: '/visits/edit/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -80,7 +93,9 @@ export interface FileRoutesByFullPath {
   '/handoffs': typeof AuthenticatedHandoffsRoute
   '/meds': typeof AuthenticatedMedsRoute
   '/visits/$id': typeof AuthenticatedVisitsIdRoute
+  '/visits/new': typeof AuthenticatedVisitsNewRoute
   '/visits/': typeof AuthenticatedVisitsIndexRoute
+  '/visits/edit/$id': typeof AuthenticatedVisitsEditIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -91,7 +106,9 @@ export interface FileRoutesByTo {
   '/handoffs': typeof AuthenticatedHandoffsRoute
   '/meds': typeof AuthenticatedMedsRoute
   '/visits/$id': typeof AuthenticatedVisitsIdRoute
+  '/visits/new': typeof AuthenticatedVisitsNewRoute
   '/visits': typeof AuthenticatedVisitsIndexRoute
+  '/visits/edit/$id': typeof AuthenticatedVisitsEditIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -104,7 +121,9 @@ export interface FileRoutesById {
   '/_authenticated/handoffs': typeof AuthenticatedHandoffsRoute
   '/_authenticated/meds': typeof AuthenticatedMedsRoute
   '/_authenticated/visits/$id': typeof AuthenticatedVisitsIdRoute
+  '/_authenticated/visits/new': typeof AuthenticatedVisitsNewRoute
   '/_authenticated/visits/': typeof AuthenticatedVisitsIndexRoute
+  '/_authenticated/visits/edit/$id': typeof AuthenticatedVisitsEditIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -117,7 +136,9 @@ export interface FileRouteTypes {
     | '/handoffs'
     | '/meds'
     | '/visits/$id'
+    | '/visits/new'
     | '/visits/'
+    | '/visits/edit/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -128,7 +149,9 @@ export interface FileRouteTypes {
     | '/handoffs'
     | '/meds'
     | '/visits/$id'
+    | '/visits/new'
     | '/visits'
+    | '/visits/edit/$id'
   id:
     | '__root__'
     | '/'
@@ -140,7 +163,9 @@ export interface FileRouteTypes {
     | '/_authenticated/handoffs'
     | '/_authenticated/meds'
     | '/_authenticated/visits/$id'
+    | '/_authenticated/visits/new'
     | '/_authenticated/visits/'
+    | '/_authenticated/visits/edit/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -221,6 +246,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedVisitsIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/visits/new': {
+      id: '/_authenticated/visits/new'
+      path: '/visits/new'
+      fullPath: '/visits/new'
+      preLoaderRoute: typeof AuthenticatedVisitsNewRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/visits/edit/$id': {
+      id: '/_authenticated/visits/edit/$id'
+      path: '/visits/edit/$id'
+      fullPath: '/visits/edit/$id'
+      preLoaderRoute: typeof AuthenticatedVisitsEditIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -231,7 +270,9 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedHandoffsRoute: typeof AuthenticatedHandoffsRoute
   AuthenticatedMedsRoute: typeof AuthenticatedMedsRoute
   AuthenticatedVisitsIdRoute: typeof AuthenticatedVisitsIdRoute
+  AuthenticatedVisitsNewRoute: typeof AuthenticatedVisitsNewRoute
   AuthenticatedVisitsIndexRoute: typeof AuthenticatedVisitsIndexRoute
+  AuthenticatedVisitsEditIdRoute: typeof AuthenticatedVisitsEditIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -241,7 +282,9 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedHandoffsRoute: AuthenticatedHandoffsRoute,
   AuthenticatedMedsRoute: AuthenticatedMedsRoute,
   AuthenticatedVisitsIdRoute: AuthenticatedVisitsIdRoute,
+  AuthenticatedVisitsNewRoute: AuthenticatedVisitsNewRoute,
   AuthenticatedVisitsIndexRoute: AuthenticatedVisitsIndexRoute,
+  AuthenticatedVisitsEditIdRoute: AuthenticatedVisitsEditIdRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

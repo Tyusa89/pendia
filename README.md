@@ -130,6 +130,23 @@ evaluating its rule function, not by a raw delete. The storage SQL tests prove t
 API. Real-device (Samsung / iOS Safari) behavior of the worklet capture needs a device test. Synthetic data only: this
 stack is not set up for real patient information (no BAA).
 
+### Appointments (Phase V1)
+
+Visits are now appointments. `visit` gained `provider_name, office_name, office_address, office_phone, scheduled_start,
+scheduled_end, reason, notes, status (scheduled|completed|canceled), confirmation_status (unconfirmed|confirmed),
+reminder_prefs, archived_at`. Existing visits keep every row, transcript, speaker map and consent value; `doctor` is
+kept as a mirror of `provider_name` (trigger `visit_appointment_sync`), and `date` is derived from `scheduled_start`
+in the family's timezone. Organizers write; members read per `can_see_visits` (RLS unchanged).
+
+"Incomplete" (missing provider, address or phone) and "overlaps another appointment" are **computed, never stored**,
+and never block saving. Nothing is ever auto-filled. Routes: `/visits` (Upcoming / Past / Archived), `/visits/new`,
+`/visits/edit/$id`. Tests: `supabase/tests/appointments.test.sql` (same `PASS: N assertions` convention).
+
+**Migration status:** `20261021000004_visit_appointments.sql` is in the repo and was only dry-run in a rolled-back
+transaction. It is **not applied** to the live DB; that needs the owner's separate approval. Until then the live DB
+lacks the new columns. `types.ts`: the `visit` block was hand-edited on top of main (39cb8bd) in generator format,
+not regenerated, because the live DB does not have the migration yet. Regenerate after it is applied.
+
 ### Demo data
 
 Signing in and tapping **Open demo family** calls `join_demo_family()`, which creates a private copy for that
