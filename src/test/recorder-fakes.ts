@@ -79,7 +79,8 @@ export function installRecorderEnv(): RecorderEnv {
   FakeMediaRecorder.reset();
   const stream = new FakeStream();
   const getUserMedia = vi.fn(async () => stream);
-  const createObjectURL = vi.fn(() => `blob:fake-${FakeMediaRecorder.instances.length}`);
+  let urlCounter = 0;
+  const createObjectURL = vi.fn(() => `blob:fake-${++urlCounter}`);
   const revokeObjectURL = vi.fn();
   const fetchSpy = vi.fn(async () => new Response("{}"));
   const prev = {
