@@ -1,2 +1,0 @@
-[functions.check-secrets]
-verify_jwt = false

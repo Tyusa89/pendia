@@ -1,3 +1,6 @@
+> **Status: the probe has been run and removed.** The function, its config block and the run scripts were deleted from
+> the repo and undeployed. This runbook is kept as a record only.
+
 # check-secrets probe: runbook
 
 Throwaway probe that answers one question for one allowlisted user: *can the edge runtime read `META_API_KEY`?*
