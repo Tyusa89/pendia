@@ -81,22 +81,54 @@ for Meta and Twilio are added in Supabase → Edge Functions → Secrets (Phases
 
 ### RLS / integrity tests
 
+`supabase/tests/storage.test.sql` does the same for the recordings bucket and the handoff recording columns.
+
 `supabase/tests/rls.test.sql` is a single `DO` block that builds synthetic families and users, asserts
 isolation, visibility, the confirm guard, and the demo seed, then **always raises** so nothing persists.
 Run it in the Supabase SQL editor (or any SQL client): the error message `PASS: N assertions` means success,
 `FAIL: ...` names the broken assertion.
 
-### Handoff dictation (Handoffs page)
+### Handoff dictation and kept recordings (Handoffs page)
 
 A microphone panel under "Anything unusual?" records a spoken note in the browser (`src/hooks/use-audio-recorder.ts`,
 `src/components/HandoffDictation.tsx`): Record, Stop, playback, Discard, with specific messages for blocked
-permission, no microphone, microphone busy, interruption, and unsupported browsers. Recordings live only in browser
-memory; nothing is saved or uploaded, and the saved handoff payload is unchanged.
+permission, no microphone, microphone busy, interruption, and unsupported browsers. **By default nothing leaves the
+device.** After a recording, an unchecked box "Keep the recording with this handoff" lets the caregiver opt in; only
+then, when they press Save handoff (after a one-time storage notice), is anything uploaded.
+
+**What is kept.** The browser's original recording (for playback) plus a transcription-ready **16 kHz mono 16-bit PCM
+WAV**, captured in parallel from the same microphone stream with an `AudioWorklet` (`public/pcm-worklet.js`,
+`src/lib/pcm-capture.ts`, `src/lib/pcm-wav.ts`). About 19.2 MB per 10 minutes for the WAV; the cap is 10 minutes.
+Saved on the handoff row: `audio_path`, `audio_mime`, `audio_size_bytes`, `audio_wav_path`, `audio_wav_mime`,
+`audio_wav_size_bytes`, `duration_seconds`. Past handoffs show the duration from the database.
+
+**Storage.** One private bucket, `recordings`, path `{family_id}/{entity_type}/{entity_id}/{file}` (`handoff` now,
+`visit` later). Policies on `storage.objects` (all `to authenticated`; the family and entity type are parsed from the
+path by `recording_path_family()` / `recording_path_type()`, and anything that is not
+`uuid/(handoff|visit)/uuid/safe-name` is denied):
+
+| Operation | Rule |
+|---|---|
+| SELECT (also what signed-URL creation checks) | caller belongs to the path's family and may see that entity type: handoff recordings follow schedule visibility, visit recordings follow visits visibility; organizers always |
+| INSERT | caller is an **organizer** of the path's family |
+| UPDATE | same rule on the old AND the new name, so an object can never be moved into another family's folder |
+| DELETE | same rule as INSERT |
+
+**Ordering** (`src/services/recordings.ts`). Save = upload original, upload WAV, write the handoff row (with the
+references), and if anything fails remove what was uploaded (retried; reported honestly if cleanup itself fails). A
+row is only written after its objects exist. Delete = clear the row's references first, then remove the objects
+(a missing object is fine), so a handoff never points at a missing file. Playback and download use a signed URL
+created on demand under the user's own session: 5 minutes by default, never more than 10, never stored. If the
+original will not play, playback retries with a fresh link and then falls back to the WAV copy.
 
 **Transcription is not connected.** `src/services/dictation.ts` defines the `DictationTranscriber` seam and ships an
-unavailable default; no Meta endpoint is called or assumed. Once the real service is verified (Phase 2 spike), implement
-the seam with a Supabase Edge Function. The UI already supports the review-and-edit step: transcribed text appears as an
-editable draft, is added to the note only on "Add to note", and the handoff is still saved with "Save handoff".
+unavailable default; no Meta endpoint is called or assumed. The WAV is stored so a verified service can use it later.
+
+**Known limits.** An upload followed by a closed tab (before the row is written) leaves an unreferenced object until a
+cleanup job exists. Supabase blocks raw `DELETE` on `storage.objects`, so the storage DELETE policy is verified by
+evaluating its rule function, not by a raw delete. The storage SQL tests prove the policy layer, not the HTTP storage
+API. Real-device (Samsung / iOS Safari) behavior of the worklet capture needs a device test. Synthetic data only: this
+stack is not set up for real patient information (no BAA).
 
 ### Demo data
 
