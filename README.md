@@ -86,6 +86,18 @@ isolation, visibility, the confirm guard, and the demo seed, then **always raise
 Run it in the Supabase SQL editor (or any SQL client): the error message `PASS: N assertions` means success,
 `FAIL: ...` names the broken assertion.
 
+### Handoff dictation (Handoffs page)
+
+A microphone panel under "Anything unusual?" records a spoken note in the browser (`src/hooks/use-audio-recorder.ts`,
+`src/components/HandoffDictation.tsx`): Record, Stop, playback, Discard, with specific messages for blocked
+permission, no microphone, microphone busy, interruption, and unsupported browsers. Recordings live only in browser
+memory; nothing is saved or uploaded, and the saved handoff payload is unchanged.
+
+**Transcription is not connected.** `src/services/dictation.ts` defines the `DictationTranscriber` seam and ships an
+unavailable default; no Meta endpoint is called or assumed. Once the real service is verified (Phase 2 spike), implement
+the seam with a Supabase Edge Function. The UI already supports the review-and-edit step: transcribed text appears as an
+editable draft, is added to the note only on "Add to note", and the handoff is still saved with "Save handoff".
+
 ### Demo data
 
 Signing in and tapping **Open demo family** calls `join_demo_family()`, which creates a private copy for that
