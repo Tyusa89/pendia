@@ -83,7 +83,8 @@ export function useAudioRecorder() {
   const [status, setStatusState] = useState<RecorderStatus>("idle");
   const [errorCode, setErrorCode] = useState<RecorderErrorCode | null>(null);
   const [notice, setNotice] = useState<RecorderNotice | null>(null);
-  const [audio, setAudio] = useState<RecordedAudio | null>(null);
+  const [take, setTake] = useState<Omit<RecordedAudio, "url"> | null>(null);
+  const [url, setUrl] = useState<string | null>(null);
   const [elapsedSec, setElapsedSec] = useState(0);
 
   const statusRef = useRef<RecorderStatus>("idle");
@@ -93,7 +94,6 @@ export function useAudioRecorder() {
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startedAtRef = useRef(0);
-  const urlRef = useRef<string | null>(null);
   const discardRef = useRef(false);
   const noticeRef = useRef<RecorderNotice | null>(null);
 
@@ -114,11 +114,6 @@ export function useAudioRecorder() {
     streamRef.current = null;
   }, []);
 
-  const revokeUrl = useCallback(() => {
-    if (urlRef.current) URL.revokeObjectURL(urlRef.current);
-    urlRef.current = null;
-  }, []);
-
   const fail = useCallback(
     (code: RecorderErrorCode) => {
       clearTimer();
@@ -133,10 +128,9 @@ export function useAudioRecorder() {
 
   const start = useCallback(async () => {
     if (statusRef.current === "requesting" || statusRef.current === "recording") return;
-    revokeUrl();
     discardRef.current = false;
     noticeRef.current = null;
-    setAudio(null);
+    setTake(null);
     setErrorCode(null);
     setNotice(null);
     setElapsedSec(0);
@@ -185,10 +179,7 @@ export function useAudioRecorder() {
         return;
       }
       if (!chunks.some((c) => c.size > 0)) return fail("failed");
-      const blob = new Blob(chunks, { type });
-      const url = URL.createObjectURL(blob);
-      urlRef.current = url;
-      setAudio({ blob, url, mimeType: type, durationSec });
+      setTake({ blob: new Blob(chunks, { type }), mimeType: type, durationSec });
       setElapsedSec(Math.floor(durationSec));
       setNotice(noticeRef.current);
       setStatus("stopped");
@@ -206,7 +197,10 @@ export function useAudioRecorder() {
 
     startedAtRef.current = Date.now();
     try {
-      recorder.start(1000); // timeslice: partial audio survives an interruption
+      // No timeslice: a streaming-mode (start(ms)) recording has no duration metadata (audio.duration = Infinity,
+      // the player shows 0:00 and some Android browsers refuse to play it). Without it the browser finalizes the file
+      // on stop(), and stop() is also what we call on interruption, so partial audio is still kept.
+      recorder.start();
     } catch {
       return fail("failed");
     }
@@ -219,7 +213,7 @@ export function useAudioRecorder() {
         recorderRef.current.stop();
       }
     }, 250);
-  }, [clearTimer, fail, releaseStream, revokeUrl, setStatus]);
+  }, [clearTimer, fail, releaseStream, setStatus]);
 
   const stop = useCallback(() => {
     if (statusRef.current === "recording" && recorderRef.current?.state === "recording")
@@ -232,14 +226,13 @@ export function useAudioRecorder() {
     if (recorderRef.current?.state === "recording") recorderRef.current.stop();
     clearTimer();
     releaseStream();
-    revokeUrl();
     noticeRef.current = null;
-    setAudio(null);
+    setTake(null);
     setErrorCode(null);
     setNotice(null);
     setElapsedSec(0);
     setStatus("idle");
-  }, [clearTimer, releaseStream, revokeUrl, setStatus]);
+  }, [clearTimer, releaseStream, setStatus]);
 
   useEffect(() => {
     mounted.current = true;
@@ -249,9 +242,23 @@ export function useAudioRecorder() {
       if (recorderRef.current?.state === "recording") recorderRef.current.stop();
       clearTimer();
       releaseStream();
-      revokeUrl();
     };
-  }, [clearTimer, releaseStream, revokeUrl]);
+  }, [clearTimer, releaseStream]);
+
+  // The playback URL is created and revoked by the SAME effect, keyed on the blob. If React tears effects down and
+  // re-runs them while keeping state (Fast Refresh, StrictMode, Activity) a fresh URL is made instead of leaving a
+  // revoked one in the player. The recording itself never leaves this device.
+  useEffect(() => {
+    if (!take) {
+      setUrl(null);
+      return;
+    }
+    const objectUrl = URL.createObjectURL(take.blob);
+    setUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [take]);
+
+  const audio: RecordedAudio | null = take && url ? { ...take, url } : null;
 
   return {
     status,

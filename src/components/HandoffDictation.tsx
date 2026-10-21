@@ -27,6 +27,7 @@ export function HandoffDictation({ onAccept, transcriber = dictationTranscriber 
   const [transcribeError, setTranscribeError] = useState<string | null>(null);
   const [draft, setDraft] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
@@ -149,7 +150,15 @@ export function HandoffDictation({ onAccept, transcriber = dictationTranscriber 
             src={rec.audio.url}
             aria-label="Playback of your recording"
             className="w-full"
+            onError={() => setFailedUrl(rec.audio?.url ?? null)}
           />
+          {failedUrl === rec.audio.url && (
+            <p role="alert" className="rounded-xl bg-warning p-3 text-warning-foreground">
+              This device couldn't play the recording back ({rec.audio.mimeType.split(";")[0]},{" "}
+              {Math.max(1, Math.round(rec.audio.blob.size / 1024))} KB). Tap Record again, or type
+              your note instead.
+            </p>
+          )}
           <p className="text-sm text-muted-foreground">
             Recorded {formatTimestamp(rec.audio.durationSec)}
           </p>
