@@ -56,35 +56,35 @@
 
 :root {
   --radius: 0.875rem;
-  /* Warm linen + terracotta + sage */
-  --background: oklch(0.975 0.012 75);
-  --foreground: oklch(0.24 0.03 45);
-  --card: oklch(0.995 0.006 80);
-  --card-foreground: oklch(0.24 0.03 45);
-  --popover: oklch(0.995 0.006 80);
-  --popover-foreground: oklch(0.24 0.03 45);
-  --primary: oklch(0.56 0.13 40);
-  --primary-foreground: oklch(0.99 0.01 80);
-  --secondary: oklch(0.93 0.03 140);
-  --secondary-foreground: oklch(0.3 0.05 145);
-  --muted: oklch(0.945 0.015 75);
-  --muted-foreground: oklch(0.45 0.03 50);
-  --accent: oklch(0.93 0.035 60);
-  --accent-foreground: oklch(0.3 0.05 45);
-  --destructive: oklch(0.55 0.2 27);
+  /* Soft Harmony: dusty blue + muted purple + sage on warm beige */
+  --background: oklch(0.945 0.02 85); /* warm beige #F5EFE6 */
+  --foreground: oklch(0.3 0.03 235); /* deep slate #263746 */
+  --card: oklch(1 0 0); /* white */
+  --card-foreground: oklch(0.3 0.03 235);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.3 0.03 235);
+  --primary: oklch(0.52 0.062 240); /* dusty blue #617F9B, darkened for AA white text */
+  --primary-foreground: oklch(0.99 0.005 240);
+  --secondary: oklch(0.86 0.045 155); /* muted sage tint, supportive surfaces */
+  --secondary-foreground: oklch(0.32 0.04 160);
+  --muted: oklch(0.91 0.02 300); /* soft lavender #E6E0EB */
+  --muted-foreground: oklch(0.42 0.03 235); /* slate, AA on lavender */
+  --accent: oklch(0.88 0.03 310); /* muted purple tint, selected states */
+  --accent-foreground: oklch(0.4 0.06 310); /* muted purple #827397 darkened */
+  --destructive: oklch(0.5 0.16 27);
   --destructive-foreground: oklch(0.99 0 0);
-  --success: oklch(0.52 0.1 150);
+  --success: oklch(0.5 0.07 155); /* sage, darkened for AA white text */
   --success-foreground: oklch(0.99 0.01 150);
-  --warning: oklch(0.8 0.13 80);
-  --warning-foreground: oklch(0.3 0.06 60);
-  --unassigned: oklch(0.93 0.06 25);
-  --unassigned-foreground: oklch(0.45 0.19 27);
-  --border: oklch(0.89 0.02 70);
-  --input: oklch(0.86 0.025 70);
-  --ring: oklch(0.56 0.13 40);
+  --warning: oklch(0.82 0.1 85);
+  --warning-foreground: oklch(0.32 0.05 70);
+  --unassigned: oklch(0.91 0.035 310); /* lavender surface for open items */
+  --unassigned-foreground: oklch(0.42 0.08 310); /* muted purple text, AA */
+  --border: oklch(0.87 0.015 250);
+  --input: oklch(0.84 0.02 250);
+  --ring: oklch(0.52 0.062 240);
   --shadow-warm: 0 6px 20px -8px color-mix(in oklab, var(--primary) 45%, transparent);
   --shadow-card: 0 1px 2px color-mix(in oklab, var(--foreground) 6%, transparent), 0 8px 24px -16px color-mix(in oklab, var(--foreground) 20%, transparent);
-  --gradient-hero: linear-gradient(160deg, oklch(0.93 0.05 55), oklch(0.96 0.03 120));
+  --gradient-hero: linear-gradient(160deg, oklch(0.91 0.02 300), oklch(0.9 0.035 155));
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
