@@ -46,7 +46,7 @@ function Card({
       <Link
         to="/visits/$id"
         params={{ id: a.id }}
-        className="block rounded-2xl border bg-card p-5 shadow-card"
+        className="block rounded-[1.25rem] bg-card p-[1.125rem] shadow-card"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -111,7 +111,7 @@ export function AppointmentList({
     items.length === 0 ? (
       <Empty>{empty}</Empty>
     ) : (
-      <ul className="space-y-3">
+      <ul className="grid gap-3 md:grid-cols-2">
         {items.map((a) => (
           <Card
             key={a.id}
@@ -133,10 +133,25 @@ export function AppointmentList({
         </Button>
       )}
       <Tabs defaultValue="upcoming">
-        <TabsList className="mb-4 grid w-full grid-cols-3">
-          <TabsTrigger value="upcoming">Upcoming ({views.upcoming.length})</TabsTrigger>
-          <TabsTrigger value="past">Past ({views.past.length})</TabsTrigger>
-          <TabsTrigger value="archived">Archived ({views.archived.length})</TabsTrigger>
+        <TabsList className="mb-4 grid h-auto w-full grid-cols-3">
+          <TabsTrigger
+            value="upcoming"
+            className="px-1 text-[0.9412rem] leading-tight whitespace-normal"
+          >
+            Upcoming ({views.upcoming.length})
+          </TabsTrigger>
+          <TabsTrigger
+            value="past"
+            className="px-1 text-[0.9412rem] leading-tight whitespace-normal"
+          >
+            Past ({views.past.length})
+          </TabsTrigger>
+          <TabsTrigger
+            value="archived"
+            className="px-1 text-[0.9412rem] leading-tight whitespace-normal"
+          >
+            Archived ({views.archived.length})
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="upcoming">
           {list(

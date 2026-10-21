@@ -33,7 +33,7 @@ function VisitDetail({ me, timeZone }: { me: Member; timeZone: string }) {
 
   return (
     <div className="space-y-6">
-      <Link to="/visits" className="inline-flex items-center gap-2 font-medium text-primary"><ArrowLeft className="size-5" /> All visits</Link>
+      <Link to="/visits" className="-ml-1 inline-flex min-h-11 items-center gap-2 font-semibold text-primary"><ArrowLeft className="size-5" /> All visits</Link>
       <div>
         <p className="text-sm font-semibold uppercase tracking-wide text-primary">
           {new Date(visit.date + "T12:00").toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}

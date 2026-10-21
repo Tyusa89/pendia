@@ -147,6 +147,26 @@ a rolled-back dry-run. Afterwards the appointments suite (44 assertions) and the
 schema. `types.ts`: the `visit` block was written by hand in generator format and checked column-by-column (name, type,
 nullability, default) against the live schema; it matches. Lovable's own regeneration may replace it, which is fine.
 
+### Interface (phone first)
+
+The Claude Design canvas is the visual reference; the app already used its tokens (warm beige, deep slate, dusty blue, sage,
+lavender; Fraunces + Figtree), so this is a layout and touch-target pass, not a re-skin.
+
+- **Shell** (`src/components/AppShell.tsx`): a fixed bottom tab bar with the same six tabs at every phone and tablet width
+  (56 px targets, honors the iPhone home-indicator inset, compact in landscape, two rows of three at very large text); from
+  1024 px the same six become a left sidebar. Content is capped at 66 rem. Text is rem-based (`html` is 106.25%), so it follows
+  the phone's text-size setting.
+- **No sideways scrolling** at 320 px and up on any screen; buttons, inputs, tabs and switches are 44 px or larger. Coverage is a
+  compact week grid on phones (initials) with a large **Cover it** list underneath, and first names from 768 px.
+- **Family** opens with a greeting, who you are caring for, and "at a glance" tiles (next visit, open coverage blocks, latest
+  handoff) built only from existing data and only for what that person may see.
+- **Optional AI assistant:** `src/lib/features.ts` has `assistant: false`. The shell reserves its place (a button in the top bar
+  and the sidebar) and renders nothing while it is off. There is no AI call, integration or route behind it; the app is complete
+  without it.
+- Not built from the design (new features, awaiting approval): Preferences, Ask Pendia, "Questions to ask", "Today's meds /
+  Mark given", "I'll cover it / Ask the family" requests, "I'll take her", and the drafted-from-voice handoff text (all marked
+  "Proposed" in the design).
+
 ### Demo data
 
 Signing in and tapping **Open demo family** calls `join_demo_family()`, which creates a private copy for that

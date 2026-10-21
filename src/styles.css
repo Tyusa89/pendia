@@ -56,6 +56,8 @@
 
 :root {
   --radius: 0.875rem;
+  --nav-h: 4.25rem; /* bottom tab bar height, content reserves this much room */
+  --side-w: 15rem; /* desktop sidebar width */
   /* Soft Harmony: dusty blue + muted purple + sage on warm beige */
   --background: oklch(0.945 0.02 85); /* warm beige #F5EFE6 */
   --foreground: oklch(0.3 0.03 235); /* deep slate #263746 */
@@ -119,7 +121,10 @@
     border-color: var(--color-border);
   }
   html {
-    font-size: 17px;
+    /* 17px at the default text size, and it follows the phone's text-size setting */
+    font-size: 106.25%;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
   body {
     background-color: var(--color-background);
@@ -130,5 +135,23 @@
   h1, h2, h3 {
     font-family: var(--font-display);
     letter-spacing: -0.01em;
+  }
+}
+
+/* Very large text on a narrow phone: the tab bar wraps to two rows of three so labels stay whole. */
+@media (max-width: 17em) and (max-width: 767.98px) {
+  :root {
+    --nav-h: 7.5rem;
+  }
+}
+/* Short landscape phones: compact tab bar. */
+@media (max-height: 500px) and (orientation: landscape) {
+  :root {
+    --nav-h: 3.25rem;
+  }
+}
+@media (min-width: 1024px) {
+  :root {
+    --nav-h: 0rem;
   }
 }
