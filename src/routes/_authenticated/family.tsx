@@ -48,7 +48,7 @@ function Setup() {
       </Panel>
       <Panel className="mt-5 bg-secondary">
         <h2 className="text-xl font-semibold">Explore the demo</h2>
-        <p className="mt-1 text-secondary-foreground">Join the Morales family caring for Grandma Rosa, with sample visits and meds.</p>
+        <p className="mt-1 text-secondary-foreground">Open a private demo of a family caring for Grandma Rosa, with sample meds and a coverage schedule. Nothing here is real patient data.</p>
         <Button variant="outline" className="mt-4 w-full" disabled={demo.isPending} onClick={() => demo.mutate()}>Open demo family</Button>
       </Panel>
     </>
@@ -146,7 +146,7 @@ function Invite({ familyId }: { familyId: string }) {
     <Panel className="mt-6 space-y-4">
       <h2 className="text-xl font-semibold">Invite a member</h2>
       <Input className="h-12 text-base" placeholder="Name" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
-      <Input className="h-12 text-base" placeholder="Phone" type="tel" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} />
+      <Input className="h-12 text-base" placeholder="Phone, e.g. (212) 555-0102" type="tel" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} />
       <div className="grid grid-cols-2 gap-3">
         <Seg label="Language" value={f.language} options={[["en", "English"], ["es", "Español"]]} onChange={(v) => setF({ ...f, language: v })} />
         <Seg label="Role" value={f.role} options={[["member", "Member"], ["organizer", "Organizer"]]} onChange={(v) => setF({ ...f, role: v })} />

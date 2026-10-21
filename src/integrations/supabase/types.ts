@@ -101,6 +101,7 @@ export type Database = {
           id: string
           is_demo: boolean
           name: string
+          timezone: string
         }
         Insert: {
           created_at?: string
@@ -108,6 +109,7 @@ export type Database = {
           id?: string
           is_demo?: boolean
           name: string
+          timezone?: string
         }
         Update: {
           created_at?: string
@@ -115,6 +117,7 @@ export type Database = {
           id?: string
           is_demo?: boolean
           name?: string
+          timezone?: string
         }
         Relationships: []
       }
@@ -188,10 +191,12 @@ export type Database = {
           family_id: string
           id: string
           medication: string
-          source_timestamp: string | null
           speaker_label: string | null
           status: string
           visit_id: string | null
+          source_seconds: number | null
+          confirmed_at: string | null
+          unclear: boolean
         }
         Insert: {
           after?: string | null
@@ -201,10 +206,12 @@ export type Database = {
           family_id: string
           id?: string
           medication: string
-          source_timestamp?: string | null
           speaker_label?: string | null
           status?: string
           visit_id?: string | null
+          source_seconds?: number | null
+          confirmed_at?: string | null
+          unclear?: boolean
         }
         Update: {
           after?: string | null
@@ -214,10 +221,12 @@ export type Database = {
           family_id?: string
           id?: string
           medication?: string
-          source_timestamp?: string | null
           speaker_label?: string | null
           status?: string
           visit_id?: string | null
+          source_seconds?: number | null
+          confirmed_at?: string | null
+          unclear?: boolean
         }
         Relationships: [
           {
@@ -383,10 +392,13 @@ export type Database = {
           family_id: string
           id: string
           owner_member_id: string | null
-          source_timestamp: string | null
           source_visit_id: string | null
           status: string
           title: string
+          source_seconds: number | null
+          speaker_label: string | null
+          unclear: boolean
+          completed_at: string | null
         }
         Insert: {
           created_at?: string
@@ -394,10 +406,13 @@ export type Database = {
           family_id: string
           id?: string
           owner_member_id?: string | null
-          source_timestamp?: string | null
           source_visit_id?: string | null
           status?: string
           title: string
+          source_seconds?: number | null
+          speaker_label?: string | null
+          unclear?: boolean
+          completed_at?: string | null
         }
         Update: {
           created_at?: string
@@ -405,10 +420,13 @@ export type Database = {
           family_id?: string
           id?: string
           owner_member_id?: string | null
-          source_timestamp?: string | null
           source_visit_id?: string | null
           status?: string
           title?: string
+          source_seconds?: number | null
+          speaker_label?: string | null
+          unclear?: boolean
+          completed_at?: string | null
         }
         Relationships: [
           {
@@ -444,6 +462,14 @@ export type Database = {
           id: string
           summary: string | null
           transcript: Json
+          consent_at: string | null
+          consent_by: string | null
+          consent_text: string | null
+          audio_path: string | null
+          duration_seconds: number | null
+          speaker_map: Json
+          speaker_map_confirmed_by: string | null
+          speaker_map_confirmed_at: string | null
         }
         Insert: {
           audio_url?: string | null
@@ -454,6 +480,14 @@ export type Database = {
           id?: string
           summary?: string | null
           transcript?: Json
+          consent_at?: string | null
+          consent_by?: string | null
+          consent_text?: string | null
+          audio_path?: string | null
+          duration_seconds?: number | null
+          speaker_map?: Json
+          speaker_map_confirmed_by?: string | null
+          speaker_map_confirmed_at?: string | null
         }
         Update: {
           audio_url?: string | null
@@ -464,6 +498,14 @@ export type Database = {
           id?: string
           summary?: string | null
           transcript?: Json
+          consent_at?: string | null
+          consent_by?: string | null
+          consent_text?: string | null
+          audio_path?: string | null
+          duration_seconds?: number | null
+          speaker_map?: Json
+          speaker_map_confirmed_by?: string | null
+          speaker_map_confirmed_at?: string | null
         }
         Relationships: [
           {
@@ -483,6 +525,12 @@ export type Database = {
           id: string
           source_visit_id: string | null
           text: string
+          source_seconds: number | null
+          speaker_label: string | null
+          unclear: boolean
+          status: string
+          confirmed_by: string | null
+          confirmed_at: string | null
         }
         Insert: {
           created_at?: string
@@ -491,6 +539,12 @@ export type Database = {
           id?: string
           source_visit_id?: string | null
           text: string
+          source_seconds?: number | null
+          speaker_label?: string | null
+          unclear?: boolean
+          status?: string
+          confirmed_by?: string | null
+          confirmed_at?: string | null
         }
         Update: {
           created_at?: string
@@ -499,6 +553,12 @@ export type Database = {
           id?: string
           source_visit_id?: string | null
           text?: string
+          source_seconds?: number | null
+          speaker_label?: string | null
+          unclear?: boolean
+          status?: string
+          confirmed_by?: string | null
+          confirmed_at?: string | null
         }
         Relationships: [
           {
@@ -524,6 +584,7 @@ export type Database = {
     Functions: {
       is_family_member: { Args: { _family_id: string }; Returns: boolean }
       is_family_organizer: { Args: { _family_id: string }; Returns: boolean }
+      member_can_see: { Args: { _family_id: string; _what: string }; Returns: boolean }
       join_demo_family: { Args: never; Returns: string }
     }
     Enums: {
