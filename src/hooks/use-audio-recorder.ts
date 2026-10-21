@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { browserPcm, type PcmCapture, type PcmPrepared, type PcmProvider } from "@/lib/pcm-capture";
 
 /** Hard stop so a forgotten recording can't grow without bound in memory. */
@@ -316,7 +316,10 @@ export function useAudioRecorder(options: { pcm?: PcmProvider } = {}) {
     return () => URL.revokeObjectURL(objectUrl);
   }, [take]);
 
-  const audio: RecordedAudio | null = take && url ? { ...take, url } : null;
+  const audio: RecordedAudio | null = useMemo(
+    () => (take && url ? { ...take, url } : null),
+    [take, url],
+  );
 
   return {
     status,

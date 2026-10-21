@@ -5,9 +5,21 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Empty, PageTitle, Panel, WithFamily } from "@/components/AppShell";
-import { HandoffDictation } from "@/components/HandoffDictation";
+import { HandoffDictation, type KeptTake } from "@/components/HandoffDictation";
+import { SavedRecording } from "@/components/SavedRecording";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { acknowledgeRecordingNotice, hasAcknowledgedRecordingNotice } from "@/lib/recording-notice";
 import { useMembers } from "@/hooks/use-family";
-import { handoffService, type Member } from "@/services";
+import { handoffService, recordingService, type Member } from "@/services";
 
 export const Route = createFileRoute("/_authenticated/handoffs")({
   head: () => ({ meta: [{ title: "Handoffs — Pendia" }, { name: "description", content: "End-of-shift check-ins." }] }),
@@ -37,11 +49,33 @@ function Handoffs({ me }: { me: Member }) {
   const [meds, setMeds] = useState<boolean | null>(null);
   const [unusual, setUnusual] = useState("");
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [take, setTake] = useState<KeptTake | null>(null);
+  const [keep, setKeep] = useState(false);
+  const [resetSignal, setResetSignal] = useState(0);
+  const [noticeOpen, setNoticeOpen] = useState(false);
   const save = useMutation({
-    mutationFn: () => handoffService.create({ family_id: fid, author_member_id: me.id, ate, meds_taken: meds, unusual: unusual || null, watch_answers: answers }),
-    onSuccess: () => { setAte(null); setMeds(null); setUnusual(""); setAnswers({}); qc.invalidateQueries({ queryKey: ["handoffs", fid] }); toast.success("Handoff saved"); },
+    mutationFn: async (): Promise<unknown> => {
+      const base = { family_id: fid, author_member_id: me.id, ate, meds_taken: meds, unusual: unusual || null, watch_answers: answers };
+      // Only when the caregiver ticked "Keep the recording" does anything beyond the existing save happen.
+      if (keep && take?.wav) {
+        return recordingService.saveHandoffWithRecording(base, {
+          original: take.original,
+          originalMime: take.originalMime,
+          wav: take.wav,
+          durationSec: take.durationSec,
+        });
+      }
+      return handoffService.create(base);
+    },
+    onSuccess: () => { setAte(null); setMeds(null); setUnusual(""); setAnswers({}); setKeep(false); setResetSignal((n) => n + 1); qc.invalidateQueries({ queryKey: ["handoffs", fid] }); toast.success("Handoff saved"); },
     onError: (e) => toast.error((e as Error).message),
   });
+
+  function onSaveClick() {
+    // First time a recording is kept on this device: show the storage notice before anything is uploaded.
+    if (keep && take?.wav && !hasAcknowledgedRecordingNotice()) setNoticeOpen(true);
+    else save.mutate();
+  }
 
   return (
     <>
@@ -57,9 +91,32 @@ function Handoffs({ me }: { me: Member }) {
         ))}
         <div><p className="mb-2 text-lg font-semibold">Anything unusual?</p>
           <Textarea className="min-h-24 text-base" placeholder="Optional" value={unusual} onChange={(e) => setUnusual(e.target.value)} /></div>
-        <HandoffDictation onAccept={(text) => setUnusual((prev) => (prev.trim() ? `${prev.trimEnd()}\n${text}` : text))} />
-        <Button size="lg" className="w-full" disabled={ate === null || meds === null || save.isPending} onClick={() => save.mutate()}>Save handoff</Button>
+        <HandoffDictation
+          onAccept={(text) => setUnusual((prev) => (prev.trim() ? `${prev.trimEnd()}\n${text}` : text))}
+          keep={keep}
+          onKeepChange={setKeep}
+          onTakeChange={(t) => { setTake(t); if (!t) setKeep(false); }}
+          resetSignal={resetSignal}
+        />
+        <Button size="lg" className="w-full" disabled={ate === null || meds === null || save.isPending} onClick={onSaveClick}>Save handoff</Button>
       </Panel>
+
+      <AlertDialog open={noticeOpen} onOpenChange={setNoticeOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Store this recording?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The recording will be uploaded and stored privately for your family, along with a processed copy that can be turned into text
+              later. Only people in your family with access to handoffs can play it, and you can delete it at any time. Pendia does not
+              give medical advice: check with your doctor or pharmacist.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Not now</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { acknowledgeRecordingNotice(); save.mutate(); }}>Store the recording</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <h2 className="mb-3 mt-8 text-2xl font-semibold">Past handoffs</h2>
       {list.length === 0 ? <Empty>No handoffs yet.</Empty> : (
@@ -78,6 +135,12 @@ function Handoffs({ me }: { me: Member }) {
                 </div>
                 {h.unusual && <p className="mt-3 rounded-lg bg-unassigned p-3 text-unassigned-foreground">{h.unusual}</p>}
                 {h.note && <p className="mt-2 text-muted-foreground">{h.note}</p>}
+                {h.audio_path && (
+                  <SavedRecording
+                    handoff={{ id: h.id, family_id: h.family_id, audio_path: h.audio_path, audio_wav_path: h.audio_wav_path, duration_seconds: h.duration_seconds }}
+                    onDeleted={() => qc.invalidateQueries({ queryKey: ["handoffs", fid] })}
+                  />
+                )}
               </Panel>
             );
           })}
