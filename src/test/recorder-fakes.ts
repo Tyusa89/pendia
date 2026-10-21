@@ -117,3 +117,13 @@ export function domError(name: string) {
   e.name = name;
   return e;
 }
+
+/** jsdom's Blob has no arrayBuffer(); read bytes through FileReader instead. */
+export function blobBytes(blob: Blob): Promise<Uint8Array> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(new Uint8Array(r.result as ArrayBuffer));
+    r.onerror = () => reject(r.error);
+    r.readAsArrayBuffer(blob);
+  });
+}

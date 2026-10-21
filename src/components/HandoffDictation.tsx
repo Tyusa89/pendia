@@ -8,12 +8,30 @@ import {
   useAudioRecorder,
 } from "@/hooks/use-audio-recorder";
 import { formatTimestamp } from "@/lib/format";
+import type { PcmProvider } from "@/lib/pcm-capture";
 import { dictationTranscriber, type DictationTranscriber } from "@/services/dictation";
+
+/** What the page needs in order to save a recording (only used if the caregiver ticks "Keep"). */
+export interface KeptTake {
+  original: Blob;
+  originalMime: string;
+  /** null when this browser could not capture the 16 kHz WAV copy (the recording then cannot be kept). */
+  wav: Blob | null;
+  durationSec: number;
+}
 
 interface Props {
   /** Called only when the caregiver explicitly taps "Add to note" on reviewed text. */
   onAccept: (text: string) => void;
   transcriber?: DictationTranscriber;
+  /** Persistence is opt-in. Without these props the panel is on-device only, exactly as before. */
+  keep?: boolean;
+  onKeepChange?: (keep: boolean) => void;
+  onTakeChange?: (take: KeptTake | null) => void;
+  /** Changing this number discards the current recording (the page bumps it after a successful save). */
+  resetSignal?: number;
+  /** Test/e2e seam for the PCM capture provider. */
+  pcm?: PcmProvider;
 }
 
 /**
@@ -21,8 +39,39 @@ interface Props {
  * Transcription is optional and only offered when a verified transcriber is connected; its output is a
  * draft the caregiver can edit before it is added to the note, and the handoff is still saved explicitly.
  */
-export function HandoffDictation({ onAccept, transcriber = dictationTranscriber }: Props) {
-  const rec = useAudioRecorder();
+export function HandoffDictation({
+  onAccept,
+  transcriber = dictationTranscriber,
+  keep = false,
+  onKeepChange,
+  onTakeChange,
+  resetSignal,
+  pcm,
+}: Props) {
+  const rec = useAudioRecorder(pcm ? { pcm } : {});
+  const onTakeChangeRef = useRef(onTakeChange);
+  onTakeChangeRef.current = onTakeChange;
+  const audio = rec.audio;
+  useEffect(() => {
+    onTakeChangeRef.current?.(
+      audio
+        ? {
+            original: audio.blob,
+            originalMime: audio.mimeType,
+            wav: audio.wav,
+            durationSec: audio.durationSec,
+          }
+        : null,
+    );
+  }, [audio]);
+  const lastReset = useRef(resetSignal);
+  const { discard: discardRec } = rec;
+  useEffect(() => {
+    if (resetSignal !== lastReset.current) {
+      lastReset.current = resetSignal;
+      discardRec();
+    }
+  }, [resetSignal, discardRec]);
   const [transcribing, setTranscribing] = useState(false);
   const [transcribeError, setTranscribeError] = useState<string | null>(null);
   const [draft, setDraft] = useState<string | null>(null);
@@ -73,7 +122,11 @@ export function HandoffDictation({ onAccept, transcriber = dictationTranscriber 
       <div>
         <p className="text-lg font-semibold">Dictate a note</p>
         <p className="text-sm text-muted-foreground">
-          Your recording stays on this device. It isn't saved or uploaded.
+          {keep
+            ? "This recording will be saved with the handoff when you press Save handoff."
+            : onKeepChange
+              ? "Your recording stays on this device. It isn't saved or uploaded unless you choose to keep it."
+              : "Your recording stays on this device. It isn't saved or uploaded."}
         </p>
       </div>
 
@@ -175,6 +228,39 @@ export function HandoffDictation({ onAccept, transcriber = dictationTranscriber 
               <Trash2 /> Discard recording
             </Button>
           </div>
+
+          {onKeepChange && (
+            <div className="space-y-2 rounded-xl border p-3">
+              <label className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  className="mt-1 size-5 shrink-0"
+                  checked={keep && !!rec.audio.wav}
+                  disabled={!rec.audio.wav}
+                  onChange={(e) => onKeepChange(e.target.checked)}
+                />
+                <span>
+                  <span className="font-semibold">Keep the recording with this handoff</span>{" "}
+                  <span className="text-sm text-muted-foreground">
+                    (about{" "}
+                    {((rec.audio.blob.size + (rec.audio.wav?.size ?? 0)) / 1048576).toFixed(1)} MB)
+                  </span>
+                </span>
+              </label>
+              {rec.audio.wav ? (
+                <p className="text-sm text-muted-foreground">
+                  Off by default. If ticked, the recording is stored privately for your family when
+                  you press Save handoff, and you can delete it any time. Otherwise it is never
+                  saved.
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  This browser couldn't capture the transcription-ready copy, so this recording
+                  can't be kept. You can still save the handoff without it.
+                </p>
+              )}
+            </div>
+          )}
 
           {transcriber.available ? (
             transcribing ? (
