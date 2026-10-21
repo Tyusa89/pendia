@@ -2,13 +2,13 @@
 // Boolean-only response. Delete after use. Logic lives in handler.ts (unit-tested).
 import { makeHandler } from "./handler.ts";
 import { PINNED_ISSUER, PINNED_JWK } from "./pinned-key.ts";
+import { ACTIVE_FROM_MS, ACTIVE_UNTIL_MS } from "./window.ts";
 
-// Window is closed (0) until the coordinated run: the go-live commit sets Date.parse("<now + 15 min>").
-const ACTIVE_UNTIL_MS = 0;
 const ALLOWED_USER_ID = "5f767db9-909b-4580-8071-0d3c59909595";
 
 Deno.serve(
   makeHandler({
+    activeFromMs: ACTIVE_FROM_MS,
     activeUntilMs: ACTIVE_UNTIL_MS,
     allowedUserId: ALLOWED_USER_ID,
     issuer: PINNED_ISSUER,

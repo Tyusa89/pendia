@@ -5,10 +5,12 @@
 import { decodeProtectedHeader, importJWK, jwtVerify, type JWK, type KeyLike } from "npm:jose@5.9.6";
 
 /** Bumped whenever behaviour changes; sent on every response so a deploy can be confirmed without auth. */
-export const VERSION = "pinned-jwk-3"; // -3: issuer pinned as a constant (window still closed)
+export const VERSION = "pinned-jwk-4"; // -4: explicit window start (FROM) + UNTIL
 
 export interface Config {
-  /** Epoch ms after which the function refuses everything. 0 = closed. */
+  /** Epoch ms before which the function refuses everything. Default 0. */
+  activeFromMs?: number;
+  /** Epoch ms from which the function refuses everything again. 0 = closed. */
   activeUntilMs: number;
   allowedUserId: string;
   /** Token issuer, e.g. https://<ref>.supabase.co/auth/v1 */
@@ -38,7 +40,8 @@ export function makeHandler(cfg: Config): (req: Request) => Promise<Response> {
 
   return async (req) => {
     if (req.method !== "POST") return reply(405, { ok: false });
-    if (cfg.now() >= cfg.activeUntilMs) return reply(410, { ok: false });
+    const t = cfg.now();
+    if (t < (cfg.activeFromMs ?? 0) || t >= cfg.activeUntilMs) return reply(410, { ok: false });
     if (!jwkUsable) return reply(503, { ok: false });
 
     const auth = req.headers.get("authorization") ?? "";

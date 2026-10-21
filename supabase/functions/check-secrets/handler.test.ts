@@ -133,6 +133,7 @@ Deno.test("handler makes no fetch() calls at request time", async () => {
 // --- the production pinned key ---
 import { importJWK } from "npm:jose@5.9.6";
 import { PINNED_ISSUER, PINNED_JWK } from "./pinned-key.ts";
+import { ACTIVE_FROM_MS, ACTIVE_UNTIL_MS, WINDOW_MS } from "./window.ts";
 
 Deno.test("production pinned key is a usable public ES256 P-256 key with no private component", async () => {
   eq(PINNED_JWK.kty, "EC", "kty"); eq(PINNED_JWK.crv, "P-256", "crv"); eq(PINNED_JWK.alg, "ES256", "alg");
@@ -152,4 +153,21 @@ Deno.test("pinned issuer is the exact project issuer, and tokens from any other 
   eq((await post(h, await token({ iss: PINNED_ISSUER }))).status, 200, "token with the pinned issuer");
   eq((await post(h, await token({ iss: ISS }))).status, 401, "token with another issuer");
   eq((await post(h, await token({ iss: "https://yjcaqgwtvtmonzzzikur.supabase.co/auth/v1/" }))).status, 401, "trailing-slash issuer");
+});
+
+// --- explicit window start (FROM) ---
+Deno.test("before FROM -> 410 even with a perfect token; at FROM -> open; at UNTIL -> closed again", async () => {
+  const FROM = NOW + 20 * 60_000, UNTIL = FROM + WINDOW_MS;
+  const t = await token({ expSec: UNTIL / 1000 + 3600 });
+  const at = (ms: number) => makeHandler(base({ activeFromMs: FROM, activeUntilMs: UNTIL, now: () => ms }));
+  eq((await post(at(FROM - 1), t)).status, 410, "1ms before FROM");
+  eq((await post(at(FROM), t)).status, 200, "at FROM");
+  eq((await post(at(UNTIL - 1), t)).status, 200, "1ms before UNTIL");
+  eq((await post(at(UNTIL), t)).status, 410, "at UNTIL");
+  eq((await post(at(UNTIL + 3_600_000), t)).status, 410, "an hour later");
+});
+Deno.test("committed window is either fully closed (0/0) or exactly 15 minutes, never open-ended", () => {
+  const closed = ACTIVE_FROM_MS === 0 && ACTIVE_UNTIL_MS === 0;
+  eq(closed || ACTIVE_UNTIL_MS - ACTIVE_FROM_MS === 15 * 60_000, true, "window must be 0/0 or exactly 15 min");
+  eq(WINDOW_MS, 15 * 60_000, "WINDOW_MS");
 });
