@@ -14,7 +14,7 @@
 #>
 param(
   [Parameter(Mandatory = $true)][ValidateSet('probe', 'closed', 'negative', 'authorized')][string]$Mode,
-  [string]$ExpectedVersion = 'pinned-jwk-1'
+  [string]$ExpectedVersion = 'pinned-jwk-2'
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'

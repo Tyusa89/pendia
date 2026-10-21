@@ -5,9 +5,9 @@
 #   negative    window OPEN: unauthorized-caller tests (405 / 401 / 401 / 401)
 #   authorized  window OPEN: the single authorized call; prints status + boolean body only
 # Env: PENDIA_FN_URL (required)  PENDIA_JWT (needed for authorized and the tampered-signature test; never printed)
-#      EXPECTED_VERSION (default pinned-jwk-1)
+#      EXPECTED_VERSION (default pinned-jwk-2)
 set -uo pipefail; set +x
-URL="${PENDIA_FN_URL:?set PENDIA_FN_URL}"; EXPECTED="${EXPECTED_VERSION:-pinned-jwk-1}"
+URL="${PENDIA_FN_URL:?set PENDIA_FN_URL}"; EXPECTED="${EXPECTED_VERSION:-pinned-jwk-2}"
 FAILED=0
 code() { curl -s -o /dev/null -w "%{http_code}" "$@"; }
 expect() { if [ "$2" = "$3" ]; then echo "PASS  $1 -> $3"; else echo "FAIL  $1 -> got $3, expected $2"; FAILED=1; fi; }

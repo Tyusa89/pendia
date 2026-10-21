@@ -129,3 +129,19 @@ Deno.test("handler makes no fetch() calls at request time", async () => {
   } finally { globalThis.fetch = real; }
   eq(calls, 0, "fetch calls");
 });
+
+// --- the production pinned key ---
+import { importJWK } from "npm:jose@5.9.6";
+import { PINNED_JWK } from "./pinned-key.ts";
+
+Deno.test("production pinned key is a usable public ES256 P-256 key with no private component", async () => {
+  eq(PINNED_JWK.kty, "EC", "kty"); eq(PINNED_JWK.crv, "P-256", "crv"); eq(PINNED_JWK.alg, "ES256", "alg");
+  eq(PINNED_JWK.kid, "72b5e943-b371-428c-83df-c19f302cb328", "kid");
+  eq("d" in PINNED_JWK, false, "private component present");
+  await importJWK(PINNED_JWK, "ES256"); // throws if malformed or not on the curve
+});
+Deno.test("handler accepts the production key (junk token -> 401, not 503)", async () => {
+  const h = makeHandler(base({ pinnedJwk: PINNED_JWK }));
+  eq((await post(h, "not.a.jwt")).status, 401, "junk");
+  eq((await post(h, await token())).status, 401, "token signed by a different key");
+});

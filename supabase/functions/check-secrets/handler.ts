@@ -5,7 +5,7 @@
 import { decodeProtectedHeader, importJWK, jwtVerify, type JWK, type KeyLike } from "npm:jose@5.9.6";
 
 /** Bumped whenever behaviour changes; sent on every response so a deploy can be confirmed without auth. */
-export const VERSION = "pinned-jwk-1";
+export const VERSION = "pinned-jwk-2"; // -2: production key pinned (window still closed)
 
 export interface Config {
   /** Epoch ms after which the function refuses everything. 0 = closed. */
