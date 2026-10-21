@@ -80,7 +80,7 @@ export function FamilyOverview({ me, timeZone }: { me: Member; timeZone: string 
   }[];
 
   const quick = [
-    { to: "/handoffs" as const, label: "Start handoff", icon: ClipboardCheck, show: true },
+    { to: "/handoffs" as const, label: "Quick handoff", icon: ClipboardCheck, show: true },
     { to: "/visits/new" as const, label: "Add appointment", icon: CalendarPlus, show: organizer },
     { to: "/meds" as const, label: "Medications", icon: Pill, show: true },
   ].filter((q) => q.show);

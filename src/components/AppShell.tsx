@@ -162,9 +162,18 @@ export function PageTitle({
   );
 }
 
-export function Panel({ children, className = "" }: { children: ReactNode; className?: string }) {
+export function Panel({
+  children,
+  className = "",
+  "aria-label": ariaLabel,
+}: {
+  children: ReactNode;
+  className?: string;
+  "aria-label"?: string;
+}) {
   return (
     <section
+      aria-label={ariaLabel}
       className={`rounded-[1.25rem] border border-transparent bg-card p-[1.125rem] shadow-card ${className}`}
     >
       {children}

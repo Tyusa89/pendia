@@ -186,7 +186,7 @@ describe("family overview", () => {
   it("a member without visit or schedule access sees none of those tiles, and no Add appointment", async () => {
     world.me = { ...world.me, role: "member", can_see_visits: false, can_see_schedule: false };
     render(wrap(<FamilyOverview me={world.me as never} timeZone="America/New_York" />));
-    await screen.findByRole("link", { name: "Start handoff" });
+    await screen.findByRole("link", { name: "Quick handoff" });
     expect(screen.queryByText("Next visit")).not.toBeInTheDocument();
     expect(screen.queryByText("Open this week")).not.toBeInTheDocument();
     expect(screen.queryByText("Latest handoff")).not.toBeInTheDocument();

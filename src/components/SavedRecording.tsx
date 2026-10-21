@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Download, Loader2, Play, Trash2 } from "lucide-react";
+import { Download, Loader2, Lock, Play, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,9 +44,12 @@ export function SavedRecording({
   onDeleted,
   service = recordingService,
   saveFile = saveViaAnchor,
+  canDelete = true,
 }: {
   handoff: SavedRecordingRef;
   onDeleted: () => void;
+  /** Only organizers may delete (the storage rules enforce it); others are not shown a button that would fail. */
+  canDelete?: boolean;
   service?: Service;
   saveFile?: (url: string) => void;
 }) {
@@ -134,13 +137,18 @@ export function SavedRecording({
   }
 
   return (
-    <div className="mt-3 space-y-3 rounded-xl border p-3" aria-label="Saved recording">
-      <p className="font-semibold">
-        Recording{" "}
-        <span className="font-normal text-muted-foreground">
-          · {formatTimestamp(handoff.duration_seconds)}
-        </span>
-      </p>
+    <div className="mt-3 space-y-3 rounded-2xl bg-primary/10 p-3" aria-label="Saved recording">
+      <div>
+        <p className="font-bold">
+          Recording{" "}
+          <span className="font-normal text-muted-foreground">
+            · {formatTimestamp(handoff.duration_seconds)}
+          </span>
+        </p>
+        <p className="flex items-center gap-1.5 text-[0.8235rem] font-bold text-secondary-foreground">
+          <Lock className="size-3.5" aria-hidden /> Saved privately for your family
+        </p>
+      </div>
       {src && (
         <audio
           key={src}
@@ -158,36 +166,27 @@ export function SavedRecording({
           {error}
         </p>
       )}
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        <Button type="button" className="h-12" onClick={() => void load(0)} disabled={loading}>
+      <div className="flex flex-wrap gap-2 [&>*]:flex-1 [&>*]:basis-40">
+        <Button type="button" onClick={() => void load(0)} disabled={loading}>
           {loading ? <Loader2 className="animate-spin" /> : <Play />} Play recording
         </Button>
-        <Button
-          type="button"
-          variant="outline"
-          className="h-12"
-          onClick={() => void download(handoff.audio_path)}
-        >
+        <Button type="button" variant="outline" onClick={() => void download(handoff.audio_path)}>
           <Download /> Download recording
         </Button>
         {handoff.audio_wav_path && (
           <Button
             type="button"
             variant="outline"
-            className="h-12"
             onClick={() => void download(handoff.audio_wav_path!)}
           >
             <Download /> Download WAV copy
           </Button>
         )}
-        <Button
-          type="button"
-          variant="outline"
-          className="h-12"
-          onClick={() => setConfirmOpen(true)}
-        >
-          <Trash2 /> Delete recording
-        </Button>
+        {canDelete && (
+          <Button type="button" variant="outline" onClick={() => setConfirmOpen(true)}>
+            <Trash2 /> Delete recording
+          </Button>
+        )}
       </div>
 
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>

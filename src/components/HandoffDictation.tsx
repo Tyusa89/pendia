@@ -1,6 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, Loader2, Mic, RotateCcw, Square, Trash2 } from "lucide-react";
+import {
+  AlertTriangle,
+  Loader2,
+  Lock,
+  Mic,
+  RotateCcw,
+  Smartphone,
+  Square,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
   RECORDER_ERROR_MESSAGES,
@@ -117,45 +127,92 @@ export function HandoffDictation({
   const recording = rec.status === "recording";
   const requesting = rec.status === "requesting";
 
+  const kept = keep && !!rec.audio?.wav;
+
   return (
-    <div className="space-y-3 rounded-2xl border bg-card p-4" aria-label="Dictate a note">
-      <div>
-        <p className="text-lg font-semibold">Dictate a note</p>
-        <p className="text-sm text-muted-foreground">
-          {keep
-            ? "This recording will be saved with the handoff when you press Save handoff."
-            : onKeepChange
-              ? "Your recording stays on this device. It isn't saved or uploaded unless you choose to keep it."
-              : "Your recording stays on this device. It isn't saved or uploaded."}
-        </p>
+    <div className="space-y-4" aria-label="Dictate a note">
+      <div className="flex items-center gap-2">
+        <h2 className="text-xl">Voice note</h2>
       </div>
+
+      {/* Temporary (stays on this phone) vs Saved (kept with the handoff once Save is pressed). */}
+      <p
+        data-testid="storage-state"
+        className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-[0.9412rem] font-bold ${
+          kept ? "bg-secondary text-secondary-foreground" : "bg-muted text-muted-foreground"
+        }`}
+      >
+        {kept ? (
+          <>
+            <Lock className="size-[18px] shrink-0" aria-hidden /> Will be saved privately with this
+            handoff
+          </>
+        ) : (
+          <>
+            <Smartphone className="size-[18px] shrink-0" aria-hidden /> Temporary · stays on this
+            phone, not saved
+          </>
+        )}
+      </p>
+      <p className="text-[0.9412rem] text-muted-foreground">
+        {keep
+          ? "This recording will be saved with the handoff when you press Save handoff."
+          : onKeepChange
+            ? "Your recording stays on this device. It isn't saved or uploaded unless you choose to keep it."
+            : "Your recording stays on this device. It isn't saved or uploaded."}
+      </p>
 
       <div role="status" aria-live="polite" className="min-h-6 text-base">
         {requesting && <span>Waiting for microphone permission…</span>}
         {recording && (
-          <span className="inline-flex items-center gap-2 font-semibold text-destructive">
-            <span aria-hidden className="size-3 animate-pulse rounded-full bg-destructive" />
+          <span className="inline-flex items-center gap-2 font-bold text-destructive">
+            <span
+              aria-hidden
+              className="size-3 rounded-full bg-destructive motion-safe:animate-pulse"
+            />
             Recording {formatTimestamp(rec.elapsedSec)}
           </span>
         )}
       </div>
 
       {rec.status === "error" && rec.errorCode && (
-        <div role="alert" className="flex gap-3 rounded-xl bg-warning p-3 text-warning-foreground">
+        <div
+          role="alert"
+          className="flex gap-3 rounded-2xl bg-warning p-3.5 text-warning-foreground"
+        >
           <AlertTriangle className="mt-0.5 size-5 shrink-0" aria-hidden />
           <p>{RECORDER_ERROR_MESSAGES[rec.errorCode]}</p>
         </div>
       )}
 
-      {(rec.status === "idle" || rec.status === "error") && (
+      {rec.status === "idle" && (
+        <div className="flex flex-col items-center gap-2.5 py-2 text-center [@media(max-height:500px)_and_(orientation:landscape)]:flex-row [@media(max-height:500px)_and_(orientation:landscape)]:justify-center [@media(max-height:500px)_and_(orientation:landscape)]:text-left">
+          <button
+            type="button"
+            aria-label="Record"
+            onClick={() => void rec.start()}
+            className="inline-flex size-24 shrink-0 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-warm [@media(max-height:500px)_and_(orientation:landscape)]:size-16"
+          >
+            <Mic className="size-10" aria-hidden />
+          </button>
+          <div>
+            <p className="text-lg font-bold">Tap to record</p>
+            <p className="text-[0.9412rem] text-muted-foreground">
+              Say how she ate, her meds, and anything unusual.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {rec.status === "error" && (
         <Button
           type="button"
           size="lg"
-          variant={rec.status === "error" ? "outline" : "default"}
+          variant={rec.errorCode === "unsupported" ? "outline" : "default"}
           className="h-14 w-full"
           onClick={() => void rec.start()}
         >
-          {rec.status === "error" && rec.errorCode !== "unsupported" ? (
+          {rec.errorCode !== "unsupported" ? (
             <>
               <RotateCcw /> Try again
             </>
@@ -180,81 +237,111 @@ export function HandoffDictation({
       )}
 
       {recording && (
-        <Button
-          type="button"
-          size="lg"
-          variant="destructive"
-          className="h-14 w-full"
-          onClick={rec.stop}
-        >
-          <Square /> Stop
-        </Button>
+        <>
+          <div className="flex flex-col items-center gap-2.5 py-2 text-center">
+            <button
+              type="button"
+              aria-label="Stop"
+              onClick={rec.stop}
+              className="inline-flex size-24 shrink-0 cursor-pointer items-center justify-center rounded-full bg-destructive text-white"
+            >
+              <Square className="size-8 fill-current" aria-hidden />
+            </button>
+            <p className="text-[0.9412rem] text-muted-foreground">
+              Tap to stop. You can play it back first.
+            </p>
+          </div>
+          {/* Docked above the tab bar so Stop is always reachable, in portrait or landscape. */}
+          <div
+            role="region"
+            aria-label="Recording in progress"
+            className="fixed inset-x-0 bottom-[calc(var(--nav-h)+env(safe-area-inset-bottom))] z-40 flex items-center gap-3 border-t-2 border-destructive bg-card px-4 py-2.5 shadow-[0_-8px_24px_-16px_rgba(38,55,70,0.4)] lg:left-[var(--side-w)] lg:bottom-0"
+          >
+            <span
+              aria-hidden
+              className="size-3 shrink-0 rounded-full bg-destructive motion-safe:animate-pulse"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="font-bold text-destructive">
+                Recording {formatTimestamp(rec.elapsedSec)}
+              </p>
+              <p className="text-[0.9412rem] text-muted-foreground">
+                {keep ? "Will be saved when you press Save handoff" : "Stays on this phone"}
+              </p>
+            </div>
+            <button
+              type="button"
+              aria-label="Stop recording"
+              onClick={rec.stop}
+              className="inline-flex size-14 shrink-0 cursor-pointer items-center justify-center rounded-full bg-destructive text-white"
+            >
+              <Square className="size-6 fill-current" aria-hidden />
+            </button>
+          </div>
+        </>
       )}
 
       {rec.status === "stopped" && rec.audio && (
         <div className="space-y-3">
           {rec.notice && (
-            <p className="rounded-xl bg-warning p-3 text-warning-foreground">
+            <p className="rounded-2xl bg-warning p-3.5 text-warning-foreground">
               {RECORDER_NOTICE_MESSAGES[rec.notice]}
             </p>
           )}
-          <audio
-            controls
-            src={rec.audio.url}
-            aria-label="Playback of your recording"
-            className="w-full"
-            onError={() => setFailedUrl(rec.audio?.url ?? null)}
-          />
+          <div className="rounded-2xl bg-primary/10 p-3">
+            <audio
+              controls
+              src={rec.audio.url}
+              aria-label="Playback of your recording"
+              className="w-full"
+              onError={() => setFailedUrl(rec.audio?.url ?? null)}
+            />
+          </div>
           {failedUrl === rec.audio.url && (
-            <p role="alert" className="rounded-xl bg-warning p-3 text-warning-foreground">
+            <p role="alert" className="rounded-2xl bg-warning p-3.5 text-warning-foreground">
               This device couldn't play the recording back ({rec.audio.mimeType.split(";")[0]},{" "}
               {Math.max(1, Math.round(rec.audio.blob.size / 1024))} KB). Tap Record again, or type
               your note instead.
             </p>
           )}
-          <p className="text-sm text-muted-foreground">
+          <p className="text-[0.9412rem] text-muted-foreground">
             Recorded {formatTimestamp(rec.audio.durationSec)}
           </p>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <Button
-              type="button"
-              variant="outline"
-              className="h-12"
-              onClick={() => void rec.start()}
-            >
+          <div className="flex flex-wrap gap-2 [&>*]:flex-1 [&>*]:basis-40">
+            <Button type="button" variant="outline" onClick={() => void rec.start()}>
               <RotateCcw /> Record again
             </Button>
-            <Button type="button" variant="outline" className="h-12" onClick={discardRecording}>
+            <Button type="button" variant="outline" onClick={discardRecording}>
               <Trash2 /> Discard recording
             </Button>
           </div>
 
           {onKeepChange && (
-            <div className="space-y-2 rounded-xl border p-3">
-              <label className="flex items-start gap-3">
-                <input
-                  type="checkbox"
-                  className="mt-1 size-5 shrink-0"
-                  checked={keep && !!rec.audio.wav}
-                  disabled={!rec.audio.wav}
-                  onChange={(e) => onKeepChange(e.target.checked)}
-                />
-                <span>
-                  <span className="font-semibold">Keep the recording with this handoff</span>{" "}
-                  <span className="text-sm text-muted-foreground">
+            <div className="space-y-2 rounded-2xl border p-3">
+              <div className="flex items-center gap-3">
+                <div className="min-w-0 flex-1">
+                  <label htmlFor="keep-recording" className="block font-bold">
+                    Keep the recording with this handoff
+                  </label>
+                  <span className="text-[0.9412rem] text-muted-foreground">
                     (about{" "}
                     {((rec.audio.blob.size + (rec.audio.wav?.size ?? 0)) / 1048576).toFixed(1)} MB)
                   </span>
-                </span>
-              </label>
+                </div>
+                <Switch
+                  id="keep-recording"
+                  checked={kept}
+                  disabled={!rec.audio.wav}
+                  onCheckedChange={(v) => onKeepChange(v)}
+                />
+              </div>
               {rec.audio.wav ? (
-                <p className="text-sm text-muted-foreground">
-                  Off by default. If ticked, the recording is stored privately for your family when
-                  you press Save handoff, and you can delete it any time. Otherwise it is never
-                  saved.
+                <p className="text-[0.9412rem] text-muted-foreground">
+                  Off by default. If on, the recording is stored privately for your family when you
+                  press Save handoff, and you can delete it any time. Otherwise it is never saved.
                 </p>
               ) : (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-[0.9412rem] text-muted-foreground">
                   This browser couldn't capture the transcription-ready copy, so this recording
                   can't be kept. You can still save the handoff without it.
                 </p>
@@ -267,24 +354,24 @@ export function HandoffDictation({
               <Button
                 type="button"
                 variant="outline"
-                className="h-12 w-full"
+                className="w-full"
                 onClick={cancelTranscription}
               >
                 <Loader2 className="animate-spin" /> Transcribing… tap to cancel
               </Button>
             ) : (
-              <Button type="button" className="h-12 w-full" onClick={() => void runTranscribe()}>
+              <Button type="button" className="w-full" onClick={() => void runTranscribe()}>
                 Transcribe
               </Button>
             )
           ) : (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-[0.9412rem] text-muted-foreground">
               Transcription isn't connected yet. You can play your recording back, but please type
               the note below for now.
             </p>
           )}
           {transcribeError && (
-            <p role="alert" className="rounded-xl bg-warning p-3 text-warning-foreground">
+            <p role="alert" className="rounded-2xl bg-warning p-3.5 text-warning-foreground">
               {transcribeError}
             </p>
           )}
@@ -292,23 +379,17 @@ export function HandoffDictation({
       )}
 
       {draft !== null && (
-        <div className="space-y-2 rounded-xl border-2 border-dashed p-3">
-          <label htmlFor="dictation-draft" className="block font-semibold">
+        <div className="space-y-2 rounded-2xl border-2 border-dashed border-input bg-card p-3.5">
+          <label htmlFor="dictation-draft" className="block font-bold">
             Draft from dictation: review and edit before adding
           </label>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-[0.9412rem] text-muted-foreground">
             Not saved yet. Add it to the note, then press Save handoff.
           </p>
-          <Textarea
-            id="dictation-draft"
-            className="min-h-24 text-base"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-          />
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <Textarea id="dictation-draft" value={draft} onChange={(e) => setDraft(e.target.value)} />
+          <div className="flex flex-wrap gap-2 [&>*]:flex-1 [&>*]:basis-40">
             <Button
               type="button"
-              className="h-12"
               disabled={!draft.trim()}
               onClick={() => {
                 onAccept(draft.trim());
@@ -317,7 +398,7 @@ export function HandoffDictation({
             >
               Add to note
             </Button>
-            <Button type="button" variant="outline" className="h-12" onClick={() => setDraft(null)}>
+            <Button type="button" variant="outline" onClick={() => setDraft(null)}>
               Discard draft
             </Button>
           </div>
