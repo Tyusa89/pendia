@@ -132,7 +132,7 @@ Deno.test("handler makes no fetch() calls at request time", async () => {
 
 // --- the production pinned key ---
 import { importJWK } from "npm:jose@5.9.6";
-import { PINNED_JWK } from "./pinned-key.ts";
+import { PINNED_ISSUER, PINNED_JWK } from "./pinned-key.ts";
 
 Deno.test("production pinned key is a usable public ES256 P-256 key with no private component", async () => {
   eq(PINNED_JWK.kty, "EC", "kty"); eq(PINNED_JWK.crv, "P-256", "crv"); eq(PINNED_JWK.alg, "ES256", "alg");
@@ -144,4 +144,12 @@ Deno.test("handler accepts the production key (junk token -> 401, not 503)", asy
   const h = makeHandler(base({ pinnedJwk: PINNED_JWK }));
   eq((await post(h, "not.a.jwt")).status, 401, "junk");
   eq((await post(h, await token())).status, 401, "token signed by a different key");
+});
+
+Deno.test("pinned issuer is the exact project issuer, and tokens from any other issuer are refused", async () => {
+  eq(PINNED_ISSUER, "https://yjcaqgwtvtmonzzzikur.supabase.co/auth/v1", "pinned issuer");
+  const h = makeHandler(base({ issuer: PINNED_ISSUER }));
+  eq((await post(h, await token({ iss: PINNED_ISSUER }))).status, 200, "token with the pinned issuer");
+  eq((await post(h, await token({ iss: ISS }))).status, 401, "token with another issuer");
+  eq((await post(h, await token({ iss: "https://yjcaqgwtvtmonzzzikur.supabase.co/auth/v1/" }))).status, 401, "trailing-slash issuer");
 });

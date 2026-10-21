@@ -16,7 +16,7 @@
 #>
 param(
   [Parameter(Mandatory = $true)][ValidateSet('info', 'probe', 'closed', 'negative', 'authorized')][string]$Mode,
-  [string]$ExpectedVersion = 'pinned-jwk-2',
+  [string]$ExpectedVersion = 'pinned-jwk-3',
   [string]$PinnedKid = '72b5e943-b371-428c-83df-c19f302cb328'
 )
 Set-StrictMode -Version Latest
