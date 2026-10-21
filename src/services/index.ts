@@ -15,9 +15,9 @@ export type Handoff = Tables<"handoff">;
 export type Digest = Tables<"digest">;
 export type TranscriptLine = { speaker: string; t: string; text: string };
 
-function ok<T>(res: { data: T | null; error: { message: string } | null }): T {
+function ok<T>(res: { data: T; error: { message: string } | null }): NonNullable<T> {
   if (res.error) throw new Error(res.error.message);
-  return res.data as T;
+  return res.data as NonNullable<T>;
 }
 
 // ---------- Auth ----------
