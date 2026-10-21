@@ -1,7 +1,7 @@
 // Throwaway, time-boxed probe: tells ONE allowlisted user whether the edge runtime can read META_API_KEY.
 // Boolean-only response. Delete after use. Logic lives in handler.ts (unit-tested).
 import { makeHandler } from "./handler.ts";
-import { PINNED_JWK } from "./pinned-key.ts";
+import { PINNED_ISSUER, PINNED_JWK } from "./pinned-key.ts";
 
 // Window is closed (0) until the coordinated run: the go-live commit sets Date.parse("<now + 15 min>").
 const ACTIVE_UNTIL_MS = 0;
@@ -11,7 +11,7 @@ Deno.serve(
   makeHandler({
     activeUntilMs: ACTIVE_UNTIL_MS,
     allowedUserId: ALLOWED_USER_ID,
-    issuer: `${Deno.env.get("SUPABASE_URL") ?? ""}/auth/v1`,
+    issuer: PINNED_ISSUER,
     pinnedJwk: PINNED_JWK,
     secretNames: ["META_API_KEY"],
     getEnv: (n) => Deno.env.get(n),

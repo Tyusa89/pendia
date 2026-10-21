@@ -1,11 +1,11 @@
 // Request handler for the throwaway check-secrets probe, kept separate from Deno.serve so it can be unit-tested.
-// At request time this makes NO network calls: the ES256 public key is pinned in index.ts and verification is local.
+// At request time this makes NO network calls: the ES256 public key and issuer are pinned in pinned-key.ts and verification is local.
 // (The only network activity is the platform resolving the `jose` package when the function is bundled/deployed.)
 // Never logs headers, tokens or secret values; never calls Meta.
 import { decodeProtectedHeader, importJWK, jwtVerify, type JWK, type KeyLike } from "npm:jose@5.9.6";
 
 /** Bumped whenever behaviour changes; sent on every response so a deploy can be confirmed without auth. */
-export const VERSION = "pinned-jwk-2"; // -2: production key pinned (window still closed)
+export const VERSION = "pinned-jwk-3"; // -3: issuer pinned as a constant (window still closed)
 
 export interface Config {
   /** Epoch ms after which the function refuses everything. 0 = closed. */

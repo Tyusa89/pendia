@@ -3,6 +3,9 @@
 // If Supabase rotates the signing key, this must be re-pinned; until then the function fails closed (401).
 import type { JWK } from "npm:jose@5.9.6";
 
+/** Token issuer for this project, pinned (not derived from the runtime's SUPABASE_URL env var). */
+export const PINNED_ISSUER = "https://yjcaqgwtvtmonzzzikur.supabase.co/auth/v1";
+
 export const PINNED_JWK: JWK = {
   kty: "EC",
   crv: "P-256",
