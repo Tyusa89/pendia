@@ -49,7 +49,7 @@ export const familyService = {
   async createFamily(name: string, myName: string) {
     const uid = await authService.currentUserId();
     if (!uid) throw new Error("Not signed in");
-    const fam = ok(await supabase.from("family").insert({ name, created_by: uid }).select().single());
+    const fam = ok(await supabase.from("family").insert({ name, created_by: uid }).select().single()) as Family;
     ok(await supabase.from("member").insert({ family_id: fam.id, user_id: uid, name: myName, role: "organizer" }));
     return fam;
   },
@@ -81,7 +81,7 @@ export const visitService = {
     return ok(await supabase.from("visit").select("*").eq("family_id", familyId).order("date", { ascending: false }));
   },
   async get(id: string) {
-    const visit = ok(await supabase.from("visit").select("*").eq("id", id).single());
+    const visit = ok(await supabase.from("visit").select("*").eq("id", id).single()) as Visit;
     const [changes, tasks, watch] = await Promise.all([
       supabase.from("med_change").select("*").eq("visit_id", id).order("created_at"),
       supabase.from("task").select("*").eq("source_visit_id", id).order("due_date"),
