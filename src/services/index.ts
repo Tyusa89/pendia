@@ -1,6 +1,7 @@
 // Service layer: every Lovable Cloud call goes through here so features can grow incrementally.
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
+import type { AppointmentInput } from "@/lib/appointments";
 import { normalizePhone } from "@/lib/format";
 
 export type Family = Tables<"family">;
@@ -98,6 +99,25 @@ export const visitService = {
       supabase.from("watch_item").select("*").eq("source_visit_id", id).order("created_at"),
     ]);
     return { visit, changes: ok(changes), tasks: ok(tasks), watch: ok(watch) };
+  },
+  // ---- appointments (V1): the same `visit` rows; RLS is unchanged (organizer writes, members read per can_see_visits) ----
+  async createAppointment(familyId: string, a: AppointmentInput) {
+    // `date` is NOT NULL on the table; the database re-derives it from scheduled_start in the family's timezone.
+    return ok(
+      await supabase.from("visit").insert({ ...a, family_id: familyId, date: a.scheduled_start.slice(0, 10) }).select().single(),
+    ) as Visit;
+  },
+  async updateAppointment(id: string, a: AppointmentInput) {
+    return ok(await supabase.from("visit").update({ ...a }).eq("id", id).select().single()) as Visit;
+  },
+  async cancelAppointment(id: string) {
+    return ok(await supabase.from("visit").update({ status: "canceled" }).eq("id", id).select().single()) as Visit;
+  },
+  async archiveAppointment(id: string) {
+    return ok(await supabase.from("visit").update({ archived_at: new Date().toISOString() }).eq("id", id).select().single()) as Visit;
+  },
+  async unarchiveAppointment(id: string) {
+    return ok(await supabase.from("visit").update({ archived_at: null }).eq("id", id).select().single()) as Visit;
   },
   /** The database stamps confirmed_by / confirmed_at from the signed-in member; the client cannot set them. */
   async confirmChange(id: string) {
