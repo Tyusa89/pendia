@@ -3,7 +3,12 @@ import { PageTitle, WithFamily } from "@/components/AppShell";
 import { AppointmentEditor } from "@/components/AppointmentEditor";
 
 export const Route = createFileRoute("/_authenticated/visits/new")({
-  head: () => ({ meta: [{ title: "New appointment — Pendia" }, { name: "description", content: "Add a doctor appointment." }] }),
+  head: () => ({
+    meta: [
+      { title: "New appointment — Pendia" },
+      { name: "description", content: "Add a doctor appointment." },
+    ],
+  }),
   component: NewAppointment,
 });
 
@@ -13,7 +18,10 @@ function NewAppointment() {
     <WithFamily>
       {({ family, me }) => (
         <>
-          <PageTitle title="New appointment" subtitle="Add what you know. You can fill in the rest later." />
+          <PageTitle
+            title="New appointment"
+            subtitle="Add what you know. You can fill in the rest later."
+          />
           <AppointmentEditor
             familyId={family.id}
             timeZone={family.timezone}

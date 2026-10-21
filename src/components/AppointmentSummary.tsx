@@ -133,7 +133,7 @@ export function AppointmentSummary({
       )}
 
       {canWrite && (
-        <div className="grid gap-2 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           <Button asChild variant="outline" className="h-12">
             <Link to="/visits/edit/$id" params={{ id: visit.id }}>
               <Pencil /> Edit appointment

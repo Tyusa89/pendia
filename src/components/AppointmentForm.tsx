@@ -91,7 +91,7 @@ export function AppointmentForm({
 
   return (
     <form onSubmit={submit} className="space-y-5" noValidate>
-      <div className="grid gap-5 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         <div className={field}>
           <Label htmlFor="appt-start" className="text-base">
             Starts
@@ -237,7 +237,7 @@ export function AppointmentForm({
         </p>
       )}
 
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         <Button type="submit" size="lg" className="h-14" disabled={busy}>
           {busy ? "Saving…" : submitLabel}
         </Button>

@@ -3,7 +3,12 @@ import { PageTitle, WithFamily } from "@/components/AppShell";
 import { AppointmentEditor } from "@/components/AppointmentEditor";
 
 export const Route = createFileRoute("/_authenticated/visits/edit/$id")({
-  head: () => ({ meta: [{ title: "Edit appointment — Pendia" }, { name: "description", content: "Change a doctor appointment." }] }),
+  head: () => ({
+    meta: [
+      { title: "Edit appointment — Pendia" },
+      { name: "description", content: "Change a doctor appointment." },
+    ],
+  }),
   component: EditAppointment,
 });
 

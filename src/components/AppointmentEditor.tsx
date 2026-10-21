@@ -7,7 +7,12 @@ import { visitService } from "@/services";
 
 /** Loads what the form needs and saves. Organizer only; RLS enforces the same rule in the database. */
 export function AppointmentEditor({
-  familyId, timeZone, canWrite, appointmentId, onDone, onCancel,
+  familyId,
+  timeZone,
+  canWrite,
+  appointmentId,
+  onDone,
+  onCancel,
 }: {
   familyId: string;
   timeZone: string;
@@ -17,13 +22,22 @@ export function AppointmentEditor({
   onCancel: () => void;
 }) {
   const qc = useQueryClient();
-  const { data: all = [], isLoading } = useQuery({ queryKey: ["visits", familyId], queryFn: () => visitService.list(familyId) });
+  const { data: all = [], isLoading } = useQuery({
+    queryKey: ["visits", familyId],
+    queryFn: () => visitService.list(familyId),
+  });
   const existing = appointmentId ? all.find((v) => v.id === appointmentId) : undefined;
 
   const save = useMutation({
-    mutationFn: (input: AppointmentInput) => (appointmentId ? visitService.updateAppointment(appointmentId, input) : visitService.createAppointment(familyId, input)),
+    mutationFn: (input: AppointmentInput) =>
+      appointmentId
+        ? visitService.updateAppointment(appointmentId, input)
+        : visitService.createAppointment(familyId, input),
     onSuccess: async (row) => {
-      await Promise.all([qc.invalidateQueries({ queryKey: ["visits", familyId] }), qc.invalidateQueries({ queryKey: ["visit", row.id] })]);
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["visits", familyId] }),
+        qc.invalidateQueries({ queryKey: ["visit", row.id] }),
+      ]);
       toast.success(appointmentId ? "Appointment updated" : "Appointment added");
       onDone(row.id);
     },
