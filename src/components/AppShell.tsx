@@ -39,7 +39,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           </button>
         </div>
       </header>
-      <main className="flex-1 px-5 pb-32 pt-6">{children}</main>
+      <main className="flex-1 px-5 pb-32 pt-6">
+        {children}
+        <p className="mt-10 text-center text-sm text-muted-foreground">Not medical advice. Check with your doctor or pharmacist.</p>
+      </main>
       <nav className="fixed inset-x-0 bottom-0 z-20 border-t bg-card/95 backdrop-blur">
         <ul className="mx-auto grid max-w-2xl grid-cols-6">
           {nav.map(({ to, label, icon: Icon }) => (

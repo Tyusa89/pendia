@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Empty, Panel, WithFamily } from "@/components/AppShell";
 import { useMembers } from "@/hooks/use-family";
+import { formatTimestamp } from "@/lib/format";
 import { visitService, type Member, type TranscriptLine } from "@/services";
 
 export const Route = createFileRoute("/_authenticated/visits/$id")({
@@ -19,7 +20,7 @@ function VisitDetail({ me }: { me: Member }) {
   const { data: members = [] } = useMembers(me.family_id);
   const nameOf = (mid: string | null) => members.find((m) => m.id === mid)?.name ?? "Unassigned";
   const confirm = useMutation({
-    mutationFn: (cid: string) => visitService.confirmChange(cid, me.id),
+    mutationFn: (cid: string) => visitService.confirmChange(cid),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["visit", id] }); toast.success("Change confirmed"); },
     onError: (e) => toast.error((e as Error).message),
   });
@@ -64,7 +65,8 @@ function VisitDetail({ me }: { me: Member }) {
               <ArrowRight className="size-5 text-primary" />
               <span className="rounded-lg bg-accent px-3 py-1 font-semibold">{c.after}</span>
             </div>
-            <p className="mt-2 text-sm text-muted-foreground">Heard at {c.source_seconds != null ? `${Math.floor(c.source_seconds / 60)}:${String(Math.round(c.source_seconds % 60)).padStart(2, "0")}` : "—"} · {c.speaker_label}</p>
+            <p className="mt-2 text-sm text-muted-foreground">Heard at {formatTimestamp(c.source_seconds)} · {c.speaker_label ?? "Unknown speaker"}</p>
+            {c.unclear && <p className="mt-1 text-sm font-semibold text-warning-foreground">Unclear — ask the pharmacist</p>}
             {c.status === "pending" ? (
               <Button variant="success" className="mt-4 w-full" disabled={confirm.isPending} onClick={() => confirm.mutate(c.id)}>
                 <Check /> Confirm this change
@@ -110,9 +112,9 @@ function VisitDetail({ me }: { me: Member }) {
           <Panel className="space-y-4">
             {transcript.map((l, i) => (
               <div key={i} className="flex gap-3">
-                <span className="w-12 shrink-0 pt-0.5 font-mono text-sm text-muted-foreground">{l.t}</span>
+                <span className="w-12 shrink-0 pt-0.5 font-mono text-sm text-muted-foreground">{formatTimestamp(l.start_s)}</span>
                 <div>
-                  <p className={`text-sm font-bold ${l.speaker === "Speaker A" ? "text-primary" : "text-success"}`}>{l.speaker}</p>
+                  <p className={`text-sm font-bold ${l.speaker === "A" ? "text-primary" : "text-success"}`}>Speaker {l.speaker}</p>
                   <p className="text-lg">{l.text}</p>
                 </div>
               </div>

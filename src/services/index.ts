@@ -1,6 +1,7 @@
 // Service layer: every Lovable Cloud call goes through here so features can grow incrementally.
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
+import { normalizePhone } from "@/lib/format";
 
 export type Family = Tables<"family">;
 export type Member = Tables<"member">;
@@ -13,11 +14,20 @@ export type WatchItem = Tables<"watch_item">;
 export type Shift = Tables<"shift">;
 export type Handoff = Tables<"handoff">;
 export type Digest = Tables<"digest">;
-export type TranscriptLine = { speaker: string; t: string; text: string };
+/** One diarized turn. `speaker` is the anonymous session-scoped label ("A", "B", …). */
+export type TranscriptLine = { speaker: string; start_s: number; end_s: number; text: string; unclear?: boolean };
 
 function ok<T>(res: { data: T; error: { message: string } | null }): NonNullable<T> {
   if (res.error) throw new Error(res.error.message);
   return res.data as NonNullable<T>;
+}
+
+/** Phones are stored as E.164; reject anything we can't normalise rather than saving junk. */
+function withPhone<T extends { phone?: string | null }>(m: T): T {
+  if (m.phone == null || m.phone === "") return { ...m, phone: null };
+  const phone = normalizePhone(m.phone);
+  if (!phone) throw new Error("Enter a valid phone number, like (212) 555-0102.");
+  return { ...m, phone };
 }
 
 // ---------- Auth ----------
@@ -60,10 +70,10 @@ export const familyService = {
     return ok(await supabase.from("member").select("*").eq("family_id", familyId).order("created_at"));
   },
   async addMember(m: TablesInsert<"member">) {
-    return ok(await supabase.from("member").insert(m).select().single());
+    return ok(await supabase.from("member").insert(withPhone(m)).select().single());
   },
   async updateMember(id: string, patch: TablesUpdate<"member">) {
-    return ok(await supabase.from("member").update(patch).eq("id", id).select().single());
+    return ok(await supabase.from("member").update(withPhone(patch)).eq("id", id).select().single());
   },
   async getRecipient(familyId: string) {
     const rows = ok(await supabase.from("care_recipient").select("*").eq("family_id", familyId).limit(1));
@@ -89,10 +99,9 @@ export const visitService = {
     ]);
     return { visit, changes: ok(changes), tasks: ok(tasks), watch: ok(watch) };
   },
-  async confirmChange(id: string, memberId: string) {
-    return ok(
-      await supabase.from("med_change").update({ status: "confirmed", confirmed_by: memberId }).eq("id", id).select().single(),
-    );
+  /** The database stamps confirmed_by / confirmed_at from the signed-in member; the client cannot set them. */
+  async confirmChange(id: string) {
+    return ok(await supabase.from("med_change").update({ status: "confirmed" }).eq("id", id).select().single());
   },
 };
 
