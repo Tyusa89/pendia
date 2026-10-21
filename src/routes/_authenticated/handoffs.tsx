@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Empty, PageTitle, Panel, WithFamily } from "@/components/AppShell";
+import { HandoffDictation } from "@/components/HandoffDictation";
 import { useMembers } from "@/hooks/use-family";
 import { handoffService, type Member } from "@/services";
 
@@ -56,6 +57,7 @@ function Handoffs({ me }: { me: Member }) {
         ))}
         <div><p className="mb-2 text-lg font-semibold">Anything unusual?</p>
           <Textarea className="min-h-24 text-base" placeholder="Optional" value={unusual} onChange={(e) => setUnusual(e.target.value)} /></div>
+        <HandoffDictation onAccept={(text) => setUnusual((prev) => (prev.trim() ? `${prev.trimEnd()}\n${text}` : text))} />
         <Button size="lg" className="w-full" disabled={ate === null || meds === null || save.isPending} onClick={() => save.mutate()}>Save handoff</Button>
       </Panel>
 
