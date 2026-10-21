@@ -46,6 +46,7 @@ export const calls = {
   create: vi.fn(),
   update: vi.fn(),
   cancel: vi.fn(),
+  complete: vi.fn(),
   archive: vi.fn(),
   unarchive: vi.fn(),
 };
@@ -92,6 +93,11 @@ export const fakeVisitService = {
   cancelAppointment: async (id: string) => {
     calls.cancel(id);
     find(id).status = "canceled";
+    return { ...find(id) };
+  },
+  completeAppointment: async (id: string) => {
+    calls.complete(id);
+    find(id).status = "completed";
     return { ...find(id) };
   },
   archiveAppointment: async (id: string) => {

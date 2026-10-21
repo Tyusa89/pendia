@@ -7,7 +7,7 @@ declare
   ua uuid := gen_random_uuid(); ub uuid := gen_random_uuid(); uj uuid := gen_random_uuid(); uk uuid := gen_random_uuid();
   fa uuid; fb uuid; ma uuid; mb uuid; mj uuid; mk uuid;
   v1 uuid; v2 uuid; v3 uuid; vlegacy uuid; vb uuid;
-  r record; n int := 0; c int; d date; tr jsonb;
+  r record; n int := 0; c int; d date; tr jsonb; h text;
 begin
   -------------------------------------------------------------- schema facts
   select count(*) into c from information_schema.columns where table_schema = 'public' and table_name = 'visit'
@@ -116,6 +116,16 @@ begin
   if c <> 1 then raise exception 'FAIL: organizer cannot cancel'; end if; n := n + 1;
   update visit set archived_at = now() where id = v3; get diagnostics c = row_count;
   if c <> 1 then raise exception 'FAIL: organizer cannot archive'; end if; n := n + 1;
+  -- mark completed: organizer can, and ONLY status changes
+  update visit set archived_at = null, status = 'scheduled' where id = v3;
+  select md5(row(v.date, v.provider_name, v.office_address, v.office_phone, v.scheduled_start, v.scheduled_end, v.reason, v.notes, v.transcript::text, v.speaker_map::text, v.consent_text, v.audio_path)::text) into h from visit v where id = v3;
+  update visit set status = 'completed' where id = v3; get diagnostics c = row_count;
+  if c <> 1 then raise exception 'FAIL: organizer cannot mark an appointment completed'; end if; n := n + 1;
+  if (select md5(row(v.date, v.provider_name, v.office_address, v.office_phone, v.scheduled_start, v.scheduled_end, v.reason, v.notes, v.transcript::text, v.speaker_map::text, v.consent_text, v.audio_path)::text) from visit v where id = v3) <> h
+     or (select status from visit where id = v3) <> 'completed' then
+    raise exception 'FAIL: marking completed changed more than status'; end if; n := n + 1;
+  update visit set status = 'canceled' where id = v3;
+  update visit set archived_at = now() where id = v3;
   select * into r from visit where id = v3;
   if r.status <> 'canceled' or r.archived_at is null or r.office_phone <> '555-0199' or r.provider_name <> 'Dr. Patel' or r.doctor <> 'Dr. Patel' then
     raise exception 'FAIL: cancel/archive/edit results wrong'; end if; n := n + 1;
@@ -138,6 +148,8 @@ begin
   if c <> 1 then raise exception 'FAIL: member cannot read the new columns'; end if; n := n + 1;
   begin insert into visit (family_id, date, scheduled_start) values (fa, current_date, now()); raise exception 'FAIL: member created an appointment';
   exception when insufficient_privilege then n := n + 1; end;
+  update visit set status = 'completed' where id = v3; get diagnostics c = row_count;
+  if c <> 0 then raise exception 'FAIL: member marked an appointment completed'; end if; n := n + 1;
   update visit set status = 'canceled' where id = v3; get diagnostics c = row_count;
   if c <> 0 then raise exception 'FAIL: member canceled an appointment'; end if; n := n + 1;
   update visit set archived_at = now() where id = v3; get diagnostics c = row_count;
