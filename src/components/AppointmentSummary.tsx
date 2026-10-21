@@ -128,7 +128,7 @@ export function AppointmentSummary({
         ) : phoneDigits ? (
           <a
             href={`tel:${phoneDigits}`}
-            className="inline-flex items-center gap-2 font-medium text-primary underline"
+            className="inline-flex min-h-11 items-center gap-2 font-medium text-primary underline"
           >
             <Phone className="size-5" aria-hidden />
             {visit.office_phone}
