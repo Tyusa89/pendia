@@ -142,10 +142,10 @@ in the family's timezone. Organizers write; members read per `can_see_visits` (R
 and never block saving. Nothing is ever auto-filled. Routes: `/visits` (Upcoming / Past / Archived), `/visits/new`,
 `/visits/edit/$id`. Tests: `supabase/tests/appointments.test.sql` (same `PASS: N assertions` convention).
 
-**Migration status:** `20261021000004_visit_appointments.sql` is in the repo and was only dry-run in a rolled-back
-transaction. It is **not applied** to the live DB; that needs the owner's separate approval. Until then the live DB
-lacks the new columns. `types.ts`: the `visit` block was hand-edited on top of main (39cb8bd) in generator format,
-not regenerated, because the live DB does not have the migration yet. Regenerate after it is applied.
+**Migration status:** `20261021000004_visit_appointments.sql` was applied to the live database with the owner's approval after
+a rolled-back dry-run. Afterwards the appointments suite (44 assertions) and the RLS suite (40) passed against the live
+schema. `types.ts`: the `visit` block was written by hand in generator format and checked column-by-column (name, type,
+nullability, default) against the live schema; it matches. Lovable's own regeneration may replace it, which is fine.
 
 ### Demo data
 
