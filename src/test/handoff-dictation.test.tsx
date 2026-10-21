@@ -125,11 +125,11 @@ describe("HandoffDictation: recording UI", () => {
     expect(env.stream.track.stop).toHaveBeenCalled();
   });
 
-  it("uses large touch targets (h-14 / h-12) for the primary controls", async () => {
+  it("uses the design's large round voice controls (6rem) for record and stop", async () => {
     render(<HandoffDictation onAccept={() => {}} />);
-    expect(screen.getByRole("button", { name: "Record" }).className).toContain("h-14");
+    expect(screen.getByRole("button", { name: "Record" }).className).toContain("size-24");
     await click("Record");
-    expect(screen.getByRole("button", { name: "Stop" }).className).toContain("h-14");
+    expect(screen.getByRole("button", { name: "Stop" }).className).toContain("size-24");
   });
 });
 

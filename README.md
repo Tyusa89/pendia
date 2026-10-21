@@ -90,11 +90,14 @@ Run it in the Supabase SQL editor (or any SQL client): the error message `PASS: 
 
 ### Handoff dictation and kept recordings (Handoffs page)
 
-A microphone panel under "Anything unusual?" records a spoken note in the browser (`src/hooks/use-audio-recorder.ts`,
-`src/components/HandoffDictation.tsx`): Record, Stop, playback, Discard, with specific messages for blocked
-permission, no microphone, microphone busy, interruption, and unsupported browsers. **By default nothing leaves the
-device.** After a recording, an unchecked box "Keep the recording with this handoff" lets the caregiver opt in; only
-then, when they press Save handoff (after a one-time storage notice), is anything uploaded.
+The page follows the design: a Check-in card, a separate **Voice note** card, Save, and a Past handoffs column
+(side by side from 768 px). **Quick handoff** is on the Family page and "Hand off my shift" is on Coverage; both open this
+page. The voice note records in the browser (`src/hooks/use-audio-recorder.ts`, `src/components/HandoffDictation.tsx`) with a
+large round Record button, a **Stop that is docked above the tab bar** while recording, playback, Record again and Discard.
+The note shows its state: **Temporary** ("stays on this phone, not saved") by default, and **Saved** ("will be saved privately
+with this handoff") only when the **Keep** switch is on. **By default nothing leaves the device.** Only with Keep on, when
+the caregiver presses Save handoff (after a one-time storage notice), is anything uploaded. For now only organizers can save a
+handoff (database rule); other members see why and can read past handoffs.
 
 **What is kept.** The browser's original recording (for playback) plus a transcription-ready **16 kHz mono 16-bit PCM
 WAV**, captured in parallel from the same microphone stream with an `AudioWorklet` (`public/pcm-worklet.js`,

@@ -72,7 +72,7 @@ describe("Handoffs page", () => {
   it("saves exactly the same payload as before for a typed note", async () => {
     mount();
     await fillRequired();
-    fireEvent.change(screen.getByPlaceholderText("Optional"), {
+    fireEvent.change(screen.getByPlaceholderText(/^Optional/), {
       target: { value: "Felt a bit tired after lunch" },
     });
     await click("Save handoff");
@@ -94,7 +94,7 @@ describe("Handoffs page", () => {
     await click("Stop");
     expect(create).not.toHaveBeenCalled();
     expect(env.fetchSpy).not.toHaveBeenCalled();
-    fireEvent.change(screen.getByPlaceholderText("Optional"), { target: { value: "Typed note" } });
+    fireEvent.change(screen.getByPlaceholderText(/^Optional/), { target: { value: "Typed note" } });
     await click("Save handoff");
     await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
     const saved = create.mock.calls[0]![0] as Record<string, unknown>;
@@ -117,7 +117,7 @@ describe("Handoffs page", () => {
     await fillRequired();
     await click("Record");
     expect(screen.getByRole("alert")).toHaveTextContent(/Microphone access is blocked/i);
-    fireEvent.change(screen.getByPlaceholderText("Optional"), {
+    fireEvent.change(screen.getByPlaceholderText(/^Optional/), {
       target: { value: "Typed anyway" },
     });
     await click("Save handoff");

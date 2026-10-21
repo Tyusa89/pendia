@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -233,6 +233,16 @@ function Coverage({ me }: { me: Member }) {
             })}
         </section>
       )}
+      <section
+        aria-label="Leaving soon"
+        className="mt-4 space-y-2 rounded-[1.25rem] bg-primary/10 p-[1.125rem]"
+      >
+        <h2 className="font-sans text-base font-bold tracking-normal">Leaving soon?</h2>
+        <p>A quick handoff tells the next person how she's doing.</p>
+        <Button asChild size="lg" className="w-full">
+          <Link to="/handoffs">Hand off my shift</Link>
+        </Button>
+      </section>
       {shifts.length === 0 && (
         <p className="mt-4 text-center text-muted-foreground">
           No blocks scheduled this week. The demo week is Oct 19.

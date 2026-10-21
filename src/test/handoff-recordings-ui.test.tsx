@@ -100,14 +100,13 @@ async function recordAClip() {
   await click("Record");
   await click("Stop");
 }
-const keepBox = () =>
-  screen.getByRole("checkbox", { name: /Keep the recording with this handoff/i });
+const keepBox = () => screen.getByRole("switch", { name: /Keep the recording with this handoff/i });
 
 describe("keeping a recording is opt-in", () => {
   it("offers 'Keep' only after a recording exists, unchecked by default, with a plain-language explanation", async () => {
     mount();
     await screen.findByText("Did she eat?");
-    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    expect(screen.queryByRole("switch")).not.toBeInTheDocument();
     await recordAClip();
     expect(keepBox()).not.toBeChecked();
     expect(screen.getByText(/Off by default/i)).toBeInTheDocument();
@@ -121,7 +120,7 @@ describe("keeping a recording is opt-in", () => {
   it("saving WITHOUT ticking Keep behaves exactly as before: same payload, nothing uploaded", async () => {
     mount();
     await answerRequired();
-    fireEvent.change(screen.getByPlaceholderText("Optional"), {
+    fireEvent.change(screen.getByPlaceholderText(/^Optional/), {
       target: { value: "Quiet afternoon" },
     });
     await recordAClip();
@@ -195,7 +194,7 @@ describe("saving a kept recording", () => {
     world.failInsert = true;
     mount();
     await answerRequired();
-    fireEvent.change(screen.getByPlaceholderText("Optional"), {
+    fireEvent.change(screen.getByPlaceholderText(/^Optional/), {
       target: { value: "Typed note that must survive" },
     });
     await recordAClip();
@@ -207,7 +206,7 @@ describe("saving a kept recording", () => {
     expect(world.objects.size).toBe(0); // compensation removed both uploads
     expect(world.rows).toHaveLength(0);
     expect(world.log.at(-1)).toMatch(/^remove:/);
-    expect((screen.getByPlaceholderText("Optional") as HTMLTextAreaElement).value).toBe(
+    expect((screen.getByPlaceholderText(/^Optional/) as HTMLTextAreaElement).value).toBe(
       "Typed note that must survive",
     );
     expect(screen.getByLabelText("Playback of your recording")).toBeInTheDocument(); // the recording is still there to retry
@@ -224,7 +223,7 @@ describe("saving a kept recording", () => {
     await waitFor(() =>
       expect(screen.queryByLabelText("Playback of your recording")).not.toBeInTheDocument(),
     );
-    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    expect(screen.queryByRole("switch")).not.toBeInTheDocument();
   });
 });
 
