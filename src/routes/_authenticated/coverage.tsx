@@ -45,7 +45,7 @@ export const Route = createFileRoute("/_authenticated/coverage")({
   head: () => ({
     meta: [
       { title: "Coverage — Pendia" },
-      { name: "description", content: "Who is with your loved one this week." },
+      { name: "description", content: "Who is with your loved one this week." }, { property: "og:title", content: "Coverage — Pendia" }, { property: "og:description", content: "Who is with your loved one this week." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: () => (

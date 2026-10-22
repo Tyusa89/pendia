@@ -11,7 +11,7 @@ export const Route = createFileRoute("/_authenticated/meds")({
   head: () => ({
     meta: [
       { title: "Medications — Pendia" },
-      { name: "description", content: "The shared current medication list." },
+      { name: "description", content: "The shared current medication list." }, { property: "og:title", content: "Medications — Pendia" }, { property: "og:description", content: "The shared current medication list." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: () => <WithFamily>{({ family }) => <Meds familyId={family.id} />}</WithFamily>,

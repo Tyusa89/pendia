@@ -12,7 +12,7 @@ import { formatTimestamp } from "@/lib/format";
 import { visitService, type Member, type TranscriptLine } from "@/services";
 
 export const Route = createFileRoute("/_authenticated/visits/$id")({
-  head: () => ({ meta: [{ title: "Visit details — Pendia" }, { name: "description", content: "Summary, medication changes and tasks from a doctor visit." }] }),
+  head: () => ({ meta: [{ title: "Visit details — Pendia" }, { name: "description", content: "Summary, medication changes and tasks from a doctor visit." }, { property: "og:title", content: "Visit details — Pendia" }, { property: "og:description", content: "Summary, medication changes and tasks from a doctor visit." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }),
   component: () => <WithFamily>{({ me, family }) => <VisitDetail me={me} timeZone={family.timezone} />}</WithFamily>,
 });
 

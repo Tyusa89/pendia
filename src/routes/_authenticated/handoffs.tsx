@@ -26,7 +26,7 @@ export const Route = createFileRoute("/_authenticated/handoffs")({
   head: () => ({
     meta: [
       { title: "Handoffs — Pendia" },
-      { name: "description", content: "End-of-shift check-ins." },
+      { name: "description", content: "End-of-shift check-ins." }, { property: "og:title", content: "Handoffs — Pendia" }, { property: "og:description", content: "End-of-shift check-ins." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: () => <WithFamily>{({ me }) => <Handoffs me={me} />}</WithFamily>,

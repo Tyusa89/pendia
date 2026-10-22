@@ -8,7 +8,7 @@ export const Route = createFileRoute("/_authenticated/digest")({
   head: () => ({
     meta: [
       { title: "Weekly digest — Pendia" },
-      { name: "description", content: "The Sunday summary for your family." },
+      { name: "description", content: "The Sunday summary for your family." }, { property: "og:title", content: "Weekly digest — Pendia" }, { property: "og:description", content: "The Sunday summary for your family." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: () => <WithFamily>{({ me }) => <DigestView me={me} />}</WithFamily>,

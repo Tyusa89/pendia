@@ -17,7 +17,7 @@ export const Route = createFileRoute("/_authenticated/family")({
   head: () => ({
     meta: [
       { title: "My Family — Pendia" },
-      { name: "description", content: "Your care team and care recipient." },
+      { name: "description", content: "Your care team and care recipient." }, { property: "og:title", content: "My Family — Pendia" }, { property: "og:description", content: "Your care team and care recipient." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: FamilyPage,
