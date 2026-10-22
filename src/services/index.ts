@@ -1,4 +1,5 @@
 // Service layer: every Lovable Cloud call goes through here so features can grow incrementally.
+import { validateFamilyTimeZone } from "@/lib/timezones";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import type { AppointmentInput } from "@/lib/appointments";
@@ -64,6 +65,19 @@ export const familyService = {
     const fam = ok(await supabase.from("family").insert({ name, created_by: uid }).select().single()) as Family;
     ok(await supabase.from("member").insert({ family_id: fam.id, user_id: uid, name: myName, role: "organizer" }));
     return fam;
+  },
+  /**
+   * Organizer-only (enforced by the "organizer update family" policy). Changes how the family's existing shifts and
+   * appointments are displayed; it never moves the stored instants.
+   */
+  async setTimezone(familyId: string, timeZone: string): Promise<Family> {
+    const v = validateFamilyTimeZone(timeZone);
+    if (!v.ok) throw new Error(v.error);
+    const rows = ok(
+      await supabase.from("family").update({ timezone: v.timeZone }).eq("id", familyId).select(),
+    ) as Family[];
+    if (!rows.length) throw new Error("Only an organizer can change the family time zone.");
+    return rows[0]!;
   },
   async joinDemo() {
     return ok(await supabase.rpc("join_demo_family"));

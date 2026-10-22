@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Empty, LoadingCard, PageTitle, Panel } from "@/components/AppShell";
 import { FamilyOverview, greeting } from "@/components/FamilyOverview";
+import { FamilyTimeZone } from "@/components/FamilyTimeZone";
 import { familyKey, useFamily, useMembers } from "@/hooks/use-family";
 import { familyService, type Member } from "@/services";
 
@@ -127,6 +128,7 @@ function FamilyView({
             ))}
           </div>
           {isOrganizer && <Invite familyId={familyId} />}
+          <FamilyTimeZone familyId={familyId} timeZone={timeZone} editable={isOrganizer} />
         </section>}
       </div>
     </>
