@@ -1,7 +1,15 @@
 import { FollowThrough } from "@/components/visit-demo/FollowThrough";
 import { ReviewItems } from "@/components/visit-demo/ReviewItems";
 import { WrapUp } from "@/components/visit-demo/WrapUp";
-import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import { FileText, Mic, RotateCcw, ShieldCheck, SkipForward } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, DemoBanner, StepHeading, StepIndicator } from "@/components/visit-demo/parts";
@@ -11,17 +19,32 @@ import {
   confirmedTasks,
   initialState,
   reducer,
+  type Action,
   rolesComplete,
   speakerLabels,
   type RoleChoice,
   type DemoState,
 } from "@/lib/visit-demo/state";
 import { taskAssignmentText } from "@/lib/visit-demo/messages";
+import {
+  buildRestoredState,
+  clearDemoState,
+  loadDemoState,
+  needsExtraction,
+  needsTranscript,
+  saveDemoState,
+  type PersistedDemo,
+} from "@/lib/visit-demo/persist";
 import { useReducedMotion } from "@/lib/visit-demo/use-reduced-motion";
-import { getVisitPipeline } from "@/lib/visit-pipeline";
+import { getVisitPipeline, simulatedReply } from "@/lib/visit-pipeline";
 import { DEMO_DOCTOR, DEMO_PATIENT, DEMO_SPEAKER_SUGGESTION } from "@/lib/visit-pipeline/fixture";
 import { NOT_MEDICAL_ADVICE, provenanceLabel } from "@/lib/visit-pipeline/labels";
-import type { SpeakerMap, SpeakerRole, TranscriptSegment } from "@/lib/visit-pipeline/types";
+import type {
+  Delivery,
+  SpeakerMap,
+  SpeakerRole,
+  TranscriptSegment,
+} from "@/lib/visit-pipeline/types";
 
 /** How much faster than real time the cached visit plays. */
 const SPEED = 8;
@@ -84,9 +107,74 @@ function Transcript({
   );
 }
 
+const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
+
 export function VisitDemo({ onExit }: { onExit?: () => void }) {
   const pipeline = useMemo(() => getVisitPipeline(), []);
-  const [s, dispatch] = useReducer(reducer, initialState);
+  const [s, rawDispatch] = useReducer(reducer, initialState);
+  // "ready" until a saved session is found; then "restoring" until it is rebuilt from the synthetic fixtures.
+  const [phase, setPhase] = useState<"ready" | "restoring">("ready");
+  const [restored, setRestored] = useState(false);
+  const triedRestore = useRef(false);
+  const dispatch = useCallback((a: Action) => {
+    if (a.type === "reset") clearDemoState(); // Start over is the only thing that clears saved progress
+    setRestored(false);
+    rawDispatch(a);
+  }, []);
+
+  // After an accidental reload or remount, return to the saved step. Runs before the first paint so the first screen is
+  // never a misleading Step 1. Everything shown comes from the cached synthetic fixtures; no network is involved.
+  useIsoLayoutEffect(() => {
+    if (triedRestore.current) return;
+    triedRestore.current = true;
+    const saved = loadDemoState();
+    if (!saved) return;
+    setPhase("restoring");
+    void restoreFrom(saved);
+  }, []);
+
+  async function restoreFrom(p: PersistedDemo) {
+    try {
+      const transcript = needsTranscript(p)
+        ? await pipeline.transcribe.transcribe({ visitId: "demo", keywords: ["Lisinopril"] })
+        : null;
+      const extraction =
+        needsExtraction(p) && transcript
+          ? await pipeline.extract.extract({
+              transcript,
+              speakerMap: { map: p.roles as SpeakerMap, confirmed: true },
+            })
+          : null;
+      const deliveries: Record<string, Delivery> = {};
+      for (const task of extraction?.tasks ?? []) {
+        const owner = p.owners[task.id];
+        if (owner && p.followUps[task.id]?.delivered)
+          deliveries[task.id] = await pipeline.notifier.send({
+            kind: "task-assignment",
+            to: { name: owner },
+            body: taskAssignmentText(task, "Maria"),
+          });
+      }
+      const state = buildRestoredState(p, {
+        transcript,
+        extraction,
+        delivery: (id) => deliveries[id]!,
+        reply: (owner) => simulatedReply(owner, "DONE"),
+      });
+      if (state) {
+        rawDispatch({ type: "restore", state });
+        setRestored(true);
+      } else clearDemoState();
+    } catch {
+      clearDemoState(); // anything unexpected: start fresh rather than show a broken screen
+    }
+    setPhase("ready");
+  }
+
+  // Keep the saved progress current. Waits until any restore has finished so it can't overwrite what it is restoring.
+  useEffect(() => {
+    if (phase === "ready") saveDemoState(s);
+  }, [s, phase]);
   const reduced = useReducedMotion();
   const segments = useMemo(() => s.transcript?.segments ?? [], [s.transcript]);
 
@@ -105,7 +193,7 @@ export function VisitDemo({ onExit }: { onExit?: () => void }) {
       s.revealed === 0 ? 300 : ((next - prev) / SPEED) * 1000,
     );
     return () => clearTimeout(t);
-  }, [s, reduced, segments]);
+  }, [s, reduced, segments, dispatch]);
 
   // Entering the follow-up step: ask the (simulated) notifier to prepare each message. It never sends anything.
   useEffect(() => {
@@ -118,7 +206,7 @@ export function VisitDemo({ onExit }: { onExit?: () => void }) {
         .then((delivery) => dispatch({ type: "deliveryReady", taskId: t.id, delivery }))
         .catch((e: Error) => dispatch({ type: "failed", message: e.message }));
     }
-  }, [s, pipeline]);
+  }, [s, pipeline, dispatch]);
 
   const startVisit = useCallback(() => {
     dispatch({ type: "startVisit" });
@@ -128,7 +216,7 @@ export function VisitDemo({ onExit }: { onExit?: () => void }) {
         dispatch({ type: "transcriptLoaded", transcript, suggestion: DEMO_SPEAKER_SUGGESTION }),
       )
       .catch((e: Error) => dispatch({ type: "failed", message: e.message }));
-  }, [pipeline]);
+  }, [pipeline, dispatch]);
 
   const confirmSpeakers = useCallback(() => {
     if (!s.transcript || !rolesComplete(s)) return;
@@ -138,7 +226,7 @@ export function VisitDemo({ onExit }: { onExit?: () => void }) {
       .extract({ transcript: s.transcript, speakerMap: { map, confirmed: true } })
       .then((extraction) => dispatch({ type: "extractionLoaded", extraction, rejected: [] }))
       .catch((e: Error) => dispatch({ type: "failed", message: e.message }));
-  }, [pipeline, s]);
+  }, [pipeline, s, dispatch]);
 
   const reset = () => {
     dispatch({ type: "reset" });
@@ -149,13 +237,27 @@ export function VisitDemo({ onExit }: { onExit?: () => void }) {
     <div className="mx-auto w-full max-w-5xl space-y-4">
       <DemoBanner />
       <StepIndicator step={s.step} />
+      {restored && (
+        <p role="status" className="rounded-xl bg-muted p-3 font-semibold">
+          Restored where you left off.
+          {s.step === "visit" ? " Playback is paused: press Play to continue." : ""}
+        </p>
+      )}
       {s.error && (
         <p role="alert" className="rounded-xl bg-warning p-4 font-semibold text-warning-foreground">
           {s.error}
         </p>
       )}
 
-      {s.step === "intro" && (
+      {phase === "restoring" && (
+        <Card className="space-y-2" label="Restoring">
+          <p role="status" aria-busy="true" className="text-lg font-semibold">
+            Restoring your demo…
+          </p>
+        </Card>
+      )}
+
+      {phase === "ready" && s.step === "intro" && (
         <Card className="space-y-4">
           <StepHeading id="intro">See how Pendia handles a doctor visit</StepHeading>
           <p className="text-lg leading-relaxed">

@@ -8,6 +8,7 @@ const forbidden = vi.fn(() => {
   throw new Error("Demo Mode must not do this");
 });
 beforeEach(() => {
+  sessionStorage.clear(); // saved demo progress is per tab; every test starts a fresh tab
   forbidden.mockClear();
   vi.useFakeTimers();
   vi.stubGlobal("fetch", forbidden);

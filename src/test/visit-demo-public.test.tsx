@@ -5,7 +5,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { act } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { touched, spy } = vi.hoisted(() => {
   const names: string[] = [];
@@ -24,6 +24,7 @@ vi.mock("@/components/AppShell", spy("AppShell"));
 
 import { Route as PublicRoute } from "@/routes/demo";
 
+beforeEach(() => sessionStorage.clear());
 afterEach(cleanup);
 
 describe("public /demo route", () => {
