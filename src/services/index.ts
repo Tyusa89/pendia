@@ -147,9 +147,40 @@ export const shiftService = {
     );
   },
   async claim(id: string, memberId: string) {
-    return ok(
-      await supabase.from("shift").update({ assigned_member_id: memberId, status: "claimed" }).eq("id", id).select().single(),
+    // Only claims a shift that is still open, so two people tapping at once can't overwrite each other.
+    const rows = ok(
+      await supabase
+        .from("shift")
+        .update({ assigned_member_id: memberId, status: "claimed" })
+        .eq("id", id)
+        .is("assigned_member_id", null)
+        .select(),
     );
+    if (!rows.length) throw new Error("Someone already took this shift, or you can't change the schedule.");
+    return rows[0];
+  },
+  async create(familyId: string, start: string, end: string, memberId: string | null) {
+    return ok(
+      await supabase
+        .from("shift")
+        .insert({ family_id: familyId, start, end, assigned_member_id: memberId, status: memberId ? "claimed" : "open" })
+        .select()
+        .single(),
+    );
+  },
+  async update(id: string, start: string, end: string, memberId: string | null) {
+    return ok(
+      await supabase
+        .from("shift")
+        .update({ start, end, assigned_member_id: memberId, status: memberId ? "claimed" : "open" })
+        .eq("id", id)
+        .select()
+        .single(),
+    );
+  },
+  /** Kept as a record with status "canceled"; hidden from the calendar. */
+  async cancel(id: string) {
+    return ok(await supabase.from("shift").update({ status: "canceled" }).eq("id", id).select().single());
   },
 };
 
