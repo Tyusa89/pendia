@@ -316,18 +316,23 @@ const refused = (message: string) =>
   /row-level security|permission denied|insufficient/i.test(message) ? new Error(ORGANIZER_ONLY) : new Error(message);
 const hhmm = (t: string) => t.slice(0, 5);
 
+// Tables/RPCs below come from a migration pending founder approval, so generated types don't include them yet.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const pending = supabase as any;
+type Row = Record<string, string>;
+
 export const coverageRequirementService = {
   async get(familyId: string): Promise<{ weekly: WeeklyRequirement[]; overrides: DateOverride[] }> {
     const [weekly, overrides, windows] = await Promise.all([
-      supabase.from("coverage_requirement").select("*").eq("family_id", familyId).order("weekday").order("start_time"),
-      supabase.from("coverage_override").select("*").eq("family_id", familyId).order("day"),
-      supabase.from("coverage_override_window").select("*").eq("family_id", familyId).order("start_time"),
+      pending.from("coverage_requirement").select("*").eq("family_id", familyId).order("weekday").order("start_time"),
+      pending.from("coverage_override").select("*").eq("family_id", familyId).order("day"),
+      pending.from("coverage_override_window").select("*").eq("family_id", familyId).order("start_time"),
     ]);
     return {
-      weekly: ok(weekly).map((w) => ({ weekday: w.weekday, start_time: hhmm(w.start_time), end_time: hhmm(w.end_time) })),
-      overrides: ok(overrides).map((o) => ({
+      weekly: (ok(weekly) as Row[]).map((w) => ({ weekday: Number(w.weekday), start_time: hhmm(w.start_time), end_time: hhmm(w.end_time) })),
+      overrides: (ok(overrides) as Row[]).map((o) => ({
         day: o.day,
-        windows: ok(windows)
+        windows: (ok(windows) as Row[])
           .filter((w) => w.override_id === o.id)
           .map((w) => ({ start_time: hhmm(w.start_time), end_time: hhmm(w.end_time) })),
       })),
@@ -337,7 +342,7 @@ export const coverageRequirementService = {
   async replaceWeekly(familyId: string, weekday: number, windows: unknown) {
     const day = validateWeekday(weekday);
     const list = normalizeWindows(windows);
-    const res = await supabase.rpc("replace_weekly_coverage", { _family_id: familyId, _weekday: day, _windows: list as unknown as Json });
+    const res = await pending.rpc("replace_weekly_coverage", { _family_id: familyId, _weekday: day, _windows: list as unknown as Json });
     if (res.error) throw refused(res.error.message);
     return list;
   },
@@ -345,14 +350,14 @@ export const coverageRequirementService = {
   async setOverride(familyId: string, day: string, windows: unknown) {
     const d = validateDay(day);
     const list = normalizeWindows(windows);
-    const res = await supabase.rpc("set_coverage_override", { _family_id: familyId, _day: d, _windows: list as unknown as Json });
+    const res = await pending.rpc("set_coverage_override", { _family_id: familyId, _day: d, _windows: list as unknown as Json });
     if (res.error) throw refused(res.error.message);
     return list;
   },
   /** Removes the override so the weekly pattern applies to that date again. */
   async clearOverride(familyId: string, day: string) {
     const d = validateDay(day);
-    const res = await supabase.from("coverage_override").delete().eq("family_id", familyId).eq("day", d).select();
+    const res = await pending.from("coverage_override").delete().eq("family_id", familyId).eq("day", d).select();
     if (res.error) throw refused(res.error.message);
     if (!res.data?.length) throw new Error(`No date override to remove for ${d}, or ${ORGANIZER_ONLY.toLowerCase()}`);
   },
