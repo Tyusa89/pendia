@@ -1,7 +1,14 @@
 // Service layer: every Lovable Cloud call goes through here so features can grow incrementally.
+import {
+  normalizeWindows,
+  validateDay,
+  validateWeekday,
+  type DateOverride,
+  type WeeklyRequirement,
+} from "@/lib/coverage-requirements";
 import { validateFamilyTimeZone } from "@/lib/timezones";
 import { supabase } from "@/integrations/supabase/client";
-import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
+import type { Json, Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import type { AppointmentInput } from "@/lib/appointments";
 import { overlapsForMember, validateShiftTimes, ShiftValidationError, type ShiftInput } from "@/lib/shifts";
 import { normalizePhone } from "@/lib/format";
@@ -300,3 +307,53 @@ export const digestService = {
 };
 
 export * from "./recordings";
+
+// ---------- Required coverage (Phase 4A-1) ----------
+// Organizer-only writes (row-level security enforces it; this layer validates first so bad input never reaches the
+// database). Reads follow the Coverage schedule permission. Times are wall-clock in the family's timezone.
+const ORGANIZER_ONLY = "Only an organizer can change required coverage hours.";
+const refused = (message: string) =>
+  /row-level security|permission denied|insufficient/i.test(message) ? new Error(ORGANIZER_ONLY) : new Error(message);
+const hhmm = (t: string) => t.slice(0, 5);
+
+export const coverageRequirementService = {
+  async get(familyId: string): Promise<{ weekly: WeeklyRequirement[]; overrides: DateOverride[] }> {
+    const [weekly, overrides, windows] = await Promise.all([
+      supabase.from("coverage_requirement").select("*").eq("family_id", familyId).order("weekday").order("start_time"),
+      supabase.from("coverage_override").select("*").eq("family_id", familyId).order("day"),
+      supabase.from("coverage_override_window").select("*").eq("family_id", familyId).order("start_time"),
+    ]);
+    return {
+      weekly: ok(weekly).map((w) => ({ weekday: w.weekday, start_time: hhmm(w.start_time), end_time: hhmm(w.end_time) })),
+      overrides: ok(overrides).map((o) => ({
+        day: o.day,
+        windows: ok(windows)
+          .filter((w) => w.override_id === o.id)
+          .map((w) => ({ start_time: hhmm(w.start_time), end_time: hhmm(w.end_time) })),
+      })),
+    };
+  },
+  /** Replaces one weekday's required windows in a single step. An empty list means nothing is required that weekday. */
+  async replaceWeekly(familyId: string, weekday: number, windows: unknown) {
+    const day = validateWeekday(weekday);
+    const list = normalizeWindows(windows);
+    const res = await supabase.rpc("replace_weekly_coverage", { _family_id: familyId, _weekday: day, _windows: list as unknown as Json });
+    if (res.error) throw refused(res.error.message);
+    return list;
+  },
+  /** Sets the single-date override. An empty list is a deliberate "no coverage required that date". */
+  async setOverride(familyId: string, day: string, windows: unknown) {
+    const d = validateDay(day);
+    const list = normalizeWindows(windows);
+    const res = await supabase.rpc("set_coverage_override", { _family_id: familyId, _day: d, _windows: list as unknown as Json });
+    if (res.error) throw refused(res.error.message);
+    return list;
+  },
+  /** Removes the override so the weekly pattern applies to that date again. */
+  async clearOverride(familyId: string, day: string) {
+    const d = validateDay(day);
+    const res = await supabase.from("coverage_override").delete().eq("family_id", familyId).eq("day", d).select();
+    if (res.error) throw refused(res.error.message);
+    if (!res.data?.length) throw new Error(`No date override to remove for ${d}, or ${ORGANIZER_ONLY.toLowerCase()}`);
+  },
+};
