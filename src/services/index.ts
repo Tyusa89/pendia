@@ -158,7 +158,7 @@ export const medicationService = {
 export const shiftService = {
   async listRange(familyId: string, fromIso: string, toIso: string) {
     return ok(
-      await supabase.from("shift").select("*").eq("family_id", familyId).gte("start", fromIso).lt("start", toIso).order("start"),
+      await supabase.from("shift").select("*").eq("family_id", familyId).lt("start", toIso).gt("end", fromIso).order("start"),
     );
   },
   async claim(id: string, memberId: string) {
