@@ -6,7 +6,7 @@ export const Route = createFileRoute("/_authenticated/visits/new")({
   head: () => ({
     meta: [
       { title: "New appointment — Pendia" },
-      { name: "description", content: "Add a doctor appointment." },
+      { name: "description", content: "Add a doctor appointment." }, { property: "og:title", content: "New appointment — Pendia" }, { property: "og:description", content: "Add a doctor appointment." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: NewAppointment,

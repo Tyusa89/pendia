@@ -5,7 +5,7 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Pendia — Family caregiving, coordinated" },
-      { name: "description", content: "Share visits, medications, coverage and handoffs with everyone who helps care for your parent." },
+      { name: "description", content: "Share visits, medications, coverage and handoffs with everyone who helps care for your parent." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" },
       { property: "og:title", content: "Pendia — Family caregiving, coordinated" },
       { property: "og:description", content: "Share visits, medications, coverage and handoffs with everyone who helps care for your parent." },
     ],

@@ -211,7 +211,8 @@ describe("coverage on a phone", () => {
   it("gives every cell an accessible name, so a phone's initials are never the only label", async () => {
     render(wrap(<Page />));
     await screen.findByRole("region", { name: "This week" });
-    expect(await screen.findByLabelText(/Monday Morning: Marco Morales/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Open: Wednesday Afternoon/)).toBeInTheDocument();
+    expect(await screen.findByLabelText(/Monday Morning .*: Marco Morales/)).toBeInTheDocument();
+    // The fixture starts at 14:00 UTC, which is morning in the family's New York time zone.
+    expect(screen.getByLabelText(/Wednesday Morning .*: open/)).toBeInTheDocument();
   });
 });
