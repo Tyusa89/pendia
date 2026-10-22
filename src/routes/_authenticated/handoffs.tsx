@@ -39,7 +39,7 @@ function YesNo({ value, onChange }: { value: boolean | null; onChange: (v: boole
         <Button
           key={String(v)}
           type="button"
-          variant="outline"
+          variant={value === v ? "default" : "outline"}
           onClick={() => onChange(v)}
           aria-pressed={value === v}
           className={`h-14 cursor-pointer rounded-xl border-2 text-lg font-bold ${value === v ? "border-primary bg-primary text-primary-foreground" : "border-input bg-card"}`}

@@ -49,8 +49,7 @@ function AssistantSlot({ variant }: { variant: "top" | "side" }) {
 }
 
 /**
- * Phone first. Under 1024px: top bar + a fixed bottom tab bar (six tabs at every width, 56px+ targets, honors the
- * iPhone home-indicator inset). From 1024px: the same six as a left sidebar and the top bar is dropped.
+ * Shared top bar and six fixed bottom tabs at every width, with safe-area room for the phone home indicator.
  */
 export function AppShell({ children }: { children: ReactNode }) {
   const qc = useQueryClient();
