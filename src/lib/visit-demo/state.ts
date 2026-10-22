@@ -1,6 +1,7 @@
 // The Demo Mode walkthrough as a small state machine. Pure: no timers, no I/O. Invalid moves are ignored, so a screen can
 // never get ahead of what the person has actually done (no skipping consent, no extraction before the speakers are
-// confirmed). Nothing here is persisted; reset returns to the start.
+// confirmed). The reducer itself persists nothing; persist.ts saves/restores synthetic progress for one browser tab, and
+// `restore` is the only way a saved state re-enters (and only into a fresh, untouched demo). Reset returns to the start.
 import type { RejectedItem } from "@/lib/visit-pipeline/guard";
 import type {
   Delivery,
@@ -89,6 +90,7 @@ export type Action =
   | { type: "deliveryReady"; taskId: string; delivery: Delivery }
   | { type: "replyReceived"; taskId: string; reply: InboundReply }
   | { type: "finish" }
+  | { type: "restore"; state: DemoState }
   | { type: "failed"; message: string }
   | { type: "reset" };
 
@@ -205,6 +207,9 @@ export function reducer(s: DemoState, a: Action): DemoState {
         : s;
     case "finish":
       return s.step === "followup" ? { ...s, step: "done" } : s;
+    case "restore":
+      // Only a fresh demo can be restored into, so a late restore can never overwrite progress made since.
+      return s.step === "intro" && !s.transcript && !s.busy ? a.state : s;
     case "failed":
       return {
         ...s,
