@@ -14,6 +14,7 @@ import {
 import { authService } from "@/services";
 import { useFamily } from "@/hooks/use-family";
 import { features } from "@/lib/features";
+import { Button } from "@/components/ui/button";
 
 const nav = [
   { to: "/family", label: "Family", icon: Home },
@@ -64,25 +65,27 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   const signOutButton = (
-    <button
+    <Button
       type="button"
+      variant="ghost"
+      size="icon"
       onClick={signOut}
       aria-label="Sign out"
       className="inline-flex size-11 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"
     >
       <LogOut className="size-5" />
-    </button>
+    </Button>
   );
 
   return (
-    <div className="flex min-h-screen flex-col lg:flex-row">
+    <div className="flex min-h-screen flex-col">
       <nav
         aria-label="Main"
-        className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t bg-card pb-[calc(0.25rem+env(safe-area-inset-bottom))] pt-1 max-[17em]:max-md:grid-cols-3 md:px-[max(1rem,calc((100%-44rem)/2))] lg:sticky lg:top-0 lg:bottom-auto lg:flex lg:h-screen lg:w-[var(--side-w)] lg:flex-none lg:flex-col lg:gap-1 lg:self-start lg:overflow-y-auto lg:border-r lg:border-t-0 lg:px-3 lg:py-6"
+        className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t border-border bg-card pb-[calc(0.25rem+env(safe-area-inset-bottom))] pt-1 max-[17em]:max-md:grid-cols-3 md:px-[max(1rem,calc((100%-48rem)/2))]"
       >
         <Link
           to="/family"
-          className="hidden px-3.5 pb-5 pt-1 font-display text-[1.625rem] font-semibold text-primary lg:block"
+          className="hidden"
         >
           Pendia
         </Link>
@@ -90,19 +93,19 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Link
             key={to}
             to={to}
-            className="group flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl text-[clamp(0.6rem,3.4vw,0.8235rem)] font-semibold leading-tight tracking-tight text-muted-foreground hover:bg-muted lg:min-h-12 lg:flex-row lg:justify-start lg:gap-3 lg:px-3.5 lg:text-base [@media(max-height:500px)_and_(orientation:landscape)]:min-h-11 [@media(max-height:500px)_and_(orientation:landscape)]:flex-row [@media(max-height:500px)_and_(orientation:landscape)]:gap-1.5"
+            className="group flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 text-[0.7059rem] font-semibold leading-tight text-muted-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring md:text-[0.8235rem] [@media(max-height:500px)_and_(orientation:landscape)]:min-h-11 [@media(max-height:500px)_and_(orientation:landscape)]:flex-row [@media(max-height:500px)_and_(orientation:landscape)]:gap-1.5"
             activeProps={{
-              className: "text-primary font-bold lg:bg-primary/10",
+              className: "text-primary font-bold",
               "aria-current": "page",
             }}
           >
-            <span className="flex h-7 w-[min(3rem,100%)] items-center justify-center rounded-full group-aria-[current=page]:bg-primary/10 lg:h-auto lg:w-auto lg:group-aria-[current=page]:bg-transparent [@media(max-height:500px)_and_(orientation:landscape)]:w-auto [@media(max-height:500px)_and_(orientation:landscape)]:group-aria-[current=page]:bg-transparent">
+            <span className="flex h-7 w-[min(3rem,100%)] items-center justify-center rounded-full group-aria-[current=page]:bg-primary/10 [@media(max-height:500px)_and_(orientation:landscape)]:w-auto">
               <Icon className="size-[22px]" aria-hidden />
             </span>
             <span className="max-w-full truncate">{label}</span>
           </Link>
         ))}
-        <div className="mt-auto hidden flex-col gap-1 border-t pt-4 lg:flex">
+        <div className="hidden">
           <AssistantSlot variant="side" />
           {data?.me && (
             <p className="truncate px-3.5 text-sm text-muted-foreground">
@@ -114,7 +117,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       </nav>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex min-h-16 items-center justify-between gap-2 border-b bg-background/90 py-2 pl-5 pr-3 backdrop-blur lg:hidden">
+        <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur">
+          <div className="mx-auto grid min-h-16 w-full max-w-[48rem] grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-4 py-2 md:px-7">
           <Link
             to="/family"
             className="inline-flex min-h-11 items-center font-display text-2xl font-semibold text-primary"
@@ -130,8 +134,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             <AssistantSlot variant="top" />
             {signOutButton}
           </div>
+          </div>
         </header>
-        <main className="mx-auto w-full max-w-[66rem] flex-1 px-4 pb-[calc(var(--nav-h)+2rem+env(safe-area-inset-bottom))] pt-5 md:px-8 md:pt-8 lg:px-12 lg:pb-16 lg:pt-10">
+        <main className="mx-auto w-full max-w-[48rem] flex-1 px-4 pb-[calc(var(--nav-h)+2rem+env(safe-area-inset-bottom))] pt-5 md:px-7 md:pt-8">
           {children}
           <p className="mt-10 text-center text-[0.9412rem] text-muted-foreground">
             Not medical advice. Check with your doctor or pharmacist.
@@ -152,7 +157,7 @@ export function PageTitle({
   action?: ReactNode;
 }) {
   return (
-    <div className="mb-5 flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
+    <div className="mb-5 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
       <div className="min-w-0">
         <h1 className="text-[1.75rem] leading-tight md:text-4xl">{title}</h1>
         {subtitle && <p className="mt-1 text-muted-foreground">{subtitle}</p>}

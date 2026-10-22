@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { ArrowLeft, Users, UserRoundPlus } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -106,30 +107,34 @@ function FamilyView({
   me: Member;
 }) {
   const isOrganizer = me.role === "organizer";
+  const [teamOpen, setTeamOpen] = useState(false);
   const { data: members = [] } = useMembers(familyId);
   return (
     <>
-      <PageTitle
-        title={`${greeting(new Date())}, ${me.name.split(" ")[0]}`}
-        subtitle={`${familyName} · ${isOrganizer ? "You're the organizer" : "You're a member"}`}
-      />
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:gap-6">
-        <div className="space-y-4">
-          <Recipient familyId={familyId} editable={isOrganizer} />
+      {teamOpen && <Button variant="ghost" className="mb-3 -ml-3 text-primary" onClick={() => setTeamOpen(false)}><ArrowLeft /> Family</Button>}
+      <PageTitle title={teamOpen ? familyName : `${greeting(new Date())}, ${me.name.split(" ")[0]}`} subtitle={teamOpen ? (isOrganizer ? "You're the organizer" : "You're a member") : formatFamilyDate(timeZone)} />
+      <div className="space-y-5">
+        <Recipient familyId={familyId} editable={isOrganizer && teamOpen} />
+        {!teamOpen && <>
           <FamilyOverview me={me} timeZone={timeZone} />
-        </div>
-        <section aria-label="Care team" className="min-w-0">
-          <h2 className="mb-3 text-xl font-semibold">Care team</h2>
-          <div className="space-y-3">
+          <Button variant="outline" className="w-full" onClick={() => setTeamOpen(true)}><Users /> Care team · {members.length}</Button>
+        </>}
+        {teamOpen && <section aria-label="Care team" className="min-w-0">
+          <h2 className="mb-3 text-xl font-semibold">Care team · {members.length}</h2>
+          <div className="grid items-start gap-3 md:grid-cols-2">
             {members.map((m) => (
               <MemberRow key={m.id} m={m} editable={isOrganizer} />
             ))}
           </div>
           {isOrganizer && <Invite familyId={familyId} />}
-        </section>
+        </section>}
       </div>
     </>
   );
+}
+
+function formatFamilyDate(timeZone: string) {
+  return new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", timeZone });
 }
 
 function Recipient({ familyId, editable }: { familyId: string; editable: boolean }) {
@@ -175,11 +180,14 @@ function Recipient({ familyId, editable }: { familyId: string; editable: boolean
       <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
         Caring for
       </p>
-      <p className="mt-1 font-display text-3xl font-semibold">{r.name}</p>
+      <div className="mt-1 flex items-center gap-3">
+        <span aria-hidden className="grid size-14 shrink-0 place-items-center rounded-full bg-card font-display text-xl font-semibold">{r.name.split(/\s+/).slice(0, 2).map((part) => part[0]).join("")}</span>
+        <p className="min-w-0 font-display text-3xl font-semibold">{r.name}</p>
+      </div>
       {r.notes && <p className="mt-2 text-lg">{r.notes}</p>}
       {editable && (
         <Button variant="outline" size="sm" className="mt-4" onClick={() => setEditing(true)}>
-          Edit
+          Edit care profile
         </Button>
       )}
     </Panel>
@@ -195,12 +203,15 @@ function MemberRow({ m, editable }: { m: Member; editable: boolean }) {
   });
   return (
     <Panel>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+        <div className="flex min-w-0 items-center gap-3">
+          <span aria-hidden className={`grid size-11 shrink-0 place-items-center rounded-full font-bold ${m.role === "organizer" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}>{m.name.split(/\s+/).slice(0, 2).map((part) => part[0]).join("")}</span>
+          <div className="min-w-0">
           <p className="text-lg font-semibold">{m.name}</p>
           <p className="break-words text-muted-foreground">
             {m.phone || "No phone"} · {m.language === "es" ? "Español" : "English"}
           </p>
+          </div>
         </div>
         <span
           className={`shrink-0 rounded-full px-3 py-1 text-[0.8235rem] font-bold ${m.role === "organizer" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
@@ -208,15 +219,15 @@ function MemberRow({ m, editable }: { m: Member; editable: boolean }) {
           {m.role === "organizer" ? "Organizer" : "Member"}
         </span>
       </div>
-      <div className="mt-4 flex flex-wrap gap-x-5 gap-y-0.5">
+      <div className="mt-4 divide-y divide-border border-t border-border">
         {(["can_see_meds", "can_see_schedule", "can_see_visits"] as const).map((k) => (
-          <label key={k} className="flex min-h-11 items-center gap-3 font-medium">
+          <label key={k} className="flex min-h-12 flex-row-reverse items-center justify-between gap-3 text-[0.9412rem] font-medium">
             <Switch
               checked={m[k]}
               disabled={!editable}
               onCheckedChange={(v) => upd.mutate({ [k]: v })}
             />
-            {k === "can_see_meds" ? "Meds" : k === "can_see_schedule" ? "Schedule" : "Visits"}
+            {k === "can_see_meds" ? "Medications" : k === "can_see_schedule" ? "Coverage schedule" : "Doctor visits & recordings"}
           </label>
         ))}
       </div>
@@ -247,7 +258,7 @@ function Invite({ familyId }: { familyId: string }) {
   });
   return (
     <Panel className="mt-6 space-y-4">
-      <h2 className="text-xl font-semibold">Invite a member</h2>
+      <h2 className="flex items-center gap-2 text-xl font-semibold"><UserRoundPlus className="size-5 text-primary" /> Invite a member</h2>
       <Input
         placeholder="Name"
         value={f.name}
