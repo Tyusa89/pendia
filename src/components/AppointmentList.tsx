@@ -36,10 +36,12 @@ function Card({
   a,
   timeZone,
   overlapCount,
+  compact = false,
 }: {
   a: Appointment;
   timeZone: string;
   overlapCount: number;
+  compact?: boolean;
 }) {
   return (
     <li>
@@ -48,16 +50,18 @@ function Card({
         params={{ id: a.id }}
         className="block rounded-[1.25rem] bg-card p-[1.125rem] shadow-card"
       >
-        <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3">
+        <div className={`grid items-start gap-3 ${compact ? "grid-cols-[minmax(0,1fr)_auto]" : "grid-cols-[auto_minmax(0,1fr)_auto]"}`}>
+          {!compact && (
           <span aria-hidden className="flex size-14 shrink-0 flex-col items-center justify-center rounded-xl bg-primary/10 text-primary">
             <span className="text-[0.7059rem] font-bold uppercase">{new Date(`${a.date}T12:00:00Z`).toLocaleDateString(undefined, { weekday: "short", timeZone: "UTC" })}</span>
             <span className="font-display text-2xl font-semibold">{Number(a.date.slice(8))}</span>
           </span>
+          )}
           <div className="min-w-0">
             <p className="text-sm font-semibold uppercase tracking-wide text-primary">
               {whenLabel(a, timeZone)}
             </p>
-            <p className="mt-1 text-xl font-semibold">
+            <p className={`mt-1 font-semibold ${compact ? "text-base" : "text-xl"}`}>
               {a.provider_name?.trim() ? (
                 a.provider_name
               ) : (
@@ -82,10 +86,12 @@ export function AppointmentList({
   familyId,
   timeZone,
   canWrite,
+  compact = false,
 }: {
   familyId: string;
   timeZone: string;
   canWrite: boolean;
+  compact?: boolean;
 }) {
   const { data = [], isLoading } = useQuery({
     queryKey: ["visits", familyId],
@@ -115,13 +121,14 @@ export function AppointmentList({
     items.length === 0 ? (
       <Empty>{empty}</Empty>
     ) : (
-      <ul className="grid gap-3 md:grid-cols-2">
+      <ul className={`grid gap-3 ${compact ? "" : "md:grid-cols-2"}`}>
         {items.map((a) => (
           <Card
             key={a.id}
             a={a}
             timeZone={timeZone}
             overlapCount={overlaps.get(a.id)?.length ?? 0}
+            compact={compact}
           />
         ))}
       </ul>
@@ -130,7 +137,7 @@ export function AppointmentList({
   return (
     <>
       {canWrite && (
-        <Button asChild variant="outline" className="mb-5 md:float-right">
+        <Button asChild variant="outline" className={`mb-5 ${compact ? "w-full" : "md:float-right"}`}>
           <Link to="/visits/new">
             <Plus /> New appointment
           </Link>

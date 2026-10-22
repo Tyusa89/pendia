@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Empty, Panel, WithFamily } from "@/components/AppShell";
 import { AppointmentSummary } from "@/components/AppointmentSummary";
+import { AppointmentList } from "@/components/AppointmentList";
 import { useMembers } from "@/hooks/use-family";
 import { findOverlaps } from "@/lib/appointments";
 import { formatTimestamp } from "@/lib/format";
@@ -32,8 +33,13 @@ function VisitDetail({ me, timeZone }: { me: Member; timeZone: string }) {
   const transcript = (visit.transcript as TranscriptLine[]) ?? [];
 
   return (
-    <div className="space-y-6">
+    <div>
       <Link to="/visits" className="-ml-1 inline-flex min-h-11 items-center gap-2 font-semibold text-primary"><ArrowLeft className="size-5" /> All visits</Link>
+      <div className="mt-4 grid items-start gap-5 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.35fr)]">
+      <aside aria-label="Other visits" className="hidden min-w-0 md:block">
+        <AppointmentList familyId={me.family_id} timeZone={timeZone} canWrite={me.role === "organizer"} compact />
+      </aside>
+      <div className="min-w-0 space-y-5">
       <div>
         <p className="text-sm font-semibold uppercase tracking-wide text-primary">
           {new Date(visit.date + "T12:00").toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
@@ -132,6 +138,8 @@ function VisitDetail({ me, timeZone }: { me: Member; timeZone: string }) {
           </Panel>
         )}
       </section>
+      </div>
+      </div>
     </div>
   );
 }

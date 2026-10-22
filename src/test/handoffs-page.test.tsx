@@ -63,7 +63,7 @@ describe("Handoffs page", () => {
   it("still renders the existing check-in questions plus the new dictation panel", async () => {
     mount();
     expect(await screen.findByText("Did she eat?")).toBeInTheDocument();
-    expect(screen.getByText("Took her meds?")).toBeInTheDocument();
+    expect(screen.getByText("Did she take her medication?")).toBeInTheDocument();
     expect(screen.getByText("Anything unusual?")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save handoff" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Record" })).toBeInTheDocument();
