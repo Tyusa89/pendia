@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Empty, PageTitle, Panel, WithFamily } from "@/components/AppShell";
 import { digestService, type Member } from "@/services";
+import { usePreferences } from "@/components/PreferencesProvider";
 
 export const Route = createFileRoute("/_authenticated/digest")({
   head: () => ({
@@ -15,7 +16,9 @@ export const Route = createFileRoute("/_authenticated/digest")({
 });
 
 function DigestView({ me }: { me: Member }) {
-  const [lang, setLang] = useState<"en" | "es">((me.language as "en" | "es") ?? "en");
+  const { preferences } = usePreferences();
+  const [selectedLanguage, setLang] = useState<"en" | "es" | null>(null);
+  const lang = selectedLanguage ?? preferences.language ?? (me.language === "es" ? "es" : "en");
   const { data = [] } = useQuery({
     queryKey: ["digest", me.family_id],
     queryFn: () => digestService.latest(me.family_id),

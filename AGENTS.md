@@ -14,3 +14,4 @@
 - Every app table carries `family_id`; RLS uses `is_family_member()` / `is_family_organizer()` security-definer helpers.
 - Demo family is seeded in the migration; users join it via the `join_demo_family()` RPC.
 - The authenticated shell uses the same bottom navigation at all widths; page-specific columns collapse on phones to preserve the shared design reference.
+- Display preferences are browser-local and applied by the authenticated shell provider; unconnected assistant and notification capabilities stay disabled rather than implying delivery or AI access.
