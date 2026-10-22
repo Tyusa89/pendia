@@ -140,9 +140,10 @@ function Coverage({ me, family }: { me: Member; family: Family }) {
       memberId: s.assigned_member_id ?? "",
     });
   };
-  const newShift = (date = monday, block: (typeof BLOCKS)[number] = BLOCKS[0]) => {
+  // The general "Add shift" button passes no date: it means today in the family's zone, not the Monday of the week on screen.
+  const newShift = (date?: string, block: (typeof BLOCKS)[number] = BLOCKS[0]) => {
     setFormError("");
-    setEditing({ date, startTime: block.start, endTime: block.end, memberId: "" });
+    setEditing({ date: date ?? dateInZone(new Date(), tz), startTime: block.start, endTime: block.end, memberId: "" });
   };
   const openList = shifts.filter(isOpen);
   const draftRange = editing ? validateShift(editing, tz) : null;
