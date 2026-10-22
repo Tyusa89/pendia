@@ -161,6 +161,59 @@ html[data-text-size="large"] { font-size: 125%; }
 .recording-dock { box-shadow: var(--shadow-card); }
 @media (min-width: 1024px) {
   .care-content:has([aria-label="Recording in progress"]) { padding-bottom: 8rem; }
+
+  /* Coverage presentation only: keep C1 markup, handlers and smaller screens unchanged. */
+  .care-content:has(> [aria-label="This week"]) {
+    max-width: 1280px;
+    padding-top: 1rem;
+    padding-bottom: 2rem;
+  }
+  .care-content:has(> [aria-label="This week"]) > :first-child { margin-bottom: 1rem; }
+  .care-content:has(> [aria-label="This week"]) > section { margin-bottom: 1rem; }
+  .care-content > [aria-label="Leaving soon"] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 1.25rem;
+    row-gap: 0.25rem;
+    padding: 0.75rem 1rem;
+  }
+  .care-content > [aria-label="Leaving soon"] > * { margin-top: 0; min-width: 0; }
+  .care-content > [aria-label="Leaving soon"] > h2 { grid-column: 1; }
+  .care-content > [aria-label="Leaving soon"] > p { grid-column: 1; }
+  .care-content > [aria-label="Leaving soon"] > a {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    justify-self: end;
+    width: auto;
+    min-height: 44px;
+    height: auto;
+    padding: 0.5rem 1rem;
+  }
+  .care-content > [aria-label="This week"] { padding: 1rem; }
+  .care-content > [aria-label="This week"] > * + * { margin-top: 0.75rem; }
+  .care-content > [aria-label="This week"] > :first-child { margin-bottom: 0; }
+  .care-content > [aria-label="This week"] > .grid { gap: 6px; }
+  .care-content > [aria-label="This week"] > .grid button,
+  .care-content > [aria-label="This week"] > .grid span[aria-label] { min-height: 40px; }
+  .care-content > [aria-label="This week"] > .grid > div { gap: 6px; }
+  .care-content > [aria-label="Shifts this week"] { margin-top: 1rem; padding: 1rem; }
+  .care-content > [aria-label="Today's coverage"] {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+  .care-content > [aria-label="Today's coverage"] > h2 { grid-column: 1 / -1; }
+  .care-content > [aria-label="Today's coverage"] > article { margin-top: 0; padding: 0.75rem; }
+  .care-content > [aria-label="Today's coverage"] > article > * + * { margin-top: 0.5rem; }
+  .care-content > [aria-label="Today's coverage"] > article > div { flex-wrap: wrap; }
+  .care-content > [aria-label="Today's coverage"] > article p { min-width: 0; overflow-wrap: anywhere; }
+
+  .desktop-navigation > div:first-child { min-height: 72px; }
+  .desktop-navigation > p { padding-top: 1rem; }
+  .desktop-navigation > nav { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+  .desktop-navigation > nav > * { min-height: 44px; }
+  .desktop-navigation > div:last-child { padding-top: 0.75rem; padding-bottom: 0.75rem; }
 }
 html[data-high-contrast="true"] {
   --foreground: oklch(0.22 0.03 235);

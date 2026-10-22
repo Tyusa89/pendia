@@ -6,6 +6,8 @@
 - [x] Verify preference persistence and both pages in the signed-in app.
 
 # Desktop and laptop experience
+- [ ] Compact desktop Coverage and sidebar presentation with CSS only; preserve Coverage C1 source and mobile/tablet layout.
+- [ ] Verify the four requested laptop/desktop sizes, mobile/tablet preservation and existing shift regression tests; do not publish.
 - [x] Add desktop sidebar and wider workspace while preserving phone/tablet navigation.
 - [x] Rebalance dashboard, appointments, medications, handoffs and recording controls without touching Coverage C1 logic.
 - [x] Verify tests, four requested widths, keyboard dialogs, scrolling and temporary recording/playback; report unavailable live-data checks.
