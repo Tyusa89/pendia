@@ -211,8 +211,31 @@ export function extractSegments(c: Capture, cfg: AdapterConfig = {}): Extraction
   };
 }
 
-/** A human-readable map of what the server actually sent: counts per type, an example, and every key path. */
-export function inspectCapture(c: Capture): string {
+const KEEP_KEYS = /^(type|event|status|kind|code|final|isFinal|is_final|complete)$/;
+const LABEL_KEYS = /(speaker|label|^id$|Id$|_id$)/i;
+
+/**
+ * A structure-only copy of a server message: numbers and booleans are kept; strings are replaced by their length unless
+ * they are an event/status word or a short speaker label. Transcript text is never printed by default.
+ */
+export function redactValues(v: unknown, key = ""): unknown {
+  if (typeof v === "string") {
+    if (KEEP_KEYS.test(key) && v.length <= 40) return v;
+    if (LABEL_KEYS.test(key) && /^[A-Za-z0-9_:-]{1,16}$/.test(v)) return v;
+    return `<string ${v.length} chars>`;
+  }
+  if (Array.isArray(v)) return v.map((x) => redactValues(x, key));
+  if (v && typeof v === "object")
+    return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, redactValues(x, k)]));
+  return v;
+}
+
+/**
+ * A human-readable map of what the server actually sent: counts per type, an example, and every key path.
+ * By default the example is structure-only (no transcript text), so the output is safe to paste or to appear in a log.
+ * Pass showText only for a local look at a synthetic capture.
+ */
+export function inspectCapture(c: Capture, opts: { showText?: boolean } = {}): string {
   const byType = new Map<string, { n: number; example: string; paths: Map<string, Set<string>> }>();
   const walk = (v: unknown, p: string, into: Map<string, Set<string>>) => {
     if (v && typeof v === "object" && !Array.isArray(v))
@@ -225,11 +248,12 @@ export function inspectCapture(c: Capture): string {
   for (const e of c.entries) {
     if (e.dir !== "recv") continue;
     const key = e.type ?? "?";
-    const rec = byType.get(key) ?? {
-      n: 0,
-      example: e.raw ?? `(${e.kind} ${e.bytes ?? 0} bytes)`,
-      paths: new Map(),
-    };
+    const example = opts.showText
+      ? (e.raw ?? `(${e.kind} ${e.bytes ?? 0} bytes)`)
+      : e.json !== undefined
+        ? JSON.stringify(redactValues(e.json))
+        : `(${e.kind} ${e.bytes ?? 0} bytes)`;
+    const rec = byType.get(key) ?? { n: 0, example, paths: new Map() };
     rec.n++;
     if (e.json) walk(e.json, "", rec.paths);
     byType.set(key, rec);
