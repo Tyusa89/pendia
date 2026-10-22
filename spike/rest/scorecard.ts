@@ -20,6 +20,8 @@ export interface Scorecard {
     errorCode: string | null;
     turnCount: number;
     speakerLabelCount: number;
+    /** The service's own audio length (seconds), for comparison with the clip we sent. */
+    reportedAudioSeconds: number | null;
     observedKeys: ObservedShape;
   };
   score: {
@@ -74,6 +76,7 @@ export function buildScorecard(input: {
   http: { status: number | null; elapsedMs: number | null };
   segments: Segment[] | null;
   parseErrorCode: string | null;
+  reportedAudioSeconds?: number | null;
   observed: ObservedShape;
   truth: Turn[];
   timings?: Record<string, [number, number]>;
@@ -104,6 +107,7 @@ export function buildScorecard(input: {
         errorCode: input.parseErrorCode ?? "no_response",
         turnCount: 0,
         speakerLabelCount: 0,
+        reportedAudioSeconds: null,
         observedKeys: input.observed,
       },
       score: {
@@ -131,6 +135,7 @@ export function buildScorecard(input: {
       errorCode: null,
       turnCount: segs.length,
       speakerLabelCount: new Set(segs.map((s) => s.speaker)).size,
+      reportedAudioSeconds: input.reportedAudioSeconds ?? null,
       observedKeys: input.observed,
     },
     score: {

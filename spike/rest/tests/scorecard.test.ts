@@ -10,7 +10,16 @@ import { wavBytes } from "./helpers.ts";
 const truth = script();
 const audio = validateWavForUpload(wavBytes({ seconds: 58 }));
 const asResponse = (segs: ReturnType<typeof segmentsFor>) => ({
-  turns: segs.map((s) => ({ speaker: s.speaker, text: s.text, start: s.startS, end: s.endS })),
+  sessionId: "s-1",
+  transcript: segs.map((s) => s.text).join(" "),
+  audioDurationMs: 58000,
+  turns: segs.map((s, i) => ({
+    turnId: `t${i}`,
+    speaker: s.speaker,
+    transcript: s.text,
+    startMs: Math.round(s.startS! * 1000),
+    endMs: Math.round(s.endS! * 1000),
+  })),
 });
 const card = (segs: ReturnType<typeof segmentsFor>) => {
   const json = asResponse(segs);
@@ -19,6 +28,7 @@ const card = (segs: ReturnType<typeof segmentsFor>) => {
     audio,
     http: { status: 200, elapsedMs: 1234 },
     segments: parseTranscribeResponse(json).segments,
+    reportedAudioSeconds: parseTranscribeResponse(json).reportedAudioSeconds,
     parseErrorCode: null,
     observed: observedShape(json),
     truth,

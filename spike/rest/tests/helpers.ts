@@ -51,9 +51,18 @@ export function wavBytes(
 export const json = (body: unknown, status = 200) =>
   new Response(typeof body === "string" ? body : JSON.stringify(body), { status });
 
+/** A reply in the documented shape. Times are milliseconds. */
 export const goodTurns = (texts: Array<[string, string]>) => ({
+  sessionId: "00000000-0000-4000-8000-000000000001",
   transcript: texts.map((t) => t[1]).join(" "),
-  turns: texts.map(([speaker, text], i) => ({ speaker, text, start: i * 3, end: i * 3 + 2.5 })),
+  audioDurationMs: texts.length * 3000,
+  turns: texts.map(([speaker, transcript], i) => ({
+    turnId: `turn-${i + 1}`,
+    startMs: i * 3000,
+    endMs: i * 3000 + 2500,
+    transcript,
+    speaker,
+  })),
 });
 
 export { MODE, MODEL };

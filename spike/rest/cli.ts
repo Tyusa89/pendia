@@ -85,9 +85,12 @@ async function main(): Promise<number> {
       });
       const observed = observedShape(r.json);
       let segments = null;
+      let reportedAudioSeconds: number | null = null;
       let parseErrorCode: string | null = null;
       try {
-        segments = parseTranscribeResponse(r.json).segments;
+        const parsed = parseTranscribeResponse(r.json);
+        segments = parsed.segments;
+        reportedAudioSeconds = parsed.reportedAudioSeconds;
       } catch (e) {
         parseErrorCode = e instanceof RestSpikeError ? e.code : "malformed_response";
       }
@@ -97,6 +100,7 @@ async function main(): Promise<number> {
         http: { status: r.status, elapsedMs: r.elapsedMs },
         segments,
         parseErrorCode,
+        reportedAudioSeconds,
         observed,
         truth: truth(),
         ...(timings ? { timings } : {}),

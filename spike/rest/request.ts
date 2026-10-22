@@ -1,15 +1,20 @@
 // Builds the one POST. No network here: it returns the URL and the fetch options, so tests can inspect them.
 //
-// ASSUMPTION (unverified): a multipart/form-data body with fields `file`, `model` and `mode`, and
-// `Authorization: Bearer <key>`. The research report gives the endpoint, model, mode and Bearer authentication but not
-// the form field names; confirm them against https://dev.meta.ai/docs/speech-to-text before the live call.
+// CONTRACT (documented): multipart/form-data with two parts and `Authorization: Bearer <key>`:
+//   `request`  JSON: {"model": "muse-voice-transcribe-1.0", "mode": "DIARIZATION", "audioEncoding": "WAV"}
+//   `audio`    the WAV recording
+// STILL UNCONFIRMED: the Content-Type of the `request` part. It is sent as application/json (the usual convention for a
+// JSON part); if Meta wants it untyped the first live reply will say so as an HTTP 400/415, with no retry.
 import { assertStandardModel } from "../diarization/protocol.ts";
-import { MODE, MODEL, REST_URL, RestSpikeError } from "./config.ts";
+import { AUDIO_ENCODING, MODE, MODEL, REST_URL, RestSpikeError } from "./config.ts";
 
 export interface BuiltRequest {
   url: string;
   init: RequestInit;
 }
+
+/** The JSON carried in the `request` part. Exactly these three fields, nothing else. */
+export const requestPart = () => ({ model: MODEL, mode: MODE, audioEncoding: AUDIO_ENCODING });
 
 export function buildTranscribeRequest(apiKey: string, wav: Uint8Array): BuiltRequest {
   const key = (apiKey ?? "").trim();
@@ -23,10 +28,9 @@ export function buildTranscribeRequest(apiKey: string, wav: Uint8Array): BuiltRe
   assertStandardModel(MODEL);
 
   const form = new FormData();
-  form.append("model", MODEL);
-  form.append("mode", MODE);
+  form.append("request", new Blob([JSON.stringify(requestPart())], { type: "application/json" }));
   form.append(
-    "file",
+    "audio",
     new Blob([wav as Uint8Array<ArrayBuffer>], { type: "audio/wav" }),
     "synthetic-visit.wav",
   );
@@ -50,9 +54,12 @@ export function describeRequest(wavBytes: number) {
     method: "POST",
     url: REST_URL,
     headers: { Authorization: "Bearer ***", Accept: "application/json" },
-    form: { model: MODEL, mode: MODE, file: `synthetic-visit.wav (${wavBytes} bytes, audio/wav)` },
+    parts: {
+      request: requestPart(),
+      audio: `synthetic-visit.wav (${wavBytes} bytes, audio/wav)`,
+    },
     redirect: "error",
     retries: 0,
-    note: "Field names are UNVERIFIED (see request.ts).",
+    note: "The Content-Type of the `request` part (application/json) is not confirmed.",
   };
 }

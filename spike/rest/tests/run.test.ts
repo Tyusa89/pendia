@@ -76,8 +76,12 @@ describe("the one request", () => {
     expect(init.signal).toBeInstanceOf(AbortSignal);
     expect((init.headers as Record<string, string>)["Authorization"]).toBe(`Bearer ${FAKE_KEY}`);
     const form = init.body as FormData;
-    expect(form.get("model")).toBe(MODEL);
-    expect(form.get("mode")).toBe(MODE);
+    expect(JSON.parse(await (form.get("request") as File).text())).toEqual({
+      model: MODEL,
+      mode: MODE,
+      audioEncoding: "WAV",
+    });
+    expect((form.get("audio") as File).size).toBe(wav.byteLength);
     expect(r.status).toBe(200);
     expect(existsSync(lock)).toBe(true);
     expect(blockedFetch).not.toHaveBeenCalled();

@@ -6,40 +6,45 @@ disabled by default and needs a separate, explicit founder authorization.
 Synthetic data only. `META_API_KEY` is server-side only: it is read from the process environment by `cli.ts` and
 nowhere else, never written to a file, log, error, scorecard or artifact.
 
-## What is verified and what is not
+## Contract (corrected in the follow-up to PR #37)
 
-Meta's own page, <https://dev.meta.ai/docs/speech-to-text>, could **not** be reached from the build sandbox (DNS
-failure), so **nothing below is verified against official documentation**. The Muse research report is the source.
+The first version of this runner guessed the multipart field names and the response keys. The founder supplied the documented
+contract from <https://dev.meta.ai/docs/speech-to-text>, and the code now follows it. **That page still could not be fetched
+from the build sandbox (DNS failure), so it was not re-read here; the contract below is taken from the founder's
+transcription of it.**
 
-| Item | Source | Status |
-| --- | --- | --- |
-| `POST https://api.meta.ai/v1/asr/transcribe` | Muse research report | Unverified |
-| Model `muse-voice-transcribe-1.0` (Standard tier, never `-contributor`) | Report; project rule | Unverified ID |
-| Mode `DIARIZATION` | Report | Unverified |
-| `Authorization: Bearer <key>` | Report | Unverified |
-| Mono 16-bit PCM WAV, 16 or 24 kHz, <= 10 min, <= 32 MB | Report | Unverified |
-| **Multipart field names** `file`, `model`, `mode` | **Assumption** (`request.ts`) | **Unverified** |
-| **Response field names** (`turns[].speaker/text/start/end`, seconds) | **Assumption** (`response.ts`, alias table) | **Unverified** |
-| Whether the file endpoint returns speaker labels at all | Report | The point of the test |
+| Item                                               | Value                                                                             | Status                           |
+| -------------------------------------------------- | --------------------------------------------------------------------------------- | -------------------------------- |
+| Endpoint                                           | `POST https://api.meta.ai/v1/asr/transcribe`                                      | Documented (per founder)         |
+| Model / mode                                       | `muse-voice-transcribe-1.0` (Standard, never `-contributor`) / `DIARIZATION`      | Documented                       |
+| Authentication                                     | `Authorization: Bearer <key>`                                                     | Documented                       |
+| Multipart parts                                    | `request` (JSON) and `audio` (the WAV)                                            | Documented                       |
+| `request` JSON                                     | `{"model": ..., "mode": ..., "audioEncoding": "WAV"}`, exactly these three fields | Documented                       |
+| Audio                                              | mono 16-bit PCM WAV, 16 or 24 kHz, <= 10 min, <= 32 MB                            | Documented (per research report) |
+| Reply                                              | `sessionId`, `transcript`, `audioDurationMs`, `turns[]`                           | Documented                       |
+| Turn                                               | `turnId`, `startMs`, `endMs`, `transcript`, `speaker`                             | Documented                       |
+| Timestamps                                         | **milliseconds** (converted to seconds internally)                                | Documented                       |
+| Content-Type of the `request` part                 | sent as `application/json`                                                        | **Not confirmed**                |
+| Format of `speaker` labels                         | any non-empty text or number                                                      | Not specified                    |
+| Whether this model really separates the two voices | the point of the test                                                             | Unknown                          |
 
-Each assumption lives in `config.ts`, `request.ts` or `response.ts`. **Before authorizing the live call, someone with access
-should read the official page and correct them.** If the real reply differs, the scorecard still reports the key *names*
-it saw (never values), so the parser can be fixed without ever printing a transcript.
+The earlier guesses (`file`/`model`/`mode` parts; `text`, `start`, `end` keys; seconds) are rejected, not tolerated: a reply
+in any other shape fails closed, and the scorecard reports the key names it saw (never values).
 
 ## Files
 
-| File | Purpose |
-| --- | --- |
-| `config.ts` | Endpoint, model, mode, limits, timeout, approval token, error type |
-| `wav-check.ts` | Validates format, duration, size |
-| `request.ts` | Builds the single POST; `describeRequest` for the redacted plan |
-| `response.ts` | Strict parser for the reply; key-name-only shape report |
-| `run.ts` | The one-shot runner: guards, single-call latch + lock, timeout, no retry, redaction |
-| `scorecard.ts` | Sanitized scorecard; word error rate |
-| `synth.ts` | Local synthetic two-voice audio (ffmpeg `flite`), deterministic layout, real overlaps |
-| `cli.ts` | `generate`, `check`, `plan`, `run` |
-| `tests/` | Offline tests (no network) |
-| `../../.github/workflows/meta-rest-spike.yml` | Manual, protected workflow |
+| File                                          | Purpose                                                                               |
+| --------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `config.ts`                                   | Endpoint, model, mode, limits, timeout, approval token, error type                    |
+| `wav-check.ts`                                | Validates format, duration, size                                                      |
+| `request.ts`                                  | Builds the single POST; `describeRequest` for the redacted plan                       |
+| `response.ts`                                 | Strict parser for the reply; key-name-only shape report                               |
+| `run.ts`                                      | The one-shot runner: guards, single-call latch + lock, timeout, no retry, redaction   |
+| `scorecard.ts`                                | Sanitized scorecard; word error rate                                                  |
+| `synth.ts`                                    | Local synthetic two-voice audio (ffmpeg `flite`), deterministic layout, real overlaps |
+| `cli.ts`                                      | `generate`, `check`, `plan`, `run`                                                    |
+| `tests/`                                      | Offline tests (no network)                                                            |
+| `../../.github/workflows/meta-rest-spike.yml` | Manual, protected workflow                                                            |
 
 Reused from `../diarization/`: the script parser and ground truth, the scorer and its thresholds (unchanged: at least
 90% turn accuracy, zero patient-to-doctor leakage, fail closed), `scrubSecret`, `assertStandardModel`, `safeOutputPath`.
@@ -75,7 +80,7 @@ Audio and scorecards are written only under the git-ignored `spike-output/` (own
 ## One-time GitHub setup (needs a repository admin; I have not changed any settings)
 
 1. **Settings -> Environments -> New environment**, name exactly `meta-spike`. Create it **before** the first run: GitHub
-   silently creates a missing environment with *no* protection when a workflow names it.
+   silently creates a missing environment with _no_ protection when a workflow names it.
 2. In `meta-spike`: **Required reviewers** -> add the founder (and nobody who should not be able to release a paid call).
    Leave "Prevent self-review" as appropriate for a one-person team, and tick **Prevent administrators from bypassing** if offered.
 3. **Deployment branches and tags -> Selected branches -> `main`** only.
@@ -89,7 +94,7 @@ the job before a request is made.
 
 ## Exact approval and execution procedure (for a later, separate authorization)
 
-1. Founder reads the official documentation and confirms or corrects the assumptions table above.
+1. Founder (or a reviewer who can reach the page) reads the official documentation once more and confirms the contract table above, in particular the Content-Type of the `request` part.
 2. Founder authorizes exactly one live request in writing.
 3. Merge the PR (separate approval), complete the GitHub setup above.
 4. **Actions -> Meta REST spike (manual, protected) -> Run workflow** on `main`; type `I_HAVE_APPROVAL`.
@@ -98,7 +103,7 @@ the job before a request is made.
    scorecard to the job summary. No artifacts are uploaded.
 7. Read the scorecard. A second attempt needs a new authorization and a fresh run.
 
-**Stop conditions (no request is sent or no further action is taken):** official docs not reviewed; environment, secret or
+**Stop conditions (no request is sent or no further action is taken):** official docs not re-read by someone who can reach them; environment, secret or
 branch rule missing; any guard refusal; HTTP error (including 401/403/429); timeout; malformed reply. Do not retry.
 
 ## Estimated cost of one call
