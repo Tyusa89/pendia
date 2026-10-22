@@ -9,6 +9,7 @@ import type { Capture } from "../capture.ts";
 import { inspectCapture, redactValues } from "../events.ts";
 import { REPO, safeOutputPath } from "../output.ts";
 
+const APPROVED_WORKFLOW = "meta-rest-spike.yml";
 const git = (...a: string[]) => spawnSync("git", a, { cwd: REPO, encoding: "utf8" });
 const tracked = () => git("ls-files").stdout.split("\n").filter(Boolean);
 
@@ -57,14 +58,21 @@ describe("nothing sensitive can be committed", () => {
 describe("merging this work cannot deploy anything or call Meta", () => {
   it("adds no Edge Function, Supabase config, migration or CI workflow", () => {
     expect(existsSync(join(REPO, "supabase/functions"))).toBe(false);
-    expect(existsSync(join(REPO, ".github/workflows"))).toBe(false);
+    // Phase M1 (founder-approved preparation) adds exactly ONE workflow: the manual, protected REST spike. No other workflow
+    // may exist; its own properties are pinned in spike/rest/tests/workflow.test.ts.
+    const workflows = existsSync(join(REPO, ".github/workflows"))
+      ? readdirSync(join(REPO, ".github/workflows"))
+      : [];
+    expect(workflows.filter((f) => f !== APPROVED_WORKFLOW)).toEqual([]);
     const changed = git("diff", "--name-only", "origin/main...HEAD")
       .stdout.split("\n")
       .filter(Boolean);
     // (when origin/main is unavailable the list is empty; the checks above still hold)
     expect(
       changed.filter(
-        (f) => /^supabase\/(functions|migrations|config)/.test(f) || f.startsWith(".github/"),
+        (f) =>
+          /^supabase\/(functions|migrations|config)/.test(f) ||
+          (f.startsWith(".github/") && f !== `.github/workflows/${APPROVED_WORKFLOW}`),
       ),
     ).toEqual([]);
   });
