@@ -44,6 +44,7 @@ function PreferencesPage() {
         <h2 className="mb-3 font-sans text-sm font-bold uppercase tracking-wide text-muted-foreground">Digest language</h2>
         <div role="group" aria-label="Digest language" className="flex gap-1 rounded-xl bg-muted p-1">
           {(["en", "es"] as const).map((l) => <Button key={l} variant={language === l ? "outline" : "ghost"} aria-pressed={language === l} onClick={() => update({ language: l })} className="flex-1 px-2">{l === "en" ? "English" : "Español"}</Button>)}
+        </div>
       </Panel>
       <Panel aria-label="Text size">
         <h2 className="mb-3 font-sans text-sm font-bold uppercase tracking-wide text-muted-foreground">Text size</h2>
