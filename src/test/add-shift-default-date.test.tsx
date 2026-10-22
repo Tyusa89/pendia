@@ -69,7 +69,6 @@ const click = async (el: HTMLElement) => {
 };
 const dialogDate = async () => ((await screen.findByLabelText("Date")) as HTMLInputElement).value;
 const addShift = () => click(screen.getByRole("button", { name: /Add shift/ }));
-const closeDialog = () => click(screen.getByRole("button", { name: /Close/ }));
 
 describe("general Add shift button defaults to today in the family's zone", () => {
   it("Oct 21 in Chicago (Monday of that week is Oct 19) defaults to Oct 21, not Oct 19", async () => {
@@ -139,21 +138,27 @@ describe("general Add shift button defaults to today in the family's zone", () =
 });
 
 describe("other ways in keep their own date", () => {
-  it("a calendar cell for Oct 22 defaults to Oct 22", async () => {
+  it("a time slot on Oct 22 defaults to that date and hour", async () => {
     setNow("2026-10-21T20:00:00Z");
     await mount();
-    await click(screen.getByLabelText(/Thursday Morning: no shift/));
+    await click(document.querySelector('[data-slot="2026-10-22T15:00"]') as HTMLElement);
     expect(await dialogDate()).toBe("2026-10-22");
-    await closeDialog();
-    await click(screen.getByLabelText(/Thursday Evening: no shift/));
+    expect((screen.getByLabelText("Start") as HTMLInputElement).value).toBe("15:00");
+    expect((screen.getByLabelText("End") as HTMLInputElement).value).toBe("16:00");
+  });
+
+  it("a day heading for Oct 22 defaults to Oct 22", async () => {
+    setNow("2026-10-21T20:00:00Z");
+    await mount();
+    await click(screen.getByRole("button", { name: /Add a shift on Thursday, October 22/ }));
     expect(await dialogDate()).toBe("2026-10-22");
   });
 
-  it("a cell in a week you navigated to defaults to that cell's date", async () => {
+  it("a slot in a week you navigated to defaults to that slot's date", async () => {
     setNow("2026-10-21T20:00:00Z");
     await mount();
     await click(screen.getByRole("button", { name: "Next week" }));
-    await click(screen.getByLabelText(/Tuesday Morning: no shift/));
+    await click(document.querySelector('[data-slot="2026-10-27T09:00"]') as HTMLElement);
     expect(await dialogDate()).toBe("2026-10-27");
   });
 

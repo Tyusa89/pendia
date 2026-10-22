@@ -162,7 +162,7 @@ html[data-text-size="large"] { font-size: 125%; }
 @media (min-width: 1024px) {
   .care-content:has([aria-label="Recording in progress"]) { padding-bottom: 8rem; }
 
-  /* Coverage presentation only: keep C1 markup, handlers and smaller screens unchanged. */
+  /* Coverage page density on desktop. The calendar itself (CoverageTimeline) sizes events by real time, so no minimum heights here. */
   .care-content:has(> [aria-label="This week"]) {
     max-width: 1280px;
     padding-top: 1rem;
@@ -193,10 +193,6 @@ html[data-text-size="large"] { font-size: 125%; }
   .care-content > [aria-label="This week"] { padding: 1rem; }
   .care-content > [aria-label="This week"] > * + * { margin-top: 0.75rem; }
   .care-content > [aria-label="This week"] > :first-child { margin-bottom: 0; }
-  .care-content > [aria-label="This week"] > .grid { gap: 6px; }
-  .care-content > [aria-label="This week"] > .grid button,
-  .care-content > [aria-label="This week"] > .grid span[aria-label] { min-height: 40px; }
-  .care-content > [aria-label="This week"] > .grid > div { gap: 6px; }
   .care-content > [aria-label="Shifts this week"] { margin-top: 1rem; padding: 1rem; }
   .care-content > [aria-label="Today's coverage"] {
     display: grid;

@@ -33,7 +33,7 @@ export function blockOf(startIso: string, tz: string): BlockKey {
   return h < 14 ? "morning" : h < 18 ? "afternoon" : "evening";
 }
 
-const addDays = (ymd: string, n: number) => {
+export const addDays = (ymd: string, n: number) => {
   const d = new Date(`${ymd}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + n);
   return d.toISOString().slice(0, 10);
