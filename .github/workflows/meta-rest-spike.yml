@@ -3,10 +3,16 @@
 # Safety properties (each is asserted by spike/rest/tests/workflow.test.ts):
 #   * workflow_dispatch only: never push, pull_request, schedule or merge triggers;
 #   * runs only from main, so a modified copy of this file on another branch can never read the secret;
-#   * needs the protected GitHub environment `meta-spike` (required reviewer). See spike/rest/README.md for setup;
+#   * needs the protected GitHub environment `meta-spike` (required reviewer, main-only deployment branches). Those
+#     protections are configured in GitHub and must be verified there independently BEFORE this file is merged: this
+#     workflow cannot check them itself. See spike/rest/README.md for the setup;
+#   * the key is read ONLY from the environment secret META_SPIKE_ENV_API_KEY, a name that is deliberately different from
+#     the repository-level META_API_KEY. If that environment (or secret) does not exist, the value is empty and the job
+#     refuses before any request: it can never fall back to the repository-level secret. This is a second layer, not a
+#     substitute for the reviewer and branch rules;
 #   * the typed approval phrase below must match, in addition to the environment approval;
 #   * read-only repository permissions; one run at a time; 10 minute timeout;
-#   * META_API_KEY is exposed to exactly ONE step, as an environment variable, and is never echoed;
+#   * the key is exposed to exactly ONE step, as an environment variable, and is never echoed;
 #   * the audio is generated inside the job from the checked-in script and never uploaded; there are NO artifact uploads;
 #     only a sanitized scorecard (numbers and fixed codes, no transcript text) goes to the job summary;
 #   * actions are pinned to full commit SHAs and no third-party dependencies are installed.
@@ -60,13 +66,15 @@ jobs:
 
       - name: ONE live transcription request
         env:
-          META_API_KEY: ${{ secrets.META_API_KEY }}
+          # Environment secret only. The CLI reads the value from META_API_KEY, which is just the variable name it expects.
+          META_API_KEY: ${{ secrets.META_SPIKE_ENV_API_KEY }}
           SPIKE_ALLOW_LIVE: I_HAVE_APPROVAL
-        run: >
-          node spike/rest/cli.ts run
-          --wav spike-output/rest-synthetic.wav
-          --timings spike-output/rest-synthetic.timings.json
-          --live --confirm-one-call
+        run: |
+          if [ -z "${META_API_KEY}" ]; then
+            echo "Refusing: the meta-spike environment secret META_SPIKE_ENV_API_KEY is missing or empty. No request was made."
+            exit 1
+          fi
+          node spike/rest/cli.ts run --wav spike-output/rest-synthetic.wav --timings spike-output/rest-synthetic.timings.json --live --confirm-one-call
 
       - name: Publish the sanitized scorecard to the job summary
         if: always()

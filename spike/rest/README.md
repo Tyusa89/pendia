@@ -25,11 +25,28 @@ transcription of it.**
 | Turn                                               | `turnId`, `startMs`, `endMs`, `transcript`, `speaker`                             | Documented                       |
 | Timestamps                                         | **milliseconds** (converted to seconds internally)                                | Documented                       |
 | Content-Type of the `request` part                 | sent as `application/json`                                                        | **Not confirmed**                |
+| `filename` on the `request` part                   | the form-data API sends `filename="blob"` for a JSON Blob                         | **Not confirmed**                |
 | Format of `speaker` labels                         | any non-empty text or number                                                      | Not specified                    |
 | Whether this model really separates the two voices | the point of the test                                                             | Unknown                          |
 
 The earlier guesses (`file`/`model`/`mode` parts; `text`, `start`, `end` keys; seconds) are rejected, not tolerated: a reply
 in any other shape fails closed, and the scorecard reports the key names it saw (never values).
+
+### Unverified multipart detail (deliberately NOT changed)
+
+Serialized offline, the request goes out as:
+
+```
+request: Content-Disposition: form-data; name="request"; filename="blob"   Content-Type: application/json
+audio:   Content-Disposition: form-data; name="audio"; filename="synthetic-visit.wav"   Content-Type: audio/wav
+```
+
+Two details are **not confirmed by Meta's documentation**: (1) the `Content-Type` of the `request` part (`application/json` is
+the usual convention but is a guess), and (2) the `filename="blob"` that the platform adds to a JSON part, which a server could
+treat as a file upload rather than a form field. **No correction has been made and none should be guessed.** Before the live
+call, someone who can reach the page must compare against the **official example** (likely a `curl -F` line showing how
+`request` is sent, with or without `;type=application/json`) and then change `request.ts` in one place if it differs. If the
+guess is wrong the single call will most likely come back HTTP 400/415 and, as always, is not retried.
 
 ## Files
 
@@ -76,27 +93,39 @@ Audio and scorecards are written only under the git-ignored `spike-output/` (own
 - Errors carry fixed codes only (`http_429`, `timeout`, `malformed_response`, ...), with the key and any `Bearer` token scrubbed.
 - The scorecard holds numbers, booleans, turn numbers, fixed codes and key names. Tests prove no transcript text appears.
 - Nothing in `dev`, `build`, `lint`, `test` or `spike:test` runs the CLI; the application never reads `META_API_KEY`.
+- The workflow reads the key only from the environment secret `META_SPIKE_ENV_API_KEY` and refuses (before the CLI starts) when it is empty.
 
-## One-time GitHub setup (needs a repository admin; I have not changed any settings)
+## One-time GitHub setup (needs a repository admin; nothing here has been configured)
 
-1. **Settings -> Environments -> New environment**, name exactly `meta-spike`. Create it **before** the first run: GitHub
-   silently creates a missing environment with _no_ protection when a workflow names it.
+**Order matters: do all of this, and verify it in GitHub, BEFORE this PR is merged.** Merging is the moment the workflow
+becomes dispatchable. The environment can be created before the workflow file exists.
+
+1. **Settings -> Environments -> New environment**, name exactly `meta-spike`. GitHub silently creates a missing environment
+   with _no_ protection when a workflow names it, so it must already exist, configured, when the workflow first runs.
 2. In `meta-spike`: **Required reviewers** -> add the founder (and nobody who should not be able to release a paid call).
    Leave "Prevent self-review" as appropriate for a one-person team, and tick **Prevent administrators from bypassing** if offered.
 3. **Deployment branches and tags -> Selected branches -> `main`** only.
-4. **Environment secrets -> Add secret** `META_API_KEY` (the Pendia Development key). Then **delete the repository-level
-   `META_API_KEY`** so no other workflow can ever read it. (If you keep it, the protections above still gate this workflow,
-   but any future workflow could use the repository secret.)
-5. The workflow file must be on `main` to run (it refuses other refs), so it can only be used after the PR is merged.
+4. **Environment secrets -> Add secret** named exactly **`META_SPIKE_ENV_API_KEY`** (the Pendia Development key), **inside
+   `meta-spike`, not as a repository secret.** The workflow reads _only_ this name. The existing repository-level `META_API_KEY`
+   is **not used** by this workflow and is never read by it; whether to keep or delete that repository secret is a separate
+   decision, and nothing in this repository touches it.
+5. **Verify independently in GitHub** (the workflow cannot check these for you): open Settings -> Environments -> `meta-spike`
+   and confirm that Required reviewers lists the right person, Deployment branches shows Selected branches = `main`, and the
+   environment (not the repository) holds `META_SPIKE_ENV_API_KEY`. Only then merge.
+6. The workflow file must be on `main` to run (it refuses other refs), so it can only be used after the PR is merged.
 
-If any step is missing, do not run it. The workflow fails closed: wrong ref, wrong approval phrase, or missing secret all stop
-the job before a request is made.
+**What the workflow does if setup is incomplete.** The key comes only from `secrets.META_SPIKE_ENV_API_KEY`. If the
+environment or that secret is missing, GitHub supplies an empty value, the live step's guard prints a refusal and exits
+before the CLI starts, and (as a second layer) the CLI itself refuses an empty key before claiming the single call. So an
+auto-created, unprotected environment cannot reach the repository-level key. **This is a second layer only:** it does not
+replace the required reviewer or the main-only rule, which stop an unauthorized run from starting at all, and it cannot
+detect them. Configure and verify those first.
 
 ## Exact approval and execution procedure (for a later, separate authorization)
 
 1. Founder (or a reviewer who can reach the page) reads the official documentation once more and confirms the contract table above, in particular the Content-Type of the `request` part.
-2. Founder authorizes exactly one live request in writing.
-3. Merge the PR (separate approval), complete the GitHub setup above.
+2. Founder confirms the multipart `request` part against the official example (see "Unverified multipart detail"), then authorizes exactly one live request in writing.
+3. Complete and independently verify the GitHub setup above, **then** merge the PR (separate approval).
 4. **Actions -> Meta REST spike (manual, protected) -> Run workflow** on `main`; type `I_HAVE_APPROVAL`.
 5. The job pauses for the environment reviewer; approve it once.
 6. The job generates the audio, validates it, prints the redacted request, makes **one** request, and writes the sanitized

@@ -47,17 +47,38 @@ describe("protected manual workflow", () => {
     expect(code).not.toMatch(/:\s*write\b/);
     expect(code).not.toMatch(/id-token|pull-requests|actions:|packages|deployments/);
   });
-  it("exposes META_API_KEY to exactly one step, as an environment variable, and never prints it", () => {
+  it("uses ONLY the environment secret META_SPIKE_ENV_API_KEY and never the repository-level META_API_KEY", () => {
     expect(code.match(/secrets\./g)).toHaveLength(1);
-    expect(code.match(/secrets\.META_API_KEY/g)).toHaveLength(1);
+    expect(code.match(/secrets\.META_SPIKE_ENV_API_KEY\b/g)).toHaveLength(1);
+    expect(code).not.toMatch(/secrets\.META_API_KEY\b/);
+    expect(code).not.toMatch(
+      /secrets\.GITHUB_TOKEN|secrets\.\w*\[|toJSON\(secrets\)|secrets: inherit/,
+    );
+  });
+  it("exposes the secret to exactly one step, as an environment variable, and never prints it", () => {
     const steps = code.split(/^\s+- name: /m).slice(1);
-    const withSecret = steps.filter((s) => s.includes("secrets.META_API_KEY"));
+    const withSecret = steps.filter((s) => s.includes("secrets.META_SPIKE_ENV_API_KEY"));
     expect(withSecret).toHaveLength(1);
     expect(withSecret[0]).toMatch(/^ONE live transcription request/);
-    expect(withSecret[0]).toMatch(/META_API_KEY: \$\{\{ secrets\.META_API_KEY \}\}/);
+    expect(withSecret[0]).toMatch(/META_API_KEY: \$\{\{ secrets\.META_SPIKE_ENV_API_KEY \}\}/);
+    // nothing prints, traces or dumps the environment
     expect(code).not.toMatch(
-      /echo[^\n]*META_API_KEY|set -x|printenv|\benv\b\s*$|\$META_API_KEY|\$\{META_API_KEY/m,
+      /(echo|printf|cat|tee)[^\n]*\$\{?META_API_KEY|set -x|printenv|^\s*env\s*$|toJSON|--debug|ACTIONS_STEP_DEBUG/m,
     );
+  });
+  it("refuses when the secret is absent or empty: a guard in the live step runs BEFORE the CLI and exits non-zero", () => {
+    const step = code
+      .split(/^\s+- name: /m)
+      .find((x) => x.startsWith("ONE live transcription request"))!;
+    const guard = step.indexOf('if [ -z "${META_API_KEY}" ]; then');
+    const exit1 = step.indexOf("exit 1", guard);
+    const cli = step.indexOf("node spike/rest/cli.ts run");
+    expect(guard).toBeGreaterThan(-1);
+    expect(exit1).toBeGreaterThan(guard);
+    expect(cli).toBeGreaterThan(exit1); // the refusal comes first, so no request can follow it
+    expect(step).toMatch(/No request was made/);
+    // the guard's only use of the variable is the emptiness test (never its value)
+    expect(step.match(/\$\{?META_API_KEY/g)).toHaveLength(1);
   });
   it("makes the one live call once, with the confirm flag, and uploads no artifacts", () => {
     expect(code.match(/spike\/rest\/cli\.ts run/g)).toHaveLength(1);
@@ -168,6 +189,25 @@ describe("the command line is disabled by default", () => {
     expect(r.stdout + r.stderr).not.toContain(FAKE_KEY);
     expect(existsSync(lock)).toBe(before); // the single call was never claimed
   });
+  it.each([
+    ["an empty key (what GitHub supplies for a missing secret)", { META_API_KEY: "" }],
+    ["an unset key", {}],
+    ["a blank key", { META_API_KEY: "   " }],
+  ])(
+    "refuses a live run with %s, before any request, and does not claim the single call",
+    (_n, keyEnv) => {
+      const lock = join(root, "spike-output/rest-call.lock");
+      const before = existsSync(lock);
+      const r = cli(["run", "--wav", wavPath, "--live", "--confirm-one-call"], {
+        SPIKE_ALLOW_LIVE: APPROVAL_TOKEN,
+        ...keyEnv,
+      });
+      expect(r.status).toBe(1);
+      expect(r.stderr).toMatch(/missing_key/);
+      expect(r.stderr).not.toMatch(/network blocked/); // it never even tried to reach the network
+      expect(existsSync(lock)).toBe(before);
+    },
+  );
   it("`plan` and `check` work offline and print no credential", () => {
     const p = cli(["plan", "--wav", wavPath], { META_API_KEY: FAKE_KEY });
     expect(p.status).toBe(0);
@@ -176,4 +216,24 @@ describe("the command line is disabled by default", () => {
     expect(cli(["check", "--wav", wavPath], {}).status).toBe(0);
   });
   it("cleans up", () => rmSync(dir, { recursive: true, force: true }));
+});
+
+describe("setup documentation", () => {
+  const readme = read("spike/rest/README.md");
+  it("names the environment-only secret and says the repository-level key is not used", () => {
+    expect(readme).toContain("META_SPIKE_ENV_API_KEY");
+    expect(readme).toMatch(/repository-level `META_API_KEY`[\s\S]{0,80}?\*\*not used\*\*/);
+  });
+  it("says reviewer and main-only rules must be configured and verified in GitHub before merge", () => {
+    expect(readme).toMatch(/Required reviewers/);
+    expect(readme).toMatch(/Selected branches/);
+    expect(readme).toMatch(/verif(y|ied) (them )?(independently )?in GitHub/i);
+    expect(readme).toMatch(/before (this PR is )?merg/i);
+  });
+  it("documents the unverified `request` part filename and Content-Type without guessing a correction", () => {
+    expect(readme).toContain('filename="blob"');
+    expect(readme).toMatch(/Content-Type of the `request` part/);
+    expect(readme).toMatch(/official example/i);
+    expect(readme).toMatch(/not (been )?(changed|corrected)|no correction/i);
+  });
 });
