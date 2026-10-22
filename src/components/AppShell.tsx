@@ -131,12 +131,16 @@ export function AppShell({ children }: { children: ReactNode }) {
                 {data.family.name}
               </span>
             )}
-            <AssistantSlot variant="top" />
-            <Button asChild variant="ghost" size="icon" className="size-11 rounded-full">
-              <Link to="/preferences" aria-label="Preferences & Accessibility" title="Preferences & Accessibility"><SlidersHorizontal className="size-5" /></Link>
-            </Button>
+            {/* Ask and Preferences live in the sidebar from 1024px up; below that the sidebar is hidden. */}
+            <div className="flex items-center gap-1 lg:hidden">
+              <AssistantSlot variant="top" />
+              <Button asChild variant="ghost" size="icon" className="size-11 rounded-full">
+                <Link to="/preferences" aria-label="Preferences & Accessibility" title="Preferences & Accessibility"><SlidersHorizontal className="size-5" /></Link>
+              </Button>
+            </div>
             {signOutButton}
           </div>
+
           </div>
         </header>
         <main id="care-content" tabIndex={-1} className="care-content mx-auto w-full max-w-[48rem] flex-1 px-4 pb-[calc(var(--nav-h)+2rem+env(safe-area-inset-bottom))] pt-5 md:px-7 md:pt-8 lg:max-w-[1440px] lg:px-8 lg:pb-12">
