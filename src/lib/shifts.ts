@@ -80,13 +80,20 @@ export function validateShift(
   return { ok: true, start, end };
 }
 
+/**
+ * What is scheduled, in counts only. It never says the week is "covered": no required hours are defined anywhere, so
+ * whether every hour has someone is unknown, and unassigned shifts are not coverage.
+ */
 export function coverageSummary(shifts: ShiftLike[]): string {
   const active = shifts.filter(isActive);
-  const open = active.filter(isOpen).length;
   if (active.length === 0) return "No shifts scheduled this week";
-  if (open) return `${open} shift${open > 1 ? "s" : ""} still need someone`;
-  return "Every shift is covered";
+  const open = active.filter(isOpen).length;
+  const n = active.length;
+  return `${n} shift${n > 1 ? "s" : ""} scheduled · ${open ? `${open} open` : "none open"}`;
 }
+
+/** Shown on the Coverage page until required hours exist (a later phase), so a tidy schedule is not read as full coverage. */
+export const NO_REQUIREMENTS_NOTE = "Required hours aren't set yet, so gaps in coverage can't be checked.";
 
 // ---- Coverage C1: service-layer rules (validation, "needs completion", overlap flagging) ----
 

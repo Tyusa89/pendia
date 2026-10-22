@@ -68,7 +68,9 @@ export function FamilyOverview({ me, timeZone }: { me: Member; timeZone: string 
       value: shifts.isLoading
         ? "…"
         : open === 0
-          ? "All covered"
+          ? shifts.data?.length
+            ? "None open"
+            : "No shifts yet"
           : `${open} block${open === 1 ? "" : "s"}`,
       alert: !!open,
     },
