@@ -178,7 +178,7 @@ html[data-text-size="large"] { font-size: 125%; }
     row-gap: 0.25rem;
     padding: 0.75rem 1rem;
   }
-  .care-content > [aria-label="Leaving soon"] > * { margin-top: 0; min-width: 0; }
+  .care-content > [aria-label="Leaving soon"] > * { margin-block: 0; min-width: 0; }
   .care-content > [aria-label="Leaving soon"] > h2 { grid-column: 1; }
   .care-content > [aria-label="Leaving soon"] > p { grid-column: 1; }
   .care-content > [aria-label="Leaving soon"] > a {
@@ -204,7 +204,9 @@ html[data-text-size="large"] { font-size: 125%; }
     gap: 0.75rem;
   }
   .care-content > [aria-label="Today's coverage"] > h2 { grid-column: 1 / -1; }
-  .care-content > [aria-label="Today's coverage"] > article { margin-top: 0; padding: 0.75rem; }
+  .care-content > [aria-label="Today's coverage"] > * { margin-block: 0; }
+  .care-content > [aria-label="Today's coverage"] > article { padding: 0.75rem; }
+  .care-content > [aria-label="Today's coverage"] > article > * { margin-block: 0; }
   .care-content > [aria-label="Today's coverage"] > article > * + * { margin-top: 0.5rem; }
   .care-content > [aria-label="Today's coverage"] > article > div { flex-wrap: wrap; }
   .care-content > [aria-label="Today's coverage"] > article p { min-width: 0; overflow-wrap: anywhere; }
