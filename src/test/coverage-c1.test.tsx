@@ -180,7 +180,7 @@ describe("who can edit", () => {
     await shiftsSection();
     expect(screen.queryByRole("button", { name: /Add shift/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Edit / })).not.toBeInTheDocument();
-    expect(screen.queryByLabelText(/Tap to edit|Tap to add one/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Tap to edit|Add a shift on/)).not.toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /^Cover / }).length).toBeGreaterThan(0);
   });
 });

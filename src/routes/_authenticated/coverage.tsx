@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -28,8 +28,6 @@ import { PageTitle, WithFamily } from "@/components/AppShell";
 import { useMembers } from "@/hooks/use-family";
 import {
   BLOCKS,
-  type BlockKey,
-  blockOf,
   coverageSummary,
   isActive,
   isOpen,
@@ -37,12 +35,15 @@ import {
   mondayInZone,
   NO_REQUIREMENTS_NOTE,
   overlapsForMember,
+  addDays,
   shiftWeek,
   validateShift,
   weekDays,
   weekRange,
 } from "@/lib/shifts";
-import { compactRange, shiftOverlapsDay, shiftsInCell } from "@/lib/calendar";
+import { shiftOverlapsDay } from "@/lib/calendar";
+import { CoverageTimeline } from "@/components/CoverageTimeline";
+import { timeZoneLabel } from "@/lib/timezones";
 import { NeedsCompletion, shiftRange } from "@/components/NeedsCompletion";
 import { dateInZone, formatInZone, toZonedInputValue } from "@/lib/zoned-time";
 import { shiftService, type Family, type Member, type Shift } from "@/services";
@@ -86,6 +87,12 @@ function Coverage({ me, family }: { me: Member; family: Family }) {
   });
   const shifts = all.filter(isActive);
   const { data: members = [] } = useMembers(me.family_id);
+  const [layout, setLayout] = useState<"day" | "week">("week");
+  const [selectedDay, setSelectedDay] = useState(() => dateInZone(new Date(), tz));
+  // Phones start on the day view; larger screens on the week. Decided after mount so server and browser first render alike.
+  useEffect(() => {
+    if (typeof window.matchMedia === "function" && window.matchMedia("(max-width: 767px)").matches) setLayout("day");
+  }, []);
   const [editing, setEditing] = useState<Editing | null>(null);
   const [formError, setFormError] = useState("");
   const [confirmCancel, setConfirmCancel] = useState(false);
@@ -128,7 +135,12 @@ function Coverage({ me, family }: { me: Member; family: Family }) {
   });
 
   const days = weekDays(monday);
-  const inCell = (day: string, block: BlockKey) => shiftsInCell(shifts, day, block, tz);
+  // The selected day always belongs to the shown week; moving the week keeps the same weekday.
+  const selected = days.includes(selectedDay) ? selectedDay : days[0]!;
+  const goToDay = (d: string) => {
+    setSelectedDay(d);
+    setMonday(mondayInZone(new Date(`${d}T12:00:00Z`), "UTC"));
+  };
   const time = (iso: string) => formatInZone(iso, tz, { hour: "numeric", minute: "2-digit" });
   const openShift = (s: Shift) => {
     setFormError("");
@@ -141,7 +153,7 @@ function Coverage({ me, family }: { me: Member; family: Family }) {
     });
   };
   // The general "Add shift" button passes no date: it means today in the family's zone, not the Monday of the week on screen.
-  const newShift = (date?: string, block: (typeof BLOCKS)[number] = BLOCKS[0]) => {
+  const newShift = (date?: string, block: { start: string; end: string } = BLOCKS[0]) => {
     setFormError("");
     setEditing({ date: date ?? dateInZone(new Date(), tz), startTime: block.start, endTime: block.end, memberId: "" });
   };
@@ -168,7 +180,7 @@ function Coverage({ me, family }: { me: Member; family: Family }) {
           const who = members.find((m) => m.id === s.assigned_member_id);
           const now = Date.now() >= Date.parse(s.start) && Date.now() < Date.parse(s.end);
           return <article key={s.id} className={`space-y-3 rounded-[1.25rem] p-5 shadow-card ${who ? "bg-card" : "border border-dashed border-unassigned-foreground/60 bg-unassigned text-unassigned-foreground"}`}>
-            <div className="flex items-center justify-between gap-3"><p><strong>{blockOf(s.start, tz)}</strong> · {time(s.start)}–{time(s.end)}</p>{now && <span className="shrink-0 rounded-full bg-success px-3 py-1 text-sm font-bold text-success-foreground">Now</span>}</div>
+            <div className="flex items-center justify-between gap-3"><p><strong>{time(s.start)}–{time(s.end)}</strong></p>{now && <span className="shrink-0 rounded-full bg-success px-3 py-1 text-sm font-bold text-success-foreground">Now</span>}</div>
             {who ? <div className="flex items-center gap-3"><span className="grid size-11 shrink-0 place-items-center rounded-full bg-secondary font-bold text-secondary-foreground">{initials(who.name)}</span><p className="font-bold">{who.name}</p>{organizer && <Button variant="ghost" className="ml-auto text-primary" onClick={() => openShift(s)}>Edit</Button>}</div> : <><p className="font-bold">Nobody is covering yet</p><Button className="w-full" disabled={claim.isPending} onClick={() => claim.mutate(s.id)}>I'll cover it</Button></>}
           </article>;
         })}
@@ -180,7 +192,7 @@ function Coverage({ me, family }: { me: Member; family: Family }) {
       </section>
       <section aria-label="This week" className="space-y-4 rounded-[1.25rem] bg-card p-[1.125rem] shadow-card">
       <div className="mb-3 flex items-center justify-between gap-2">
-        <Button size="icon" variant="ghost" onClick={() => setMonday(shiftWeek(monday, -1))} aria-label="Previous week">
+        <Button size="icon" variant="ghost" onClick={() => { setMonday(shiftWeek(monday, -1)); setSelectedDay(addDays(selected, -7)); }} aria-label="Previous week">
           <ChevronLeft />
         </Button>
         <p className="text-center font-semibold">
@@ -191,97 +203,66 @@ function Coverage({ me, family }: { me: Member; family: Family }) {
             timeZone: "UTC",
           })}
         </p>
-        <Button size="icon" variant="ghost" onClick={() => setMonday(shiftWeek(monday, 1))} aria-label="Next week">
+        <Button size="icon" variant="ghost" onClick={() => { setMonday(shiftWeek(monday, 1)); setSelectedDay(addDays(selected, 7)); }} aria-label="Next week">
           <ChevronRight />
         </Button>
       </div>
-        <div className="grid grid-cols-[2.75rem_repeat(7,minmax(0,1fr))] gap-1 md:grid-cols-[5rem_repeat(7,minmax(0,1fr))] md:gap-1.5">
-          <span />
-          {days.map((d) => (
-            <span key={d} className={`flex flex-col items-center justify-center rounded-lg py-1 text-[0.8235rem] font-bold leading-tight ${d === today ? "bg-primary/10 text-primary" : ""}`}>
-              {dayLabel(d, "short")}
-              <span className="font-medium text-muted-foreground">{Number(d.slice(8))}</span>
-            </span>
-          ))}
-          {BLOCKS.map((b) => (
-            <Row key={b.key} label={b.label} short={b.short} hint={b.hint}>
-              {days.map((d) => {
-                const cell = inCell(d, b.key);
-                const where = `${dayLabel(d, "long")} ${b.label}`;
-                if (!cell.length)
-                  return organizer ? (
-                    <button
-                      key={d}
-                      type="button"
-                      onClick={() => newShift(d, b)}
-                      aria-label={`${where}: no shift. Tap to add one`}
-                      className="min-h-12 rounded-lg bg-muted transition-colors hover:bg-accent md:min-h-14"
-                    />
-                  ) : (
-                    <span key={d} className="min-h-12 rounded-lg bg-muted md:min-h-14" aria-label={`${where}, no shift`} />
-                  );
-                return (
-                  <div key={d} className="flex min-w-0 flex-col gap-1">
-                    {cell.map(({ shift: s, startsBefore, endsAfter }) => {
-                      const who = members.find((m) => m.id === s.assigned_member_id);
-                      const mine = who?.id === me.id;
-                      const range = `${time(s.start)}–${time(s.end)}`;
-                      const short = `${startsBefore ? "◂" : ""}${compactRange(s.start, s.end, tz)}${endsAfter ? "▸" : ""}`;
-                      const continues = `${startsBefore ? ", started the day before" : ""}${endsAfter ? ", continues the next day" : ""}`;
-                      const onClick = organizer ? () => openShift(s) : !who ? () => claim.mutate(s.id) : undefined;
-                      const cls = `relative flex min-h-12 min-w-0 flex-1 items-center justify-center overflow-hidden rounded-lg p-0.5 text-center text-[0.8235rem] font-bold leading-tight md:min-h-14 md:text-[0.9412rem] ${
-                        !who
-                          ? "border-[1.5px] border-dashed border-unassigned-foreground/60 bg-unassigned text-unassigned-foreground"
-                          : mine
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-secondary text-secondary-foreground"
-                      }`;
-                      const content = (
-                        <>
-                          {!who && (
-                            <span
-                              aria-hidden
-                              data-testid="needs-completion-dot"
-                              className="absolute right-1 top-1 size-2.5 rounded-full bg-warning ring-1 ring-warning-foreground/40"
-                            />
-                          )}
-                          <span aria-hidden className="flex min-w-0 flex-col items-center leading-tight">
-                            <span data-testid="shift-hours" className="max-w-full truncate text-[0.6875rem] md:text-[0.8125rem]">{short}</span>
-                            <span className="max-w-full truncate md:hidden">{!who ? "Open" : mine ? "You" : initials(who.name)}</span>
-                            <span className="hidden max-w-full truncate md:inline">{!who ? "Open" : mine ? "You" : who.name.split(" ")[0]}</span>
-                          </span>
-                        </>
-                      );
-                      const label = `${where} ${range}: ${!who ? "open" : mine ? "you" : who.name}${continues}`;
-                      return onClick ? (
-                        <button
-                          key={s.id}
-                          type="button"
-                          onClick={onClick}
-                          disabled={claim.isPending}
-                          title={who?.name}
-                          aria-label={organizer ? `${label}. Tap to edit` : `${label}. Tap to cover it`}
-                          className={`${cls} cursor-pointer`}
-                        >
-                          {content}
-                        </button>
-                      ) : (
-                        <span key={s.id} title={who?.name} aria-label={label} className={cls}>
-                          {content}
-                        </span>
-                      );
-                    })}
-                  </div>
-                );
-              })}
-            </Row>
-          ))}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[0.9412rem] text-muted-foreground">Times are in {timeZoneLabel(tz)}.</p>
+          <div role="group" aria-label="Calendar view" className="flex gap-1">
+            {(["day", "week"] as const).map((v) => (
+              <Button key={v} size="sm" variant={layout === v ? "default" : "outline"} aria-pressed={layout === v} onClick={() => setLayout(v)}>
+                {v === "day" ? "Day" : "Week"}
+              </Button>
+            ))}
+          </div>
         </div>
+        {layout === "day" && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <Button size="icon" variant="ghost" onClick={() => goToDay(addDays(selected, -1))} aria-label="Previous day">
+                <ChevronLeft />
+              </Button>
+              <p className="text-center font-semibold">{dayLabel(selected, "long")}, {new Date(`${selected}T12:00:00Z`).toLocaleDateString(undefined, { month: "long", day: "numeric", timeZone: "UTC" })}</p>
+              <Button size="icon" variant="ghost" onClick={() => goToDay(addDays(selected, 1))} aria-label="Next day">
+                <ChevronRight />
+              </Button>
+            </div>
+            <div className="grid grid-cols-7 gap-1">
+              {days.map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  aria-pressed={d === selected}
+                  aria-label={`${dayLabel(d, "long")} ${Number(d.slice(8))}`}
+                  onClick={() => setSelectedDay(d)}
+                  className={`flex min-h-12 flex-col items-center justify-center rounded-lg text-[0.8235rem] font-bold leading-tight ${d === selected ? "bg-primary text-primary-foreground" : d === today ? "bg-primary/10 text-primary" : "bg-muted"}`}
+                >
+                  {dayLabel(d, "short")}
+                  <span className="font-medium">{Number(d.slice(8))}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        <CoverageTimeline
+          days={layout === "day" ? [selected] : days}
+          shifts={shifts}
+          members={members}
+          meId={me.id}
+          tz={tz}
+          organizer={organizer}
+          today={today}
+          claimPending={claim.isPending}
+          onAddAt={(day, startTime, endTime) => newShift(day, { start: startTime, end: endTime })}
+          onEdit={openShift}
+          onClaim={(s) => claim.mutate(s.id)}
+        />
         <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[0.9412rem] text-muted-foreground">
           <li className="flex items-center gap-1.5"><span className="size-3.5 rounded bg-primary" />You</li>
           <li className="flex items-center gap-1.5"><span className="size-3.5 rounded bg-secondary" />Family</li>
           <li className="flex items-center gap-1.5"><span className="size-3.5 rounded border-[1.5px] border-dashed border-unassigned-foreground/60 bg-unassigned" />Open</li>
-          <li className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-warning ring-1 ring-warning-foreground/40" />Needs completion</li>
+          <li className="flex items-center gap-1.5"><span className="size-3.5 rounded border border-border" style={{ backgroundImage: "repeating-linear-gradient(135deg, transparent 0 3px, color-mix(in oklab, var(--muted-foreground) 30%, transparent) 3px 4px)" }} />Nothing scheduled</li>
         </ul>
       {openList.length > 0 && (
         <section aria-label="Still open this week" className="mt-4 space-y-2 border-t border-border pt-4">
@@ -404,19 +385,6 @@ function Coverage({ me, family }: { me: Member; family: Family }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
-  );
-}
-
-function Row({ label, short, hint, children }: { label: string; short: string; hint: string; children: React.ReactNode }) {
-  return (
-    <>
-      <span className="flex flex-col justify-center text-[0.8235rem] font-bold leading-tight">
-        <span className="md:hidden">{short}</span>
-        <span className="hidden md:inline">{label}</span>
-        <span className="font-medium text-muted-foreground">{hint}</span>
-      </span>
-      {children}
     </>
   );
 }

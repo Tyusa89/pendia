@@ -33,6 +33,11 @@ export function blockEdges(day: string, tz: string): Record<BlockKey, [number, n
   return { morning: [midnight, b14], afternoon: [b14, b18], evening: [b18, next] };
 }
 
+/** [start, end) of the calendar day in `tz` as instants: 23, 24 or 25 real hours around a clock change. */
+export function dayBounds(day: string, tz: string): [number, number] {
+  return [at(day, "00:00", tz), at(addDays(day, 1), "00:00", tz)];
+}
+
 export type CellShift<T> = { shift: T; startsBefore: boolean; endsAfter: boolean };
 
 /** Shifts that overlap `block` on `day`; `startsBefore`/`endsAfter` say the shift continues outside that day. */
