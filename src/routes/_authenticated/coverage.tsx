@@ -28,6 +28,7 @@ import { PageTitle, WithFamily } from "@/components/AppShell";
 import { useMembers } from "@/hooks/use-family";
 import {
   BLOCKS,
+  type BlockKey,
   blockOf,
   coverageSummary,
   isActive,
@@ -40,6 +41,7 @@ import {
   weekDays,
   weekRange,
 } from "@/lib/shifts";
+import { compactRange, shiftOverlapsDay, shiftsInCell } from "@/lib/calendar";
 import { NeedsCompletion, shiftRange } from "@/components/NeedsCompletion";
 import { dateInZone, formatInZone, toZonedInputValue } from "@/lib/zoned-time";
 import { shiftService, type Family, type Member, type Shift } from "@/services";
@@ -125,8 +127,7 @@ function Coverage({ me, family }: { me: Member; family: Family }) {
   });
 
   const days = weekDays(monday);
-  const inCell = (day: string, block: string) =>
-    shifts.filter((s) => dateInZone(s.start, tz) === day && blockOf(s.start, tz) === block);
+  const inCell = (day: string, block: BlockKey) => shiftsInCell(shifts, day, block, tz);
   const time = (iso: string) => formatInZone(iso, tz, { hour: "numeric", minute: "2-digit" });
   const openShift = (s: Shift) => {
     setFormError("");
@@ -153,7 +154,7 @@ function Coverage({ me, family }: { me: Member; family: Family }) {
     : [];
   const current = editing?.id ? shifts.find((s) => s.id === editing.id) : undefined;
   const today = dateInZone(new Date().toISOString(), tz);
-  const todayShifts = shifts.filter((s) => dateInZone(s.start, tz) === today);
+  const todayShifts = shifts.filter((s) => shiftOverlapsDay(s, today, tz));
 
   return (
     <>
@@ -218,10 +219,12 @@ function Coverage({ me, family }: { me: Member; family: Family }) {
                   );
                 return (
                   <div key={d} className="flex min-w-0 flex-col gap-1">
-                    {cell.map((s) => {
+                    {cell.map(({ shift: s, startsBefore, endsAfter }) => {
                       const who = members.find((m) => m.id === s.assigned_member_id);
                       const mine = who?.id === me.id;
                       const range = `${time(s.start)}–${time(s.end)}`;
+                      const short = `${startsBefore ? "◂" : ""}${compactRange(s.start, s.end, tz)}${endsAfter ? "▸" : ""}`;
+                      const continues = `${startsBefore ? ", started the day before" : ""}${endsAfter ? ", continues the next day" : ""}`;
                       const onClick = organizer ? () => openShift(s) : !who ? () => claim.mutate(s.id) : undefined;
                       const cls = `relative flex min-h-12 min-w-0 flex-1 items-center justify-center overflow-hidden rounded-lg p-0.5 text-center text-[0.8235rem] font-bold leading-tight md:min-h-14 md:text-[0.9412rem] ${
                         !who
@@ -239,11 +242,14 @@ function Coverage({ me, family }: { me: Member; family: Family }) {
                               className="absolute right-1 top-1 size-2.5 rounded-full bg-warning ring-1 ring-warning-foreground/40"
                             />
                           )}
-                          <span aria-hidden className="md:hidden">{!who ? "+" : mine ? "You" : initials(who.name)}</span>
-                          <span aria-hidden className="hidden truncate md:inline">{!who ? "Open" : mine ? "You" : who.name.split(" ")[0]}</span>
+                          <span aria-hidden className="flex min-w-0 flex-col items-center leading-tight">
+                            <span data-testid="shift-hours" className="max-w-full truncate text-[0.6875rem] md:text-[0.8125rem]">{short}</span>
+                            <span className="max-w-full truncate md:hidden">{!who ? "Open" : mine ? "You" : initials(who.name)}</span>
+                            <span className="hidden max-w-full truncate md:inline">{!who ? "Open" : mine ? "You" : who.name.split(" ")[0]}</span>
+                          </span>
                         </>
                       );
-                      const label = `${where} ${range}: ${!who ? "open" : mine ? "you" : who.name}`;
+                      const label = `${where} ${range}: ${!who ? "open" : mine ? "you" : who.name}${continues}`;
                       return onClick ? (
                         <button
                           key={s.id}

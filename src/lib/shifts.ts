@@ -11,7 +11,7 @@ export type ShiftLike = {
 };
 
 export const BLOCKS = [
-  { key: "morning", label: "Morning", short: "Morn", hint: "8a–2p", start: "08:00", end: "14:00" },
+  { key: "morning", label: "Morning", short: "Morn", hint: "to 2p", start: "08:00", end: "14:00" },
   {
     key: "afternoon",
     label: "Afternoon",
@@ -20,7 +20,7 @@ export const BLOCKS = [
     start: "14:00",
     end: "18:00",
   },
-  { key: "evening", label: "Evening", short: "Eve", hint: "6p–10p", start: "18:00", end: "22:00" },
+  { key: "evening", label: "Evening", short: "Eve", hint: "6p on", start: "18:00", end: "22:00" },
 ] as const;
 export type BlockKey = (typeof BLOCKS)[number]["key"];
 

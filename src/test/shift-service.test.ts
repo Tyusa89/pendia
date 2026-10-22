@@ -259,4 +259,10 @@ describe("existing claim flow is unchanged", () => {
     const rows = await shiftService.listRange(A, t("00:00", "26"), t("00:00", "30"));
     expect(rows.map((r) => r.start)).toEqual([t("12:00"), t("18:00")]);
   });
+  it("listRange also returns a shift that started before the range and is still running (overnight from the prior week)", async () => {
+    seed({ start: t("22:00", "25"), end: t("06:00", "26") });
+    seed({ start: t("22:00", "24"), end: t("06:00", "25") }); // ended before the range
+    const rows = await shiftService.listRange(A, t("00:00", "26"), t("00:00", "30"));
+    expect(rows.map((r) => r.start)).toEqual([t("22:00", "25")]);
+  });
 });
