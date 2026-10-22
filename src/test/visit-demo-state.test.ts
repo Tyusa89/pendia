@@ -122,3 +122,104 @@ describe("reset", () => {
     expect(s).toEqual(initialState);
   });
 });
+
+describe("review, follow-up and wrap-up", () => {
+  const atReview: Action[] = [
+    ...toVisit,
+    { type: "skipToEnd" },
+    { type: "toSpeakers" },
+    { type: "confirmSpeakers" },
+    { type: "extractionLoaded", extraction: DEMO_EXTRACTION, rejected: [] },
+  ];
+  const ids = { med: "med-1", task: "task-1", watch: "watch-1" };
+  it("nothing starts decided", () => {
+    expect(run(...atReview).decisions).toEqual({});
+  });
+  it("a follow-up cannot be confirmed without choosing who does it; rejecting needs no name", () => {
+    expect(
+      run(...atReview, { type: "decide", id: ids.task, decision: "confirmed" }).decisions,
+    ).toEqual({});
+    expect(
+      run(...atReview, { type: "decide", id: ids.task, decision: "rejected" }).decisions,
+    ).toEqual({ [ids.task]: "rejected" });
+    const s = run(
+      ...atReview,
+      { type: "setOwner", taskId: ids.task, owner: "Carlos" },
+      { type: "decide", id: ids.task, decision: "confirmed" },
+    );
+    expect(s.decisions[ids.task]).toBe("confirmed");
+  });
+  it("clearing the owner withdraws a confirmation that depended on it", () => {
+    const s = run(
+      ...atReview,
+      { type: "setOwner", taskId: ids.task, owner: "Carlos" },
+      { type: "decide", id: ids.task, decision: "confirmed" },
+      { type: "setOwner", taskId: ids.task, owner: "" },
+    );
+    expect(s.decisions[ids.task]).toBeUndefined();
+  });
+  it("a person can change their answer before continuing; unknown items are ignored", () => {
+    const s = run(
+      ...atReview,
+      { type: "decide", id: ids.med, decision: "confirmed" },
+      { type: "decide", id: ids.med, decision: null },
+      { type: "decide", id: "nope", decision: "confirmed" },
+    );
+    expect(s.decisions).toEqual({});
+  });
+  it("cannot continue until every item is decided", () => {
+    expect(
+      run(
+        ...atReview,
+        { type: "decide", id: ids.med, decision: "confirmed" },
+        { type: "toFollowup" },
+      ).step,
+    ).toBe("summary");
+  });
+  const decideAll = (task: "confirmed" | "rejected"): Action[] => [
+    { type: "setOwner", taskId: ids.task, owner: "Carlos" },
+    { type: "decide", id: ids.med, decision: "confirmed" },
+    { type: "decide", id: ids.task, decision: task },
+    { type: "decide", id: ids.watch, decision: "rejected" },
+  ];
+  it("with a confirmed follow-up, continuing goes to follow-up; without one it goes straight to the wrap-up", () => {
+    expect(run(...atReview, ...decideAll("confirmed"), { type: "toFollowup" }).step).toBe(
+      "followup",
+    );
+    expect(run(...atReview, ...decideAll("rejected"), { type: "toFollowup" }).step).toBe("done");
+  });
+  it("decisions are frozen once the person has moved on", () => {
+    const s = run(
+      ...atReview,
+      ...decideAll("confirmed"),
+      { type: "toFollowup" },
+      { type: "decide", id: ids.med, decision: null },
+      { type: "setOwner", taskId: ids.task, owner: "Jenny" },
+    );
+    expect(s.decisions[ids.med]).toBe("confirmed");
+    expect(s.owners[ids.task]).toBe("Carlos");
+  });
+  const delivery = {
+    channel: "simulated",
+    sent: false,
+    preview: "x",
+    to: "Carlos",
+    at: "t",
+  } as const;
+  const reply = { channel: "simulated", from: "Carlos", text: "DONE", at: "t" } as const;
+  it("a reply can only follow a prepared message, and only once; the wrap-up is reached from follow-up", () => {
+    const base = [...atReview, ...decideAll("confirmed"), { type: "toFollowup" } as Action];
+    expect(
+      run(...base, { type: "replyReceived", taskId: ids.task, reply }).followUps[ids.task]!.reply,
+    ).toBeNull();
+    const s = run(
+      ...base,
+      { type: "deliveryReady", taskId: ids.task, delivery },
+      { type: "replyReceived", taskId: ids.task, reply },
+      { type: "replyReceived", taskId: ids.task, reply: { ...reply, text: "NO" } },
+    );
+    expect(s.followUps[ids.task]!.reply?.text).toBe("DONE");
+    expect(run(...base, { type: "finish" }).step).toBe("done");
+    expect(run(...atReview, { type: "finish" }).step).toBe("summary");
+  });
+});
