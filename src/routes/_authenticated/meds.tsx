@@ -52,7 +52,7 @@ function Meds({ familyId }: { familyId: string }) {
         }
       />
       {adding && (
-        <Panel className="mb-5 space-y-3">
+        <Panel className="mb-5 max-w-4xl space-y-3">
           <Input
             placeholder="Name"
             value={f.name}
@@ -78,7 +78,7 @@ function Meds({ familyId }: { familyId: string }) {
       {data.length === 0 ? (
         <Empty>No medications listed.</Empty>
       ) : (
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid items-start gap-4 md:grid-cols-2 min-[1800px]:grid-cols-3">
           {data.map((m) => (
             <Panel key={m.id} className="space-y-4">
               <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">

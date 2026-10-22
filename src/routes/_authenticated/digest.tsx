@@ -28,7 +28,7 @@ function DigestView({ me }: { me: Member }) {
     data.find((x) => x.week === latestWeek && x.language === lang) ??
     data.find((x) => x.week === latestWeek);
   return (
-    <>
+    <div className="reading-view">
       <PageTitle
         title={lang === "es" ? "Resumen semanal" : "Weekly digest"}
         subtitle={lang === "es" ? "Cada domingo" : "Every Sunday"}
@@ -70,6 +70,6 @@ function DigestView({ me }: { me: Member }) {
           </ol>
         </Panel>
       )}
-    </>
+    </div>
   );
 }

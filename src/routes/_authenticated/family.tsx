@@ -113,12 +113,12 @@ function FamilyView({
     <>
       {teamOpen && <Button variant="ghost" className="mb-3 -ml-3 text-primary" onClick={() => setTeamOpen(false)}><ArrowLeft /> Family</Button>}
       <PageTitle title={teamOpen ? familyName : `${greeting(new Date())}, ${me.name.split(" ")[0]}`} subtitle={teamOpen ? (isOrganizer ? "You're the organizer" : "You're a member") : formatFamilyDate(timeZone)} />
-      <div className="space-y-5">
+      <div className={teamOpen ? "space-y-5" : "grid items-start gap-5 lg:grid-cols-[minmax(15rem,0.8fr)_minmax(0,1.7fr)]"}>
         <Recipient familyId={familyId} editable={isOrganizer && teamOpen} />
-        {!teamOpen && <>
+        {!teamOpen && <div className="min-w-0 space-y-5">
           <FamilyOverview me={me} timeZone={timeZone} />
           <Button variant="outline" className="w-full" onClick={() => setTeamOpen(true)}><Users /> Care team · {members.length}</Button>
-        </>}
+        </div>}
         {teamOpen && <section aria-label="Care team" className="min-w-0">
           <h2 className="mb-3 text-xl font-semibold">Care team · {members.length}</h2>
           <div className="grid items-start gap-3 md:grid-cols-2">

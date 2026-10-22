@@ -150,7 +150,7 @@ export function HandoffDictation({
         ) : (
           <>
             <Smartphone className="size-[18px] shrink-0" aria-hidden /> Temporary · stays on this
-            phone, not saved
+            device, not saved
           </>
         )}
       </p>
@@ -187,14 +187,14 @@ export function HandoffDictation({
 
       {rec.status === "idle" && (
         <div className="flex flex-col items-center gap-2.5 py-2 text-center [@media(max-height:500px)_and_(orientation:landscape)]:flex-row [@media(max-height:500px)_and_(orientation:landscape)]:justify-center [@media(max-height:500px)_and_(orientation:landscape)]:text-left">
-          <button
+          <Button
             type="button"
             aria-label="Record"
             onClick={() => void rec.start()}
             className="inline-flex size-24 shrink-0 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-warm [@media(max-height:500px)_and_(orientation:landscape)]:size-16"
           >
             <Mic className="size-10" aria-hidden />
-          </button>
+          </Button>
           <div>
             <p className="text-lg font-bold">Tap to record</p>
             <p className="text-[0.9412rem] text-muted-foreground">
@@ -239,14 +239,15 @@ export function HandoffDictation({
       {recording && (
         <>
           <div className="flex flex-col items-center gap-2.5 py-2 text-center">
-            <button
+            <Button
               type="button"
               aria-label="Stop"
               onClick={rec.stop}
-              className="inline-flex size-24 shrink-0 cursor-pointer items-center justify-center rounded-full bg-destructive text-white"
+              variant="destructive"
+              className="inline-flex size-24 shrink-0 cursor-pointer items-center justify-center rounded-full"
             >
               <Square className="size-8 fill-current" aria-hidden />
-            </button>
+            </Button>
             <p className="text-[0.9412rem] text-muted-foreground">
               Tap to stop. You can play it back first.
             </p>
@@ -255,7 +256,7 @@ export function HandoffDictation({
           <div
             role="region"
             aria-label="Recording in progress"
-            className="fixed inset-x-0 bottom-[calc(var(--nav-h)+env(safe-area-inset-bottom))] z-40 flex items-center gap-3 border-t-2 border-destructive bg-card px-4 py-2.5 shadow-[0_-8px_24px_-16px_rgba(38,55,70,0.4)] lg:left-[var(--side-w)] lg:bottom-0"
+            className="recording-dock fixed inset-x-0 bottom-[calc(var(--nav-h)+env(safe-area-inset-bottom))] z-40 flex items-center gap-3 border-t-2 border-destructive bg-card px-4 py-2.5 lg:left-[var(--side-w)] lg:bottom-0 lg:px-8"
           >
             <span
               aria-hidden
@@ -266,17 +267,18 @@ export function HandoffDictation({
                 Recording {formatTimestamp(rec.elapsedSec)}
               </p>
               <p className="text-[0.9412rem] text-muted-foreground">
-                {keep ? "Will be saved when you press Save handoff" : "Stays on this phone"}
+                {keep ? "Will be saved when you press Save handoff" : "Stays on this device"}
               </p>
             </div>
-            <button
+            <Button
               type="button"
               aria-label="Stop recording"
               onClick={rec.stop}
-              className="inline-flex size-14 shrink-0 cursor-pointer items-center justify-center rounded-full bg-destructive text-white"
+              variant="destructive"
+              className="inline-flex size-14 shrink-0 cursor-pointer items-center justify-center rounded-full"
             >
               <Square className="size-6 fill-current" aria-hidden />
-            </button>
+            </Button>
           </div>
         </>
       )}

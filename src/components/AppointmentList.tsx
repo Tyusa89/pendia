@@ -48,7 +48,7 @@ function Card({
       <Link
         to="/visits/$id"
         params={{ id: a.id }}
-        className="block rounded-[1.25rem] bg-card p-[1.125rem] shadow-card"
+        className="block h-full rounded-[1.25rem] bg-card p-[1.125rem] shadow-card focus-visible:outline-2 focus-visible:outline-ring"
       >
         <div className={`grid items-start gap-3 ${compact ? "grid-cols-[minmax(0,1fr)_auto]" : "grid-cols-[auto_minmax(0,1fr)_auto]"}`}>
           {!compact && (
@@ -121,7 +121,7 @@ export function AppointmentList({
     items.length === 0 ? (
       <Empty>{empty}</Empty>
     ) : (
-      <ul className={`grid gap-3 ${compact ? "" : "md:grid-cols-2"}`}>
+      <ul className={`grid gap-3 ${compact ? "" : "md:grid-cols-2 min-[1800px]:grid-cols-3"}`}>
         {items.map((a) => (
           <Card
             key={a.id}
@@ -137,7 +137,7 @@ export function AppointmentList({
   return (
     <>
       {canWrite && (
-        <Button asChild variant="outline" className={`mb-5 ${compact ? "w-full" : "md:float-right"}`}>
+        <Button asChild variant="outline" className={`mb-5 ${compact ? "w-full" : ""}`}>
           <Link to="/visits/new">
             <Plus /> New appointment
           </Link>
