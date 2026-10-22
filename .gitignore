@@ -30,3 +30,21 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Diarization spike: recordings, captured transcripts and any output must never be committed
+spike-output/
+*.wav
+*.pcm
+*.raw
+*.mp3
+*.m4a
+*.webm
+*.ogg
+*.flac
+*.jsonl
+capture*.json
+capture*.txt
+timings*.json
+adapter*.local.json
+.env.local
+.env.*.local

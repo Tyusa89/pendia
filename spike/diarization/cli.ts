@@ -6,7 +6,9 @@
 //   inspect <capture.jsonl>  show every event type / key path the server actually sent
 //   score <capture.jsonl>    score a capture against fixtures/spike/two-voice-script.md; exit 1 on FAIL
 //   capture --wav f.wav      LIVE run against api.meta.ai. Refuses unless SPIKE_ALLOW_LIVE=I_HAVE_APPROVAL.
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { safeOutputPath } from "./output.ts";
+import { newSessionId, scrubSecret } from "./protocol.ts";
 import { fromJsonl, runRealtimeCapture, toJsonl } from "./capture.ts";
 import { extractSegments, inspectCapture, type AdapterConfig } from "./events.ts";
 import { parseScript } from "./groundtruth.ts";
@@ -22,6 +24,9 @@ const flag = (name: string) => {
   const i = args.indexOf(`--${name}`);
   return i >= 0 ? args[i + 1] : undefined;
 };
+const showText = args.includes("--show-text");
+
+const writeSecret = (path: string, data: string) => writeFileSync(path, data, { mode: 0o600 });
 const truth = () => parseScript(readFileSync(SCRIPT, "utf8"));
 
 function scoreFile(path: string) {
@@ -70,20 +75,23 @@ async function main() {
         closeWaitMs: 5000,
       });
       const out = flag("out");
-      if (out) writeFileSync(out, toJsonl(cap));
-      console.log(inspectCapture(cap));
+      if (out) writeSecret(safeOutputPath(out, "simulate.jsonl"), toJsonl(cap));
+      console.log(inspectCapture(cap, { showText }));
       const ex = extractSegments(cap);
       console.log("\n" + formatReport(scoreSegments(ex.segments, truth())));
     } finally {
       await sim.close();
     }
   } else if (cmd === "inspect") {
-    console.log(inspectCapture(fromJsonl(readFileSync(args[1]!, "utf8"))));
+    console.log(inspectCapture(fromJsonl(readFileSync(args[1]!, "utf8")), { showText }));
   } else if (cmd === "score") {
     process.exit(scoreFile(args[1]!) ? 0 : 1);
   } else if (cmd === "capture") {
     const apiKey = process.env["META_API_KEY"];
     if (!apiKey) throw new Error("META_API_KEY is not set (it must only ever exist server-side).");
+    // Decide where the output goes BEFORE connecting, so a bad path fails before anything is sent.
+    const sessionId = newSessionId();
+    const out = safeOutputPath(flag("out"), `capture-${sessionId}.jsonl`);
     const wav = parseWav(readFileSync(flag("wav") ?? ""));
     console.log(
       `Audio: ${wav.durationS.toFixed(1)} s. Starting capture to ${flag("url") ?? ENDPOINT} ...`,
@@ -95,21 +103,22 @@ async function main() {
       keywords: ["Lisinopril"],
       languageBias: ["English"],
       liveApproval: process.env["SPIKE_ALLOW_LIVE"],
+      sessionId,
     });
-    const out = flag("out") ?? "capture.jsonl";
-    writeFileSync(out, toJsonl(cap));
+    writeSecret(out, toJsonl(cap));
     console.log(
-      `Saved ${out} (key scrubbed). Close: ${cap.meta.close.code} ${cap.meta.close.meaning}`,
+      `Saved ${out} (key scrubbed, owner-only, git-ignored). Close: ${cap.meta.close.code} ${cap.meta.close.meaning}`,
     );
-    console.log(inspectCapture(cap));
+    // Structure only: transcript text is not printed (it would land in terminal history or CI logs).
+    console.log(inspectCapture(cap, { showText: false }));
   } else {
     console.log(
-      "Usage: cli.ts plan | simulate [--scenario S] [--shape combined|nested|split] | inspect <file> | score <file> [--adapter a.json] [--timings t.json] | capture --wav f.wav [--out f.jsonl]",
+      "Usage: cli.ts plan | simulate [--scenario S] [--shape combined|nested|split] | inspect <file> | score <file> [--adapter a.json] [--timings t.json] | capture --wav f.wav [--out spike-output/f.jsonl]  (--show-text on inspect/simulate prints transcript text; local only)",
     );
     process.exit(cmd ? 2 : 0);
   }
 }
 main().catch((e) => {
-  console.error(`Error: ${(e as Error).message}`);
+  console.error(`Error: ${scrubSecret((e as Error).message, process.env["META_API_KEY"] ?? "")}`);
   process.exit(1);
 });

@@ -6,16 +6,16 @@ Synthetic data only. `META_API_KEY` is server-side only and never appears in thi
 
 ## What is here
 
-| File | Purpose |
-|---|---|
-| `protocol.ts` | The proposed handshake, framing constants, event/close-code classification, key redaction |
-| `wav.ts` | Reads mono 16 kHz 16-bit WAV, splits into 2560-byte (80 ms) frames |
-| `capture.ts` | Native WebSocket client: handshake first, real-time pacing, `endStream`, raw frame log (key scrubbed) |
-| `guard.ts` | Loopback only, unless `SPIKE_ALLOW_LIVE=I_HAVE_APPROVAL` **and** host is exactly `api.meta.ai` and pacing is real time |
-| `events.ts` | Raw events -> speaker segments. Config-driven; heuristic fallback; `inspect` report of every key path |
-| `groundtruth.ts`, `score.ts` | Parses `fixtures/spike/two-voice-script.md`; scores; enforces the acceptance criteria |
-| `simulator.ts` | LOCAL stand-in server (RFC 6455) for tests. Its speaker-event shapes are **fictional** |
-| `cli.ts` | `plan`, `simulate`, `inspect`, `score`, `capture` |
+| File                         | Purpose                                                                                                                |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `protocol.ts`                | The proposed handshake, framing constants, event/close-code classification, key redaction                              |
+| `wav.ts`                     | Reads mono 16 kHz 16-bit WAV, splits into 2560-byte (80 ms) frames                                                     |
+| `capture.ts`                 | Native WebSocket client: handshake first, real-time pacing, `endStream`, raw frame log (key scrubbed)                  |
+| `guard.ts`                   | Loopback only, unless `SPIKE_ALLOW_LIVE=I_HAVE_APPROVAL` **and** host is exactly `api.meta.ai` and pacing is real time |
+| `events.ts`                  | Raw events -> speaker segments. Config-driven; heuristic fallback; `inspect` report of every key path                  |
+| `groundtruth.ts`, `score.ts` | Parses `fixtures/spike/two-voice-script.md`; scores; enforces the acceptance criteria                                  |
+| `simulator.ts`               | LOCAL stand-in server (RFC 6455) for tests. Its speaker-event shapes are **fictional**                                 |
+| `cli.ts`                     | `plan`, `simulate`, `inspect`, `score`, `capture`                                                                      |
 
 ```sh
 bun run spike plan                      # prints the redacted handshake; connects to nothing
@@ -26,6 +26,7 @@ bun run spike:test                      # the spike's tests (no network beyond l
 ```
 
 ## Acceptance criteria (enforced by `score.ts`)
+
 1. **At least 90% speaker-turn accuracy** over all 12 turns (11/12 passes, 10/12 fails). Anonymous labels are matched to
    Dr. Patel / Rosa by best fit. Accuracy excluding the two deliberate-overlap turns is also reported, and seconds-weighted
    accuracy when segment times and a `timings.json` (`{"1":[start,end],...}`) are available.
@@ -41,21 +42,22 @@ Only a third-party catalog, framework docs and blogs were reachable from the san
 (`dev.meta.ai/docs/api-reference/voice/realtime`, cited by one framework) was **not** reachable, so nothing below is
 confirmed by Meta.
 
-| Spec claim | Evidence | Status |
-|---|---|---|
-| Endpoint `wss://api.meta.ai/v1/asr/realtime?sessionId=<uuid4>` | Consistent with the project's earlier `https://api.meta.ai/v1`; path and `sessionId` only in the spec | Unverified |
-| Auth is in the first JSON text frame (not an `Authorization` header), within 10 s | A framework doc says the key is sent as a Bearer token in the handshake; a blog says the header is ignored and the frame must arrive within 10 s. Browser/Deno `WebSocket` cannot set headers, which makes in-band auth plausible | Plausible, secondhand |
-| `model`, `mode: DIARIZATION`, `audioEncoding: PCM_16KHZ`, `partialMode: CUMULATIVE`, `languageBias`, `keywords`, `emitAudioProgress` | Mode names (PUSH_TO_TALK, ENDPOINTING, DIARIZATION) and cumulative vs delta partials appear in a blog; exact field names do not appear anywhere I could reach | Unverified field names |
-| 16 kHz mono PCM16 | A framework doc says the API accepts 24 kHz and 16 kHz | Supported (secondhand) |
-| 2560 bytes = 80 ms | 16000 x 2 x 0.08 = 2560 (arithmetic checked in a test). Whether the server requires exactly 80 ms frames is unverified | Arithmetic verified; requirement unverified |
-| Binary frames, real-time pacing, 1008 on bad pacing | Not found | Unverified |
-| `{"type":"endStream"}` then read until close | Not found | Unverified |
-| Events `transcript, speechStart, speechEnd, speechComplete, speaker, error` | Third-party text mentions endpoint/speech start/stop tokens, not these names | Unverified |
-| Close codes 1000 / 1008 / 1011 / 1013 | Standard WebSocket meanings; Meta's use is unverified | Unverified |
-| **`speaker` event payload** | Spec itself says unverified | **Unknown. The point of the spike.** |
-| Session limit | A blog says 60 minutes, no resume | Secondhand, not needed (clip < 2 min) |
+| Spec claim                                                                                                                           | Evidence                                                                                                                                                                                                                          | Status                                      |
+| ------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| Endpoint `wss://api.meta.ai/v1/asr/realtime?sessionId=<uuid4>`                                                                       | Consistent with the project's earlier `https://api.meta.ai/v1`; path and `sessionId` only in the spec                                                                                                                             | Unverified                                  |
+| Auth is in the first JSON text frame (not an `Authorization` header), within 10 s                                                    | A framework doc says the key is sent as a Bearer token in the handshake; a blog says the header is ignored and the frame must arrive within 10 s. Browser/Deno `WebSocket` cannot set headers, which makes in-band auth plausible | Plausible, secondhand                       |
+| `model`, `mode: DIARIZATION`, `audioEncoding: PCM_16KHZ`, `partialMode: CUMULATIVE`, `languageBias`, `keywords`, `emitAudioProgress` | Mode names (PUSH_TO_TALK, ENDPOINTING, DIARIZATION) and cumulative vs delta partials appear in a blog; exact field names do not appear anywhere I could reach                                                                     | Unverified field names                      |
+| 16 kHz mono PCM16                                                                                                                    | A framework doc says the API accepts 24 kHz and 16 kHz                                                                                                                                                                            | Supported (secondhand)                      |
+| 2560 bytes = 80 ms                                                                                                                   | 16000 x 2 x 0.08 = 2560 (arithmetic checked in a test). Whether the server requires exactly 80 ms frames is unverified                                                                                                            | Arithmetic verified; requirement unverified |
+| Binary frames, real-time pacing, 1008 on bad pacing                                                                                  | Not found                                                                                                                                                                                                                         | Unverified                                  |
+| `{"type":"endStream"}` then read until close                                                                                         | Not found                                                                                                                                                                                                                         | Unverified                                  |
+| Events `transcript, speechStart, speechEnd, speechComplete, speaker, error`                                                          | Third-party text mentions endpoint/speech start/stop tokens, not these names                                                                                                                                                      | Unverified                                  |
+| Close codes 1000 / 1008 / 1011 / 1013                                                                                                | Standard WebSocket meanings; Meta's use is unverified                                                                                                                                                                             | Unverified                                  |
+| **`speaker` event payload**                                                                                                          | Spec itself says unverified                                                                                                                                                                                                       | **Unknown. The point of the spike.**        |
+| Session limit                                                                                                                        | A blog says 60 minutes, no resume                                                                                                                                                                                                 | Secondhand, not needed (clip < 2 min)       |
 
 ### Assumptions this code makes (each is one line to change)
+
 - The handshake is sent immediately on open; `emitAudioProgress` is omitted (= false).
 - The last partial frame is **zero-padded** to 2560 bytes (adds at most 80 ms of silence).
 - Server close is awaited up to 30 s after `endStream`; the client then closes with 1000 and notes it.
@@ -67,11 +69,28 @@ confirmed by Meta.
   first real capture, run `inspect`, then give `score` an adapter JSON with the real paths:
 
 ```json
-{ "eventType": "transcript", "speakerPath": "payload.speaker.id", "textPath": "payload.text",
-  "startPath": "payload.startMs", "endPath": "payload.endMs", "finalPath": "final", "unit": "ms" }
+{
+  "eventType": "transcript",
+  "speakerPath": "payload.speaker.id",
+  "textPath": "payload.text",
+  "startPath": "payload.startMs",
+  "endPath": "payload.endMs",
+  "finalPath": "final",
+  "unit": "ms"
+}
 ```
 
+## Security and data handling
+
+- **Live Meta connection is off by default.** `guard.ts` refuses any non-loopback URL unless `SPIKE_ALLOW_LIVE=I_HAVE_APPROVAL` is set, the host is exactly `api.meta.ai`, and pacing is real time. Tests, `simulate`, `plan`, `inspect` and `score` only ever touch loopback or nothing. Only `capture` can go live, and only on explicit approval.
+- **Merging cannot deploy or call Meta.** The PR adds no `supabase/functions`, migration, Supabase config, CI workflow or install hook, and no package script (`test`, `build`, `dev`, `lint`) invokes the CLI.
+- **Key handling.** `META_API_KEY` is read from the process environment only by `cli.ts`. It is never hardcoded, logged or written: it is scrubbed from saved captures and error messages. Never put it in `.env` (tracked by Lovable; publishable Supabase values only), only in the server environment.
+- **Recordings, captures and transcripts cannot be committed.** `.gitignore` covers audio (`*.wav`, `*.pcm`, `*.mp3`, ...), `*.jsonl`, `capture*.json|txt`, `timings*.json`, local adapters and `spike-output/`. The CLI writes only to `spike-output/` (or outside the repo), owner-only (0600), and refuses other in-repo paths before connecting. `security.test.ts` enforces all of this.
+- **CI/terminal logs carry structure, not content.** `capture`, `inspect` and `simulate` print event types, key paths and numbers; transcript text is shown only with an explicit local `--show-text`. Do not use it in CI.
+- Use synthetic dialogue only; never real patient audio.
+
 ## Proposed storage (nothing uploaded)
+
 The existing private `recordings` bucket policies only accept `{family_uuid}/(handoff|visit)/{uuid}/{file}`.
 A path like `{family}/spike/...` would be **denied**. The compatible destination, with no migration, is
 `{family_id}/visit/{random-uuid}/two-voice-spike.wav` (organizer-only write, readable by those with visit access). That
@@ -79,6 +98,7 @@ makes an orphan "visit" folder with no visit row, so it must be deleted after th
 Alternative: stream the WAV to the function in the request body and store nothing. Either needs the owner's approval.
 
 ## Still to do, each needing separate approval
+
 1. The thin Edge Function wrapper (owner login only, POST only, closed-by-default window, returns the redacted capture and
    the scorecard, stores nothing, reads the WAV with the caller's own session). Deliberately **not** under
    `supabase/functions/`, so merging this branch cannot trigger any deploy.
