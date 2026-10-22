@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, Check, LogOut } from "lucide-react";
+import { ArrowLeft, Check } from "lucide-react";
 import { PageTitle, Panel } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";

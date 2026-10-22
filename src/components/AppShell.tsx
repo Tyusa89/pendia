@@ -103,7 +103,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
         ))}
         <div className="hidden">
-          <AssistantSlot variant="side" />
           {data?.me && (
             <p className="truncate px-3.5 text-sm text-muted-foreground">
               {data.me.name} · {data.me.role === "organizer" ? "Organizer" : "Member"}
@@ -124,7 +123,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
           <div className="flex min-w-0 items-center gap-1">
             {data?.family && (
-              <span className="hidden max-w-[10rem] truncate text-sm text-muted-foreground sm:inline">
+              <span className="hidden max-w-[10rem] truncate text-sm text-muted-foreground md:inline">
                 {data.family.name}
               </span>
             )}
