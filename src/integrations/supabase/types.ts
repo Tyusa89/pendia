@@ -46,105 +46,6 @@ export type Database = {
           },
         ]
       }
-      coverage_override: {
-        Row: {
-          created_at: string
-          day: string
-          family_id: string
-          id: string
-        }
-        Insert: {
-          created_at?: string
-          day: string
-          family_id: string
-          id?: string
-        }
-        Update: {
-          created_at?: string
-          day?: string
-          family_id?: string
-          id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "coverage_override_family_id_fkey"
-            columns: ["family_id"]
-            isOneToOne: false
-            referencedRelation: "family"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      coverage_override_window: {
-        Row: {
-          created_at: string
-          end_time: string
-          family_id: string
-          id: string
-          override_id: string
-          start_time: string
-        }
-        Insert: {
-          created_at?: string
-          end_time: string
-          family_id: string
-          id?: string
-          override_id: string
-          start_time: string
-        }
-        Update: {
-          created_at?: string
-          end_time?: string
-          family_id?: string
-          id?: string
-          override_id?: string
-          start_time?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "coverage_override_window_family"
-            columns: ["override_id", "family_id"]
-            isOneToOne: false
-            referencedRelation: "coverage_override"
-            referencedColumns: ["id", "family_id"]
-          },
-        ]
-      }
-      coverage_requirement: {
-        Row: {
-          created_at: string
-          end_time: string
-          family_id: string
-          id: string
-          start_time: string
-          weekday: number
-        }
-        Insert: {
-          created_at?: string
-          end_time: string
-          family_id: string
-          id?: string
-          start_time: string
-          weekday: number
-        }
-        Update: {
-          created_at?: string
-          end_time?: string
-          family_id?: string
-          id?: string
-          start_time?: string
-          weekday?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "coverage_requirement_family_id_fkey"
-            columns: ["family_id"]
-            isOneToOne: false
-            referencedRelation: "family"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       digest: {
         Row: {
           created_at: string
@@ -759,14 +660,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      replace_weekly_coverage: {
-        Args: { _family_id: string; _weekday: number; _windows: Json }
-        Returns: number
-      }
-      set_coverage_override: {
-        Args: { _day: string; _family_id: string; _windows: Json }
-        Returns: string
-      }
       is_family_member: { Args: { _family_id: string }; Returns: boolean }
       is_family_organizer: { Args: { _family_id: string }; Returns: boolean }
       join_demo_family: { Args: never; Returns: string }
