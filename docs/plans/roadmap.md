@@ -25,7 +25,7 @@ Mobile-first and responsive: design/test primarily for Samsung Android phones; e
 |---|---|---|
 | B | Dictation transcription via Meta Voice Transcribe (file endpoint) | Planned — first Meta call in the product |
 | C | Diarization spike verdict (streaming vs file for visit capture) | Blocked on spike inputs |
-| D | Visit loop: record → diarized transcript → Spark extraction → human review/Confirm, with cached Demo Mode | Planned |
+| D | Visit loop: record → diarized transcript → Spark extraction → human review/Confirm, with cached Demo Mode | **Demo Mode built** (public `/demo` + in-app `/visits/demo`; PRs #31-#33, drafts). Live providers (Muse Voice Transcribe, Spark 1.3) wait on the live spike; the speaker-WAV spike is paused. |
 | E | SMS loop (Twilio): task assignment, DONE replies, gap claim | Planned |
 | F | Digest + `ask` (visibility-scoped, cited answers) | Planned |
 | G | Invitation/sharing audit (least-privilege defaults) | Planned |

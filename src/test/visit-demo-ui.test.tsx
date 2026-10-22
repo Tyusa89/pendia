@@ -189,16 +189,15 @@ describe("the proposed summary", () => {
     const watch = screen.getByRole("region", { name: /Watch for: Call the office right away/ });
     expect(watch).toHaveTextContent(/Heard at 0:49 · Dr\. Patel/);
   });
-  it("proposes exactly three items, none from the patient, and nothing is confirmed or applied", async () => {
+  it("proposes exactly three items, none from the patient, all still unconfirmed", async () => {
     await toSummary();
     expect(screen.getAllByText(/Proposed · not confirmed/)).toHaveLength(3);
-    expect(screen.queryByText(/call the lab first/i)).toBe(
-      screen.queryByText(/call the lab first/i),
-    ); // present only inside the transcript
     const items = screen.getByRole("region", { name: "Proposed items" });
     expect(items).not.toHaveTextContent(/lab first/i);
-    expect(screen.queryByRole("button", { name: /confirm|apply|save|send/i })).toBeNull();
-    expect(screen.getByText(/nothing changes until a person confirms it/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /confirm all|apply|save|send/i })).toBeNull();
+    expect(
+      screen.getByText(/nothing is confirmed until a person confirms it/i),
+    ).toBeInTheDocument();
   });
   it("names the speakers once confirmed, labels its provenance as prerecorded, and carries the safety line", async () => {
     await toSummary();

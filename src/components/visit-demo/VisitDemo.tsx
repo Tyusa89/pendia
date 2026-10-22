@@ -1,16 +1,14 @@
+import { FollowThrough } from "@/components/visit-demo/FollowThrough";
+import { ReviewItems } from "@/components/visit-demo/ReviewItems";
+import { WrapUp } from "@/components/visit-demo/WrapUp";
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
-import { Check, FileText, Mic, RotateCcw, ShieldCheck, SkipForward } from "lucide-react";
+import { FileText, Mic, RotateCcw, ShieldCheck, SkipForward } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  DemoBanner,
-  ProposedBadge,
-  StepHeading,
-  StepIndicator,
-} from "@/components/visit-demo/parts";
+import { Card, DemoBanner, StepHeading, StepIndicator } from "@/components/visit-demo/parts";
 import { formatTimestamp } from "@/lib/format";
 import {
   allRevealed,
+  confirmedTasks,
   initialState,
   reducer,
   rolesComplete,
@@ -18,6 +16,7 @@ import {
   type RoleChoice,
   type DemoState,
 } from "@/lib/visit-demo/state";
+import { taskAssignmentText } from "@/lib/visit-demo/messages";
 import { useReducedMotion } from "@/lib/visit-demo/use-reduced-motion";
 import { getVisitPipeline } from "@/lib/visit-pipeline";
 import { DEMO_DOCTOR, DEMO_PATIENT, DEMO_SPEAKER_SUGGESTION } from "@/lib/visit-pipeline/fixture";
@@ -107,6 +106,19 @@ export function VisitDemo({ onExit }: { onExit?: () => void }) {
     );
     return () => clearTimeout(t);
   }, [s, reduced, segments]);
+
+  // Entering the follow-up step: ask the (simulated) notifier to prepare each message. It never sends anything.
+  useEffect(() => {
+    if (s.step !== "followup") return;
+    for (const t of confirmedTasks(s)) {
+      if (s.followUps[t.id]?.delivery) continue;
+      const to = s.owners[t.id]!;
+      pipeline.notifier
+        .send({ kind: "task-assignment", to: { name: to }, body: taskAssignmentText(t, "Maria") })
+        .then((delivery) => dispatch({ type: "deliveryReady", taskId: t.id, delivery }))
+        .catch((e: Error) => dispatch({ type: "failed", message: e.message }));
+    }
+  }, [s, pipeline]);
 
   const startVisit = useCallback(() => {
     dispatch({ type: "startVisit" });
@@ -295,73 +307,7 @@ export function VisitDemo({ onExit }: { onExit?: () => void }) {
               </p>
             </Card>
 
-            <section aria-label="Proposed items" className="space-y-3">
-              <p className="rounded-xl bg-muted p-3 text-[0.9412rem]">
-                <Check className="mr-1 inline size-4" aria-hidden />
-                Everything below came from the doctor's words, with the moment it was heard. Nothing
-                is confirmed yet, and nothing changes until a person confirms it.
-              </p>
-
-              {!s.extraction.med_changes.length &&
-                !s.extraction.tasks.length &&
-                !s.extraction.watch_items.length && (
-                  <p
-                    role="status"
-                    className="rounded-xl bg-warning p-4 font-semibold text-warning-foreground"
-                  >
-                    Nothing was proposed. Pendia only reads what the doctor said, so check that the
-                    doctor is the right speaker, then start over.
-                  </p>
-                )}
-              {s.extraction.med_changes.map((m) => (
-                <Card key={m.id} label={`Medication change: ${m.medication}`} className="space-y-2">
-                  <div className="flex items-start justify-between gap-3">
-                    <h3 className="text-xl font-semibold">{m.medication}</h3>
-                    <ProposedBadge />
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2 text-lg">
-                    <span className="rounded-lg bg-muted px-3 py-1 line-through decoration-muted-foreground/60">
-                      {m.before}
-                    </span>
-                    <span aria-hidden>→</span>
-                    <span className="rounded-lg bg-accent px-3 py-1 font-semibold">{m.after}</span>
-                  </div>
-                  {m.timing && <p className="font-semibold">{m.timing}</p>}
-                  <Source
-                    speaker={nameFor(m.source.speaker, s.roles, true)}
-                    at={m.source.start_s}
-                    quote={m.source.quote}
-                  />
-                </Card>
-              ))}
-              {s.extraction.tasks.map((t) => (
-                <Card key={t.id} label={`Follow-up: ${t.title}`} className="space-y-2">
-                  <div className="flex items-start justify-between gap-3">
-                    <h3 className="text-xl font-semibold">{t.title}</h3>
-                    <ProposedBadge />
-                  </div>
-                  {t.due_hint && <p className="font-semibold">{t.due_hint}</p>}
-                  <Source
-                    speaker={nameFor(t.source.speaker, s.roles, true)}
-                    at={t.source.start_s}
-                    quote={t.source.quote}
-                  />
-                </Card>
-              ))}
-              {s.extraction.watch_items.map((w) => (
-                <Card key={w.id} label={`Watch for: ${w.text}`} className="space-y-2">
-                  <div className="flex items-start justify-between gap-3">
-                    <h3 className="text-xl font-semibold">{w.text}</h3>
-                    <ProposedBadge />
-                  </div>
-                  <Source
-                    speaker={nameFor(w.source.speaker, s.roles, true)}
-                    at={w.source.start_s}
-                    quote={w.source.quote}
-                  />
-                </Card>
-              ))}
-            </section>
+            <ReviewItems s={s} dispatch={dispatch} nameFor={(l) => nameFor(l, s.roles, true)} />
 
             <p className="text-sm font-semibold text-muted-foreground">{NOT_MEDICAL_ADVICE}</p>
             <Button variant="outline" onClick={reset}>
@@ -380,14 +326,9 @@ export function VisitDemo({ onExit }: { onExit?: () => void }) {
           </Card>
         </div>
       )}
-    </div>
-  );
-}
 
-function Source({ speaker, at, quote }: { speaker: string; at: number; quote: string }) {
-  return (
-    <p className="text-[0.9412rem] text-muted-foreground">
-      Heard at {formatTimestamp(at)} · {speaker}: “{quote}”
-    </p>
+      {s.step === "followup" && <FollowThrough s={s} dispatch={dispatch} />}
+      {s.step === "done" && <WrapUp s={s} dispatch={dispatch} />}
+    </div>
   );
 }
