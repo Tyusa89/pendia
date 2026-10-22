@@ -13,7 +13,7 @@ const destinations = [
 ] as const;
 
 export function DesktopNavigation({ collapsed, onToggle, familyName }: {
-  collapsed: boolean; onToggle: () => void; familyName?: string;
+  collapsed: boolean; onToggle: () => void; familyName?: string | undefined;
 }) {
   return <TooltipProvider delayDuration={200}>
     <aside className="desktop-navigation fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-border bg-card lg:flex" aria-label="Desktop sidebar">

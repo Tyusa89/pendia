@@ -115,7 +115,7 @@ describe("Handoffs, as designed", () => {
     mount();
     await screen.findByText("Did she eat?");
     expect(screen.getByTestId("storage-state")).toHaveTextContent(
-      /Temporary · stays on this phone, not saved/,
+      /Temporary · stays on this device, not saved/,
     );
     await click("Record");
     await click("Stop");
