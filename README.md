@@ -170,6 +170,16 @@ lavender; Fraunces + Figtree), so this is a layout and touch-target pass, not a 
   Mark given", "I'll cover it / Ask the family" requests, "I'll take her", and the drafted-from-voice handoff text (all marked
   "Proposed" in the design).
 
+### Coverage editing (C1)
+
+Organizers can **add, edit, reassign and cancel** shifts on the Coverage page (the form is single-column; times are typed
+in the family's timezone; a night shift ends on the next day). A shift with no caregiver (or no end time) shows **Needs
+completion**, computed from its fields and cleared the moment it is filled in. Overlapping shifts for the same person are
+flagged, never blocked. **Cancel deletes the shift**: `shift.status` only allows open / claimed / swap, and adding
+"canceled" would be a schema change. Rules are enforced in `shiftService` (valid times, end after start, assignee in the
+same family) and by the database (organizer-only writes, family isolation). The existing "Cover it" claim flow is
+unchanged. Tests: `supabase/tests/shift-writes.test.sql` (29 assertions), `shift-service`, `shifts-lib`, `coverage-c1`.
+
 ### Demo data
 
 Signing in and tapping **Open demo family** calls `join_demo_family()`, which creates a private copy for that

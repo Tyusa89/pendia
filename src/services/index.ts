@@ -2,6 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import type { AppointmentInput } from "@/lib/appointments";
+import { overlapsForMember, validateShiftTimes, ShiftValidationError, type ShiftInput } from "@/lib/shifts";
 import { normalizePhone } from "@/lib/format";
 
 export type Family = Tables<"family">;
@@ -159,28 +160,105 @@ export const shiftService = {
     if (!rows.length) throw new Error("Someone already took this shift, or you can't change the schedule.");
     return rows[0];
   },
-  async create(familyId: string, start: string, end: string, memberId: string | null) {
-    return ok(
-      await supabase
-        .from("shift")
-        .insert({ family_id: familyId, start, end, assigned_member_id: memberId, status: memberId ? "claimed" : "open" })
-        .select()
-        .single(),
-    );
+  // ---- coverage editing (C1): organizer-only by the database's row-level rules; the checks here make bad input fail early ----
+
+  /** The assignee must be a member of the same family (the database also enforces this). */
+  async assertAssignee(familyId: string, memberId: string | null) {
+    if (!memberId) return;
+    const { data, error } = await supabase
+      .from("member")
+      .select("id")
+      .eq("id", memberId)
+      .eq("family_id", familyId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!data) throw new ShiftValidationError("That person isn't a member of this family.");
   },
-  async update(id: string, start: string, end: string, memberId: string | null) {
-    return ok(
+  /** Other shifts of the same member that overlap this one. Flagged to the caller, never a reason to refuse. */
+  async overlapsFor(
+    familyId: string,
+    memberId: string | null,
+    start: string,
+    end: string,
+    ignoreId?: string,
+  ) {
+    if (!memberId) return [];
+    const rows = ok(
       await supabase
         .from("shift")
-        .update({ start, end, assigned_member_id: memberId, status: memberId ? "claimed" : "open" })
+        .select("*")
+        .eq("family_id", familyId)
+        .eq("assigned_member_id", memberId)
+        .lt("start", end)
+        .gt("end", start),
+    );
+    return overlapsForMember(rows, memberId, start, end, ignoreId);
+  },
+  async createShift(familyId: string, input: ShiftInput) {
+    const t = validateShiftTimes(input.start, input.end);
+    await shiftService.assertAssignee(familyId, input.assigned_member_id);
+    const rows = ok(
+      await supabase
+        .from("shift")
+        .insert({
+          family_id: familyId,
+          start: t.start,
+          end: t.end,
+          assigned_member_id: input.assigned_member_id,
+          status: input.assigned_member_id ? "claimed" : "open",
+        })
+        .select(),
+    );
+    const shift = rows[0];
+    if (!shift) throw new Error("You don't have permission to schedule coverage for this family.");
+    const overlaps = await shiftService.overlapsFor(
+      familyId,
+      shift.assigned_member_id,
+      t.start,
+      t.end,
+      shift.id,
+    );
+    return { shift, overlaps };
+  },
+  async updateShift(id: string, input: ShiftInput) {
+    const t = validateShiftTimes(input.start, input.end);
+    const found = ok(await supabase.from("shift").select("*").eq("id", id));
+    const current = found[0];
+    if (!current) throw new Error("That shift wasn't found, or you don't have access to it.");
+    await shiftService.assertAssignee(current.family_id, input.assigned_member_id);
+    const rows = ok(
+      await supabase
+        .from("shift")
+        .update({
+          start: t.start,
+          end: t.end,
+          assigned_member_id: input.assigned_member_id,
+          status: input.assigned_member_id ? "claimed" : "open",
+        })
         .eq("id", id)
-        .select()
-        .single(),
+        .select(),
     );
+    const shift = rows[0];
+    // Row-level security hides rows a person may not change, so a refused update matches nothing instead of erroring.
+    if (!shift) throw new Error("You don't have permission to change this shift.");
+    const overlaps = await shiftService.overlapsFor(
+      current.family_id,
+      shift.assigned_member_id,
+      t.start,
+      t.end,
+      id,
+    );
+    return { shift, overlaps };
   },
-  /** Kept as a record with status "canceled"; hidden from the calendar. */
-  async cancel(id: string) {
-    return ok(await supabase.from("shift").update({ status: "canceled" }).eq("id", id).select().single());
+  /**
+   * Cancel = delete the shift. `shift.status` only allows open / claimed / swap (checked against the live database), so
+   * there is no "canceled" status to set, and adding one would be a schema change. Handoffs that point at the shift keep working (their shift_id becomes null).
+   */
+  async cancelShift(id: string) {
+    const rows = ok(await supabase.from("shift").delete().eq("id", id).select());
+    if (!rows[0])
+      throw new Error("You don't have permission to cancel this shift, or it was already removed.");
+    return rows[0];
   },
 };
 

@@ -32,12 +32,15 @@ import {
   coverageSummary,
   isActive,
   isOpen,
+  missingFromShift,
   mondayInZone,
+  overlapsForMember,
   shiftWeek,
   validateShift,
   weekDays,
   weekRange,
 } from "@/lib/shifts";
+import { NeedsCompletion, shiftRange } from "@/components/NeedsCompletion";
 import { dateInZone, formatInZone, toZonedInputValue } from "@/lib/zoned-time";
 import { shiftService, type Family, type Member, type Shift } from "@/services";
 
@@ -93,25 +96,25 @@ function Coverage({ me, family }: { me: Member; family: Family }) {
   });
   const save = useMutation({
     mutationFn: async (e: Editing) => {
-      // Check overlaps against the latest shifts for that day's week, not only what's on screen.
-      const r = weekRange(mondayInZone(new Date(`${e.date}T12:00:00Z`), tz), tz);
-      const nearby = await shiftService.listRange(me.family_id, r.from, r.to);
-      const v = validateShift(e, tz, nearby, e.id);
+      const v = validateShift(e, tz); // time rules; the service validates again and checks the assignee's family
       if (!v.ok) throw new Error(v.error);
-      const who = e.memberId || null;
-      return e.id
-        ? shiftService.update(e.id, v.start, v.end, who)
-        : shiftService.create(me.family_id, v.start, v.end, who);
+      const input = { start: v.start, end: v.end, assigned_member_id: e.memberId || null };
+      return e.id ? shiftService.updateShift(e.id, input) : shiftService.createShift(me.family_id, input);
     },
-    onSuccess: () => {
+    onSuccess: ({ shift: saved, overlaps }) => {
       toast.success("Shift saved");
+      // Overlaps for the same person are flagged, never blocked.
+      if (overlaps.length)
+        toast.warning(
+          `${members.find((m) => m.id === saved.assigned_member_id)?.name ?? "Someone"} is also scheduled ${shiftRange(overlaps[0]!, tz)}. Saved anyway; please check.`,
+        );
       setEditing(null);
     },
     onError: (e) => setFormError((e as Error).message),
     onSettled: refresh,
   });
   const cancel = useMutation({
-    mutationFn: (id: string) => shiftService.cancel(id),
+    mutationFn: (id: string) => shiftService.cancelShift(id),
     onSuccess: () => {
       toast.success("Shift canceled");
       setConfirmCancel(false);
@@ -140,6 +143,14 @@ function Coverage({ me, family }: { me: Member; family: Family }) {
     setEditing({ date, startTime: block.start, endTime: block.end, memberId: "" });
   };
   const openList = shifts.filter(isOpen);
+  const draftRange = editing ? validateShift(editing, tz) : null;
+  const liveOverlap =
+    editing && draftRange?.ok
+      ? overlapsForMember(shifts, editing.memberId || null, draftRange.start, draftRange.end, editing.id)
+      : [];
+  const draftMissing = editing
+    ? missingFromShift({ end: editing.endTime || null, assigned_member_id: editing.memberId || null })
+    : [];
   const current = editing?.id ? shifts.find((s) => s.id === editing.id) : undefined;
   const today = dateInZone(new Date().toISOString(), tz);
   const todayShifts = shifts.filter((s) => dateInZone(s.start, tz) === today);
@@ -212,7 +223,7 @@ function Coverage({ me, family }: { me: Member; family: Family }) {
                       const mine = who?.id === me.id;
                       const range = `${time(s.start)}–${time(s.end)}`;
                       const onClick = organizer ? () => openShift(s) : !who ? () => claim.mutate(s.id) : undefined;
-                      const cls = `flex min-h-12 min-w-0 flex-1 items-center justify-center overflow-hidden rounded-lg p-0.5 text-center text-[0.8235rem] font-bold leading-tight md:min-h-14 md:text-[0.9412rem] ${
+                      const cls = `relative flex min-h-12 min-w-0 flex-1 items-center justify-center overflow-hidden rounded-lg p-0.5 text-center text-[0.8235rem] font-bold leading-tight md:min-h-14 md:text-[0.9412rem] ${
                         !who
                           ? "border-[1.5px] border-dashed border-unassigned-foreground/60 bg-unassigned text-unassigned-foreground"
                           : mine
@@ -221,6 +232,13 @@ function Coverage({ me, family }: { me: Member; family: Family }) {
                       }`;
                       const content = (
                         <>
+                          {!who && (
+                            <span
+                              aria-hidden
+                              data-testid="needs-completion-dot"
+                              className="absolute right-1 top-1 size-2.5 rounded-full bg-warning ring-1 ring-warning-foreground/40"
+                            />
+                          )}
                           <span aria-hidden className="md:hidden">{!who ? "+" : mine ? "You" : initials(who.name)}</span>
                           <span aria-hidden className="hidden truncate md:inline">{!who ? "Open" : mine ? "You" : who.name.split(" ")[0]}</span>
                         </>
@@ -254,6 +272,7 @@ function Coverage({ me, family }: { me: Member; family: Family }) {
           <li className="flex items-center gap-1.5"><span className="size-3.5 rounded bg-primary" />You</li>
           <li className="flex items-center gap-1.5"><span className="size-3.5 rounded bg-secondary" />Family</li>
           <li className="flex items-center gap-1.5"><span className="size-3.5 rounded border-[1.5px] border-dashed border-unassigned-foreground/60 bg-unassigned" />Open</li>
+          <li className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-warning ring-1 ring-warning-foreground/40" />Needs completion</li>
         </ul>
       {openList.length > 0 && (
         <section aria-label="Still open this week" className="mt-4 space-y-2 border-t border-border pt-4">
@@ -272,6 +291,29 @@ function Coverage({ me, family }: { me: Member; family: Family }) {
         </section>
       )}
       </section>
+      {shifts.length > 0 && (
+        <section aria-label="Shifts this week" className="mt-4 space-y-3 rounded-[1.25rem] bg-card p-[1.125rem] shadow-card">
+          <h2 className="font-sans text-base font-bold tracking-normal">Shifts this week</h2>
+          <ul className="divide-y">
+            {shifts.map((s) => (
+              <li key={s.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 py-2.5 first:pt-0 last:pb-0">
+                <div className="min-w-0 space-y-1">
+                  <p className="font-bold">{shiftRange(s, tz)}</p>
+                  <p className="text-muted-foreground">
+                    {s.assigned_member_id ? (members.find((m) => m.id === s.assigned_member_id)?.name ?? "A family member") : "Open"}
+                  </p>
+                  <NeedsCompletion shift={s} />
+                </div>
+                {organizer && (
+                  <Button variant="outline" onClick={() => openShift(s)} aria-label={`Edit ${shiftRange(s, tz)}`}>
+                    Edit
+                  </Button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent>
@@ -286,7 +328,8 @@ function Coverage({ me, family }: { me: Member; family: Family }) {
             >
               <DialogHeader>
                 <DialogTitle>{editing.id ? "Edit shift" : "Add shift"}</DialogTitle>
-                <DialogDescription>Times are in the family's time zone ({tz}).</DialogDescription>
+                <DialogDescription>Times are in the family's time zone ({tz}). For a night shift, set the end earlier than the start and it ends the next day.</DialogDescription>
+                {draftMissing.length > 0 && <NeedsCompletion shift={{ end: editing.endTime || null, assigned_member_id: editing.memberId || null }} />}
               </DialogHeader>
               <div className="space-y-1.5">
                 <Label htmlFor="shift-date">Date</Label>
@@ -316,6 +359,11 @@ function Coverage({ me, family }: { me: Member; family: Family }) {
                   ))}
                 </select>
               </div>
+              {liveOverlap.length > 0 && (
+                <p data-testid="shift-overlap" role="status" className="rounded-2xl bg-warning p-3.5 text-warning-foreground">
+                  {members.find((m) => m.id === editing.memberId)?.name ?? "This person"} is already scheduled {shiftRange(liveOverlap[0]!, tz)}. You can still save this.
+                </p>
+              )}
               {formError && <p role="alert" className="font-semibold text-destructive">{formError}</p>}
               <DialogFooter className="gap-2">
                 {current && (
@@ -336,7 +384,7 @@ function Coverage({ me, family }: { me: Member; family: Family }) {
             <AlertDialogTitle>Cancel this shift?</AlertDialogTitle>
             <AlertDialogDescription>
               {current ? `${dayLabel(dateInZone(current.start, tz), "long")}, ${time(current.start)}–${time(current.end)}. ` : ""}
-              It will be removed from the calendar.
+              It will be removed from the calendar. This does not notify anyone, so please let the caregiver know.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
