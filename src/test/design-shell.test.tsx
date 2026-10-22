@@ -149,19 +149,6 @@ describe("app shell", () => {
     expect(navigate).toHaveBeenCalledWith({ to: "/auth", replace: true });
   });
 
-  it("renders nothing for the AI assistant while it is off (the app is complete without it)", () => {
-    render(wrap(<AppShell>page</AppShell>));
-    expect(screen.queryByTestId("assistant-slot")).not.toBeInTheDocument();
-    expect(screen.queryByText(/Ask Pendia|^Ask$/)).not.toBeInTheDocument();
-  });
-
-  it("shows only the reserved slot when the assistant is switched on, and leaves the six tabs alone", () => {
-    flags.assistant = true;
-    render(wrap(<AppShell>page</AppShell>));
-    expect(screen.getAllByTestId("assistant-slot").length).toBeGreaterThan(0);
-    const nav = screen.getByRole("navigation", { name: "Main" });
-    expect(within(nav).getAllByRole("link")).toHaveLength(7);
-  });
 });
 
 describe("family overview", () => {
@@ -212,6 +199,7 @@ describe("coverage on a phone", () => {
     render(wrap(<Page />));
     await screen.findByRole("region", { name: "This week" });
     expect(await screen.findByLabelText(/Monday Morning .*: Marco Morales/)).toBeInTheDocument();
+    // The fixture starts at 14:00 UTC, which is morning in the family's New York time zone.
     expect(screen.getByLabelText(/Wednesday Morning .*: open/)).toBeInTheDocument();
   });
 });

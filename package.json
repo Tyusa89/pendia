@@ -11,7 +11,9 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "spike": "node spike/diarization/cli.ts",
+    "spike:test": "vitest run spike"
   },
   "overrides": {
     "rolldown": "1.2.1"

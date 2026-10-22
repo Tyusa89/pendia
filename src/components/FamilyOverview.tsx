@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarPlus, ClipboardCheck, Pill } from "lucide-react";
+import { CalendarPlus, ClipboardCheck, Pill, ChevronRight } from "lucide-react";
 import { classify, sortUpcoming } from "@/lib/appointments";
 import { mondayOf } from "@/lib/week";
 import { formatInZone } from "@/lib/zoned-time";
@@ -103,21 +103,7 @@ export function FamilyOverview({ me, timeZone }: { me: Member; timeZone: string 
           ))}
         </div>
       )}
-      {seesSchedule && handoffs.data?.[0] && (
-        <Link
-          to="/handoffs"
-          className="block rounded-[0.875rem] bg-card/80 px-3 py-2.5 text-foreground"
-        >
-          <span className="text-[0.9412rem] text-muted-foreground">Latest handoff</span>
-          <span className="block font-bold">
-            {new Date(handoffs.data[0].created_at).toLocaleString(undefined, {
-              weekday: "short",
-              hour: "numeric",
-              minute: "2-digit",
-            })}
-          </span>
-        </Link>
-      )}
+      <h2 className="text-xl font-semibold">Quick actions</h2>
       <nav
         aria-label="Quick actions"
         className="grid grid-cols-[repeat(auto-fit,minmax(min(6.5rem,100%),1fr))] gap-2"
@@ -133,6 +119,41 @@ export function FamilyOverview({ me, timeZone }: { me: Member; timeZone: string 
           </Link>
         ))}
       </nav>
+      {seesVisits && next && (
+        <section className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-xl font-semibold">Coming up</h2>
+            <Link to="/visits" className="text-primary">All visits</Link>
+          </div>
+          <Link to="/visits/$id" params={{ id: next.id }} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-[1.25rem] bg-card p-5 shadow-card">
+            <span className="grid size-14 shrink-0 place-items-center rounded-xl bg-primary/10 font-display text-2xl font-semibold text-primary">
+              {next.scheduled_start ? formatInZone(next.scheduled_start, timeZone, { day: "numeric" }) : Number(next.date.slice(8))}
+            </span>
+            <div className="min-w-0">
+              <p className="font-bold">{next.provider_name || "Appointment"}</p>
+              <p className="text-muted-foreground">{next.reason || next.office_name}</p>
+              <p className="text-sm text-primary">{next.scheduled_start ? formatInZone(next.scheduled_start, timeZone, { weekday: "short", hour: "numeric", minute: "2-digit" }) : next.date}</p>
+            </div>
+            <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+          </Link>
+        </section>
+      )}
+      {seesSchedule && handoffs.data?.[0] && (
+        <section className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-xl font-semibold">Latest handoff</h2>
+            <Link to="/handoffs" className="text-primary">All handoffs</Link>
+          </div>
+          <Link to="/handoffs" className="block space-y-3 rounded-[1.25rem] bg-card p-5 shadow-card">
+            <p className="text-sm text-muted-foreground">{new Date(handoffs.data[0].created_at).toLocaleString(undefined, { weekday: "short", hour: "numeric", minute: "2-digit" })}</p>
+            <div className="flex flex-wrap gap-2">
+              {handoffs.data[0].ate && <span className="rounded-full bg-secondary px-3 py-1 text-sm font-semibold text-secondary-foreground">Ate</span>}
+              {handoffs.data[0].meds_taken && <span className="rounded-full bg-secondary px-3 py-1 text-sm font-semibold text-secondary-foreground">Meds taken</span>}
+            </div>
+            {handoffs.data[0].unusual && <p className="rounded-xl bg-unassigned p-3 text-unassigned-foreground">{handoffs.data[0].unusual}</p>}
+          </Link>
+        </section>
+      )}
     </div>
   );
 }

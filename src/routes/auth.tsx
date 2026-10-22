@@ -10,7 +10,7 @@ export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
       { title: "Sign in — Pendia" },
-      { name: "description", content: "Sign in to Pendia to coordinate care with your family." },
+      { name: "description", content: "Sign in to Pendia to coordinate care with your family." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" },
       { property: "og:title", content: "Sign in — Pendia" },
       { property: "og:description", content: "Sign in to Pendia to coordinate care with your family." },
     ],

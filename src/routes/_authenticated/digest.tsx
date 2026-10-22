@@ -3,19 +3,22 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Empty, PageTitle, Panel, WithFamily } from "@/components/AppShell";
 import { digestService, type Member } from "@/services";
+import { usePreferences } from "@/components/PreferencesProvider";
 
 export const Route = createFileRoute("/_authenticated/digest")({
   head: () => ({
     meta: [
       { title: "Weekly digest — Pendia" },
-      { name: "description", content: "The Sunday summary for your family." },
+      { name: "description", content: "The Sunday summary for your family." }, { property: "og:title", content: "Weekly digest — Pendia" }, { property: "og:description", content: "The Sunday summary for your family." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: () => <WithFamily>{({ me }) => <DigestView me={me} />}</WithFamily>,
 });
 
 function DigestView({ me }: { me: Member }) {
-  const [lang, setLang] = useState<"en" | "es">((me.language as "en" | "es") ?? "en");
+  const { preferences } = usePreferences();
+  const [selectedLanguage, setLang] = useState<"en" | "es" | null>(null);
+  const lang = selectedLanguage ?? preferences.language ?? (me.language === "es" ? "es" : "en");
   const { data = [] } = useQuery({
     queryKey: ["digest", me.family_id],
     queryFn: () => digestService.latest(me.family_id),

@@ -48,7 +48,7 @@ export const Route = createFileRoute("/_authenticated/coverage")({
   head: () => ({
     meta: [
       { title: "Coverage — Pendia" },
-      { name: "description", content: "Who is with your loved one this week." },
+      { name: "description", content: "Who is with your loved one this week." }, { property: "og:title", content: "Coverage — Pendia" }, { property: "og:description", content: "Who is with your loved one this week." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: () => (
@@ -61,7 +61,7 @@ function initials(name: string) {
     .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
-    .map((w) => w[0]!.toUpperCase())
+    .map((w) => w[0]?.toUpperCase() ?? "")
     .join("");
 }
 
@@ -138,7 +138,7 @@ function Coverage({ me, family }: { me: Member; family: Family }) {
       memberId: s.assigned_member_id ?? "",
     });
   };
-  const newShift = (date = days[0]!, block: (typeof BLOCKS)[number] = BLOCKS[0]) => {
+  const newShift = (date = monday, block: (typeof BLOCKS)[number] = BLOCKS[0]) => {
     setFormError("");
     setEditing({ date, startTime: block.start, endTime: block.end, memberId: "" });
   };
@@ -152,10 +152,29 @@ function Coverage({ me, family }: { me: Member; family: Family }) {
     ? missingFromShift({ end: editing.endTime || null, assigned_member_id: editing.memberId || null })
     : [];
   const current = editing?.id ? shifts.find((s) => s.id === editing.id) : undefined;
+  const today = dateInZone(new Date().toISOString(), tz);
+  const todayShifts = shifts.filter((s) => dateInZone(s.start, tz) === today);
 
   return (
     <>
-      <PageTitle title="Coverage" subtitle={coverageSummary(shifts)} />
+      <PageTitle title="Coverage" subtitle={coverageSummary(shifts)} action={organizer && <Button variant="outline" onClick={() => newShift()}><Plus /> Add shift</Button>} />
+      {todayShifts.length > 0 && <section aria-label="Today's coverage" className="mb-5 space-y-3">
+        <h2 className="font-sans text-sm font-bold uppercase text-muted-foreground">Today · {new Date(`${today}T12:00:00Z`).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" })}</h2>
+        {todayShifts.map((s) => {
+          const who = members.find((m) => m.id === s.assigned_member_id);
+          const now = Date.now() >= Date.parse(s.start) && Date.now() < Date.parse(s.end);
+          return <article key={s.id} className={`space-y-3 rounded-[1.25rem] p-5 shadow-card ${who ? "bg-card" : "border border-dashed border-unassigned-foreground/60 bg-unassigned text-unassigned-foreground"}`}>
+            <div className="flex items-center justify-between gap-3"><p><strong>{blockOf(s.start, tz)}</strong> · {time(s.start)}–{time(s.end)}</p>{now && <span className="shrink-0 rounded-full bg-success px-3 py-1 text-sm font-bold text-success-foreground">Now</span>}</div>
+            {who ? <div className="flex items-center gap-3"><span className="grid size-11 shrink-0 place-items-center rounded-full bg-secondary font-bold text-secondary-foreground">{initials(who.name)}</span><p className="font-bold">{who.name}</p>{organizer && <Button variant="ghost" className="ml-auto text-primary" onClick={() => openShift(s)}>Edit</Button>}</div> : <><p className="font-bold">Nobody is covering yet</p><Button className="w-full" disabled={claim.isPending} onClick={() => claim.mutate(s.id)}>I'll cover it</Button></>}
+          </article>;
+        })}
+      </section>}
+      <section aria-label="Leaving soon" className="mb-5 space-y-2 rounded-[1.25rem] bg-primary/10 p-[1.125rem]">
+        <h2 className="font-sans text-base font-bold">Leaving soon?</h2>
+        <p>A quick handoff tells the next person how she's doing.</p>
+        <Button asChild size="lg" className="w-full"><Link to="/handoffs">Hand off my shift</Link></Button>
+      </section>
+      <section aria-label="This week" className="space-y-4 rounded-[1.25rem] bg-card p-[1.125rem] shadow-card">
       <div className="mb-3 flex items-center justify-between gap-2">
         <Button size="icon" variant="ghost" onClick={() => setMonday(shiftWeek(monday, -1))} aria-label="Previous week">
           <ChevronLeft />
@@ -172,16 +191,10 @@ function Coverage({ me, family }: { me: Member; family: Family }) {
           <ChevronRight />
         </Button>
       </div>
-      {organizer && (
-        <Button className="mb-3 w-full" onClick={() => newShift()}>
-          <Plus /> Add shift
-        </Button>
-      )}
-      <section aria-label="This week" className="space-y-4 rounded-[1.25rem] bg-card p-[1.125rem] shadow-card">
         <div className="grid grid-cols-[2.75rem_repeat(7,minmax(0,1fr))] gap-1 md:grid-cols-[5rem_repeat(7,minmax(0,1fr))] md:gap-1.5">
           <span />
           {days.map((d) => (
-            <span key={d} className="flex flex-col items-center justify-center rounded-lg py-1 text-[0.8235rem] font-bold leading-tight">
+            <span key={d} className={`flex flex-col items-center justify-center rounded-lg py-1 text-[0.8235rem] font-bold leading-tight ${d === today ? "bg-primary/10 text-primary" : ""}`}>
               {dayLabel(d, "short")}
               <span className="font-medium text-muted-foreground">{Number(d.slice(8))}</span>
             </span>
@@ -261,6 +274,22 @@ function Coverage({ me, family }: { me: Member; family: Family }) {
           <li className="flex items-center gap-1.5"><span className="size-3.5 rounded border-[1.5px] border-dashed border-unassigned-foreground/60 bg-unassigned" />Open</li>
           <li className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-warning ring-1 ring-warning-foreground/40" />Needs completion</li>
         </ul>
+      {openList.length > 0 && (
+        <section aria-label="Still open this week" className="mt-4 space-y-2 border-t border-border pt-4">
+          <h2 className="font-sans text-base font-bold tracking-normal">Still open this week</h2>
+          {openList.map((s) => {
+            const label = `${dayLabel(dateInZone(s.start, tz), "short")} · ${time(s.start)}–${time(s.end)}`;
+            return (
+              <div key={s.id} className="flex items-center justify-between gap-3">
+                <p className="min-w-0">{label}</p>
+                <Button variant="outline" disabled={claim.isPending} onClick={() => claim.mutate(s.id)} aria-label={`Cover ${label}`}>
+                  Cover it
+                </Button>
+              </div>
+            );
+          })}
+        </section>
+      )}
       </section>
       {shifts.length > 0 && (
         <section aria-label="Shifts this week" className="mt-4 space-y-3 rounded-[1.25rem] bg-card p-[1.125rem] shadow-card">
@@ -285,29 +314,6 @@ function Coverage({ me, family }: { me: Member; family: Family }) {
           </ul>
         </section>
       )}
-      {openList.length > 0 && (
-        <section aria-label="Still open this week" className="mt-4 space-y-2 rounded-[1.25rem] bg-card p-[1.125rem] shadow-card">
-          <h2 className="font-sans text-base font-bold tracking-normal">Still open this week</h2>
-          {openList.map((s) => {
-            const label = `${dayLabel(dateInZone(s.start, tz), "short")} · ${time(s.start)}–${time(s.end)}`;
-            return (
-              <div key={s.id} className="flex items-center justify-between gap-3">
-                <p className="min-w-0">{label}</p>
-                <Button variant="outline" disabled={claim.isPending} onClick={() => claim.mutate(s.id)} aria-label={`Cover ${label}`}>
-                  Cover it
-                </Button>
-              </div>
-            );
-          })}
-        </section>
-      )}
-      <section aria-label="Leaving soon" className="mt-4 space-y-2 rounded-[1.25rem] bg-primary/10 p-[1.125rem]">
-        <h2 className="font-sans text-base font-bold tracking-normal">Leaving soon?</h2>
-        <p>A quick handoff tells the next person how she's doing.</p>
-        <Button asChild size="lg" className="w-full">
-          <Link to="/handoffs">Hand off my shift</Link>
-        </Button>
-      </section>
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent>

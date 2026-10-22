@@ -26,7 +26,7 @@ export const Route = createFileRoute("/_authenticated/handoffs")({
   head: () => ({
     meta: [
       { title: "Handoffs — Pendia" },
-      { name: "description", content: "End-of-shift check-ins." },
+      { name: "description", content: "End-of-shift check-ins." }, { property: "og:title", content: "Handoffs — Pendia" }, { property: "og:description", content: "End-of-shift check-ins." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: () => <WithFamily>{({ me }) => <Handoffs me={me} />}</WithFamily>,
@@ -36,15 +36,16 @@ function YesNo({ value, onChange }: { value: boolean | null; onChange: (v: boole
   return (
     <div className="grid grid-cols-2 gap-2">
       {[true, false].map((v) => (
-        <button
+        <Button
           key={String(v)}
           type="button"
+          variant={value === v ? "default" : "outline"}
           onClick={() => onChange(v)}
           aria-pressed={value === v}
           className={`h-14 cursor-pointer rounded-xl border-2 text-lg font-bold ${value === v ? "border-primary bg-primary text-primary-foreground" : "border-input bg-card"}`}
         >
           {v ? "Yes" : "No"}
-        </button>
+        </Button>
       ))}
     </div>
   );
@@ -119,9 +120,9 @@ function Handoffs({ me }: { me: Member }) {
 
   return (
     <>
-      <PageTitle title="Handoff" subtitle="Quick check-in before you leave" />
-      <div className="grid items-start gap-6 md:grid-cols-[minmax(0,38rem)_minmax(15rem,1fr)]">
+      <div className="grid items-start gap-5 md:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]">
         <div className="min-w-0 space-y-4">
+          <PageTitle title="Handoff" subtitle="Quick check-in before you leave" />
           {justSaved && (
             <div
               role="status"
@@ -147,7 +148,7 @@ function Handoffs({ me }: { me: Member }) {
               <YesNo value={ate} onChange={setAte} />
             </div>
             <div>
-              <p className="mb-2 text-lg font-bold">Took her meds?</p>
+              <p className="mb-2 text-lg font-bold">Did she take her medication?</p>
               <YesNo value={meds} onChange={setMeds} />
             </div>
             {watch.map((w) => (
