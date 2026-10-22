@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as DemoRouteImport } from './routes/demo'
 import { Route as AuthenticatedAskRouteImport } from './routes/_authenticated/ask'
 import { Route as AuthenticatedCoverageRouteImport } from './routes/_authenticated/coverage'
 import { Route as AuthenticatedDigestRouteImport } from './routes/_authenticated/digest'
@@ -21,6 +22,7 @@ import { Route as AuthenticatedMedsRouteImport } from './routes/_authenticated/m
 import { Route as AuthenticatedPreferencesRouteImport } from './routes/_authenticated/preferences'
 import { Route as AuthenticatedVisitsIndexRouteImport } from './routes/_authenticated/visits.index'
 import { Route as AuthenticatedVisitsIdRouteImport } from './routes/_authenticated/visits.$id'
+import { Route as AuthenticatedVisitsDemoRouteImport } from './routes/_authenticated/visits.demo'
 import { Route as AuthenticatedVisitsNewRouteImport } from './routes/_authenticated/visits.new'
 import { Route as AuthenticatedVisitsEditIdRouteImport } from './routes/_authenticated/visits.edit.$id'
 
@@ -36,6 +38,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DemoRoute = DemoRouteImport.update({
+  id: '/demo',
+  path: '/demo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAskRoute = AuthenticatedAskRouteImport.update({
@@ -85,6 +92,11 @@ const AuthenticatedVisitsIdRoute = AuthenticatedVisitsIdRouteImport.update({
   path: '/visits/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedVisitsDemoRoute = AuthenticatedVisitsDemoRouteImport.update({
+  id: '/visits/demo',
+  path: '/visits/demo',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedVisitsNewRoute = AuthenticatedVisitsNewRouteImport.update({
   id: '/visits/new',
   path: '/visits/new',
@@ -100,6 +112,7 @@ const AuthenticatedVisitsEditIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/demo': typeof DemoRoute
   '/ask': typeof AuthenticatedAskRoute
   '/coverage': typeof AuthenticatedCoverageRoute
   '/digest': typeof AuthenticatedDigestRoute
@@ -108,6 +121,7 @@ export interface FileRoutesByFullPath {
   '/meds': typeof AuthenticatedMedsRoute
   '/preferences': typeof AuthenticatedPreferencesRoute
   '/visits/$id': typeof AuthenticatedVisitsIdRoute
+  '/visits/demo': typeof AuthenticatedVisitsDemoRoute
   '/visits/new': typeof AuthenticatedVisitsNewRoute
   '/visits/': typeof AuthenticatedVisitsIndexRoute
   '/visits/edit/$id': typeof AuthenticatedVisitsEditIdRoute
@@ -115,6 +129,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/demo': typeof DemoRoute
   '/ask': typeof AuthenticatedAskRoute
   '/coverage': typeof AuthenticatedCoverageRoute
   '/digest': typeof AuthenticatedDigestRoute
@@ -123,6 +138,7 @@ export interface FileRoutesByTo {
   '/meds': typeof AuthenticatedMedsRoute
   '/preferences': typeof AuthenticatedPreferencesRoute
   '/visits/$id': typeof AuthenticatedVisitsIdRoute
+  '/visits/demo': typeof AuthenticatedVisitsDemoRoute
   '/visits/new': typeof AuthenticatedVisitsNewRoute
   '/visits': typeof AuthenticatedVisitsIndexRoute
   '/visits/edit/$id': typeof AuthenticatedVisitsEditIdRoute
@@ -132,6 +148,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/demo': typeof DemoRoute
   '/_authenticated/ask': typeof AuthenticatedAskRoute
   '/_authenticated/coverage': typeof AuthenticatedCoverageRoute
   '/_authenticated/digest': typeof AuthenticatedDigestRoute
@@ -140,6 +157,7 @@ export interface FileRoutesById {
   '/_authenticated/meds': typeof AuthenticatedMedsRoute
   '/_authenticated/preferences': typeof AuthenticatedPreferencesRoute
   '/_authenticated/visits/$id': typeof AuthenticatedVisitsIdRoute
+  '/_authenticated/visits/demo': typeof AuthenticatedVisitsDemoRoute
   '/_authenticated/visits/new': typeof AuthenticatedVisitsNewRoute
   '/_authenticated/visits/': typeof AuthenticatedVisitsIndexRoute
   '/_authenticated/visits/edit/$id': typeof AuthenticatedVisitsEditIdRoute
@@ -149,6 +167,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/demo'
     | '/ask'
     | '/coverage'
     | '/digest'
@@ -157,6 +176,7 @@ export interface FileRouteTypes {
     | '/meds'
     | '/preferences'
     | '/visits/$id'
+    | '/visits/demo'
     | '/visits/new'
     | '/visits/'
     | '/visits/edit/$id'
@@ -164,6 +184,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/demo'
     | '/ask'
     | '/coverage'
     | '/digest'
@@ -172,6 +193,7 @@ export interface FileRouteTypes {
     | '/meds'
     | '/preferences'
     | '/visits/$id'
+    | '/visits/demo'
     | '/visits/new'
     | '/visits'
     | '/visits/edit/$id'
@@ -180,6 +202,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/demo'
     | '/_authenticated/ask'
     | '/_authenticated/coverage'
     | '/_authenticated/digest'
@@ -188,6 +211,7 @@ export interface FileRouteTypes {
     | '/_authenticated/meds'
     | '/_authenticated/preferences'
     | '/_authenticated/visits/$id'
+    | '/_authenticated/visits/demo'
     | '/_authenticated/visits/new'
     | '/_authenticated/visits/'
     | '/_authenticated/visits/edit/$id'
@@ -197,6 +221,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  DemoRoute: typeof DemoRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -220,6 +245,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/demo': {
+      id: '/demo'
+      path: '/demo'
+      fullPath: '/demo'
+      preLoaderRoute: typeof DemoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/ask': {
@@ -285,6 +317,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedVisitsIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/visits/demo': {
+      id: '/_authenticated/visits/demo'
+      path: '/visits/demo'
+      fullPath: '/visits/demo'
+      preLoaderRoute: typeof AuthenticatedVisitsDemoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/visits/new': {
       id: '/_authenticated/visits/new'
       path: '/visits/new'
@@ -311,6 +350,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMedsRoute: typeof AuthenticatedMedsRoute
   AuthenticatedPreferencesRoute: typeof AuthenticatedPreferencesRoute
   AuthenticatedVisitsIdRoute: typeof AuthenticatedVisitsIdRoute
+  AuthenticatedVisitsDemoRoute: typeof AuthenticatedVisitsDemoRoute
   AuthenticatedVisitsNewRoute: typeof AuthenticatedVisitsNewRoute
   AuthenticatedVisitsIndexRoute: typeof AuthenticatedVisitsIndexRoute
   AuthenticatedVisitsEditIdRoute: typeof AuthenticatedVisitsEditIdRoute
@@ -325,6 +365,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMedsRoute: AuthenticatedMedsRoute,
   AuthenticatedPreferencesRoute: AuthenticatedPreferencesRoute,
   AuthenticatedVisitsIdRoute: AuthenticatedVisitsIdRoute,
+  AuthenticatedVisitsDemoRoute: AuthenticatedVisitsDemoRoute,
   AuthenticatedVisitsNewRoute: AuthenticatedVisitsNewRoute,
   AuthenticatedVisitsIndexRoute: AuthenticatedVisitsIndexRoute,
   AuthenticatedVisitsEditIdRoute: AuthenticatedVisitsEditIdRoute,
@@ -337,6 +378,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  DemoRoute: DemoRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

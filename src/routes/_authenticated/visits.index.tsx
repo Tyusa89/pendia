@@ -1,4 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Stethoscope } from "lucide-react";
 import { PageTitle, WithFamily } from "@/components/AppShell";
 import { AppointmentList } from "@/components/AppointmentList";
 
@@ -22,6 +23,9 @@ export const Route = createFileRoute("/_authenticated/visits/")({
             timeZone={family.timezone}
             canWrite={me.role === "organizer"}
           />
+          <Link to="/visits/demo" className="mt-6 inline-flex min-h-11 items-center gap-2 font-semibold text-primary underline-offset-4 hover:underline">
+            <Stethoscope className="size-5" /> Try the doctor-visit demo (synthetic data)
+          </Link>
         </>
       )}
     </WithFamily>
