@@ -22,7 +22,7 @@ function Setting({ title, description, checked = false, disabled = false, onChan
 }) {
   return <div className="flex items-center justify-between gap-4 border-b border-border py-4 last:border-0">
     <div className="min-w-0"><p className="font-semibold">{title}</p>{description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}</div>
-    <Switch aria-label={title} checked={checked} disabled={disabled} onCheckedChange={onChange} />
+    <Switch aria-label={title} checked={checked} disabled={disabled} onCheckedChange={(value) => onChange?.(value)} />
   </div>;
 }
 

@@ -22,11 +22,11 @@ export function parsePreferences(raw: string | null): Preferences {
     if (!value || typeof value !== "object") return { ...defaultPreferences };
     const p = value as Record<string, unknown>;
     return {
-      language: p.language === "en" || p.language === "es" ? p.language : null,
-      textSize: p.textSize === "large" ? "large" : "standard",
-      highContrast: p.highContrast === true,
-      reduceMotion: p.reduceMotion === true,
-      largeButtons: p.largeButtons === true,
+      language: p["language"] === "en" || p["language"] === "es" ? p["language"] : null,
+      textSize: p["textSize"] === "large" ? "large" : "standard",
+      highContrast: p["highContrast"] === true,
+      reduceMotion: p["reduceMotion"] === true,
+      largeButtons: p["largeButtons"] === true,
     };
   } catch {
     return { ...defaultPreferences };

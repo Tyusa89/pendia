@@ -23,9 +23,9 @@ describe("display preferences", () => {
     first.unmount();
     render(<PreferencesProvider><Controls /></PreferencesProvider>);
     await waitFor(() => expect(screen.getByRole("status").textContent).toContain('"language":"es"'));
-    expect(document.documentElement.dataset.reduceMotion).toBe("true");
-    expect(document.documentElement.dataset.highContrast).toBe("true");
-    expect(document.documentElement.dataset.largeButtons).toBe("true");
-    expect(document.documentElement.dataset.textSize).toBe("large");
+    expect(document.documentElement.dataset["reduceMotion"]).toBe("true");
+    expect(document.documentElement.dataset["highContrast"]).toBe("true");
+    expect(document.documentElement.dataset["largeButtons"]).toBe("true");
+    expect(document.documentElement.dataset["textSize"]).toBe("large");
   });
 });

@@ -19,17 +19,17 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!ready) return;
     const root = document.documentElement;
-    root.dataset.textSize = preferences.textSize;
-    root.dataset.highContrast = String(preferences.highContrast);
-    root.dataset.reduceMotion = String(preferences.reduceMotion);
-    root.dataset.largeButtons = String(preferences.largeButtons);
+    root.dataset["textSize"] = preferences.textSize;
+    root.dataset["highContrast"] = String(preferences.highContrast);
+    root.dataset["reduceMotion"] = String(preferences.reduceMotion);
+    root.dataset["largeButtons"] = String(preferences.largeButtons);
     try { localStorage.setItem(preferencesKey, JSON.stringify(preferences)); }
     catch { setStorageAvailable(false); }
     return () => {
-      delete root.dataset.textSize;
-      delete root.dataset.highContrast;
-      delete root.dataset.reduceMotion;
-      delete root.dataset.largeButtons;
+      delete root.dataset["textSize"];
+      delete root.dataset["highContrast"];
+      delete root.dataset["reduceMotion"];
+      delete root.dataset["largeButtons"];
     };
   }, [preferences, ready]);
   return (
