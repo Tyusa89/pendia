@@ -48,7 +48,11 @@ function Card({
         params={{ id: a.id }}
         className="block rounded-[1.25rem] bg-card p-[1.125rem] shadow-card"
       >
-        <div className="flex items-start justify-between gap-3">
+        <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3">
+          <span aria-hidden className="flex size-14 shrink-0 flex-col items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <span className="text-[0.7059rem] font-bold uppercase">{new Date(`${a.date}T12:00:00Z`).toLocaleDateString(undefined, { weekday: "short", timeZone: "UTC" })}</span>
+            <span className="font-display text-2xl font-semibold">{Number(a.date.slice(8))}</span>
+          </span>
           <div className="min-w-0">
             <p className="text-sm font-semibold uppercase tracking-wide text-primary">
               {whenLabel(a, timeZone)}
@@ -126,7 +130,7 @@ export function AppointmentList({
   return (
     <>
       {canWrite && (
-        <Button asChild size="lg" className="mb-5 h-14 w-full">
+        <Button asChild variant="outline" className="mb-5 md:float-right">
           <Link to="/visits/new">
             <Plus /> New appointment
           </Link>

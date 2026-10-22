@@ -80,18 +80,20 @@ function Meds({ familyId }: { familyId: string }) {
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {data.map((m) => (
-            <Panel key={m.id} className="flex items-center justify-between gap-3">
+            <Panel key={m.id} className="space-y-4">
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
               <div className="min-w-0">
                 <p className="break-words text-xl font-semibold">
                   {m.name} <span className="font-normal text-muted-foreground">{m.dose}</span>
                 </p>
-                <p className="text-muted-foreground">{m.schedule}</p>
               </div>
               <span
                 className={`shrink-0 rounded-full px-3 py-1 text-[0.8235rem] font-bold capitalize ${statusStyle[m.status]}`}
               >
                 {m.status}
               </span>
+              </div>
+              <div className="border-t border-border pt-3"><p className="font-semibold">When to take it</p><p className="mt-1 text-muted-foreground">{m.schedule || "Schedule not set"}</p></div>
             </Panel>
           ))}
         </div>
