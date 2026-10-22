@@ -319,7 +319,7 @@ const hhmm = (t: string) => t.slice(0, 5);
 // Tables/RPCs below come from a migration pending founder approval, so generated types don't include them yet.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const pending = supabase as any;
-type Row = Record<string, string>;
+type Row = { weekday: string; start_time: string; end_time: string; day: string; id: string; override_id: string };
 
 export const coverageRequirementService = {
   async get(familyId: string): Promise<{ weekly: WeeklyRequirement[]; overrides: DateOverride[] }> {
