@@ -54,6 +54,10 @@ class Q implements PromiseLike<{ data: any; error: { message: string } | null }>
     this.filters.push((r) => r[c] === v);
     return this;
   }
+  is(c: string, v: any) {
+    this.filters.push((r) => (r[c] ?? null) === v);
+    return this;
+  }
   lt(c: string, v: any) {
     this.filters.push((r) => Date.parse(r[c]) < Date.parse(v));
     return this;

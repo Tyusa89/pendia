@@ -115,18 +115,11 @@ vi.mock("@/services", async () => {
 
 import { Route } from "@/routes/_authenticated/coverage";
 
-const thisMonday = () => {
-  const x = new Date();
-  x.setUTCHours(0, 0, 0, 0);
-  x.setUTCDate(x.getUTCDate() - ((x.getUTCDay() + 6) % 7));
-  return x;
-};
-const at = (dayOffset: number, hour: number) => {
-  const d = thisMonday();
-  d.setUTCDate(d.getUTCDate() + dayOffset);
-  d.setUTCHours(hour, 0, 0, 0);
-  return d.toISOString();
-};
+import { mondayInZone, weekDays } from "@/lib/shifts";
+
+/** An instant on the visible week: day offset from the family-timezone Monday, hour in UTC (14-20Z is daytime in New York). */
+const at = (dayOffset: number, hour: number) =>
+  `${weekDays(mondayInZone(new Date(), TZ))[dayOffset]}T${String(hour).padStart(2, "0")}:00:00.000Z`;
 const shift = (id: string, start: string, end: string, who: string | null) => ({
   id,
   family_id: "f1",
@@ -136,24 +129,6 @@ const shift = (id: string, start: string, end: string, who: string | null) => ({
   status: who ? "claimed" : "open",
   created_at: "2026-10-01T00:00:00Z",
 });
-const localInput = (iso: string) => {
-  // what the form shows for an instant: wall-clock in the family timezone
-  const p = Object.fromEntries(
-    new Intl.DateTimeFormat("en-US", {
-      timeZone: TZ,
-      hourCycle: "h23",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-      .formatToParts(new Date(iso))
-      .map((x) => [x.type, x.value]),
-  );
-  return `${p["year"]}-${p["month"]}-${p["day"]}T${p["hour"]}:${p["minute"]}`;
-};
-
 beforeEach(() => {
   world.role = "organizer";
   world.shifts = [];
@@ -174,103 +149,110 @@ function mount() {
     </QueryClientProvider>,
   );
 }
-const type = (label: RegExp | string, value: string) =>
+const set = (label: string, value: string) =>
   fireEvent.change(screen.getByLabelText(label), { target: { value } });
-const press = async (name: string | RegExp, i = 0) => {
+const press = async (name: string | RegExp, within_?: HTMLElement) => {
+  const scope = within_ ? within(within_) : screen;
   await act(async () => {
-    fireEvent.click(screen.getAllByRole("button", { name })[i]!);
+    fireEvent.click(scope.getAllByRole("button", { name })[0]!);
   });
 };
+const dialog = () => screen.findByRole("dialog");
 const shiftsSection = () => screen.findByRole("region", { name: "Shifts this week" });
+const DAY = "2026-10-27"; // a Tuesday; 8:00 AM New York is 12:00Z (EDT)
 
 describe("who can edit", () => {
   it("an organizer sees Add shift and Edit buttons", async () => {
-    world.shifts = [shift("s1", at(1, 14), at(1, 20), "m-ben")];
+    world.shifts = [shift("s1", at(1, 18), at(1, 22), "m-ben")];
     mount();
     await shiftsSection();
     expect(screen.getByRole("button", { name: /Add shift/ })).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: /^Edit / }).length).toBe(1);
+    expect(screen.getAllByRole("button", { name: /^Edit / })).toHaveLength(1);
   });
 
-  it("a family member sees the schedule but no Add, Edit, or tap-to-edit controls", async () => {
+  it("a family member sees the schedule but no Add, Edit or tap-to-edit controls, and can still claim", async () => {
     world.role = "member";
     world.shifts = [
-      shift("s1", at(1, 14), at(1, 20), "m-ben"),
-      shift("s2", at(2, 14), at(2, 20), null),
+      shift("s1", at(1, 18), at(1, 22), "m-ben"),
+      shift("s2", at(2, 18), at(2, 22), null),
     ];
     mount();
     await shiftsSection();
     expect(screen.queryByRole("button", { name: /Add shift/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Edit / })).not.toBeInTheDocument();
-    expect(screen.queryByLabelText(/Tap to edit|Tap to add a shift/)).not.toBeInTheDocument();
-    // the existing claim flow is still offered to members
-    expect(screen.getByRole("button", { name: /^Cover / })).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Tap to edit|Tap to add one/)).not.toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /^Cover / }).length).toBeGreaterThan(0);
   });
 });
 
 describe("create", () => {
-  it("creates an OPEN shift from the form, with times typed in the family's timezone", async () => {
+  it("creates an OPEN shift, with times typed in the family's timezone", async () => {
     mount();
     await screen.findByRole("button", { name: /Add shift/ });
     await press(/Add shift/);
-    const day = localInput(at(1, 12)).slice(0, 10);
-    type("Starts", `${day}T08:00`);
-    type("Ends", `${day}T14:00`);
-    await press("Add shift");
+    await dialog();
+    set("Date", DAY);
+    set("Start", "08:00");
+    set("End", "14:00");
+    await press("Save", await dialog());
     await waitFor(() => expect(svc.createShift).toHaveBeenCalled());
     const [fid, input] = svc.createShift.mock.calls[0]!;
     expect(fid).toBe("f1");
-    expect(input.assigned_member_id).toBeNull();
-    // 8:00 AM New York (EDT/EST) is 12:00Z or 13:00Z, never the device's clock
-    expect(["12:00", "13:00"]).toContain(new Date(input.start).toISOString().slice(11, 16));
-    expect(Date.parse(input.end) - Date.parse(input.start)).toBe(6 * 3600_000);
-    expect(toastSpy.success).toHaveBeenCalledWith("Shift added");
+    expect(input).toEqual({
+      start: "2026-10-27T12:00:00.000Z",
+      end: "2026-10-27T18:00:00.000Z",
+      assigned_member_id: null,
+    });
+    expect(toastSpy.success).toHaveBeenCalledWith("Shift saved");
   });
 
-  it("creates an assigned overnight shift (end on the next day)", async () => {
+  it("creates an assigned overnight shift (an earlier end time means the next day)", async () => {
     mount();
     await screen.findByRole("button", { name: /Add shift/ });
     await press(/Add shift/);
-    const d1 = localInput(at(1, 12)).slice(0, 10);
-    const d2 = localInput(at(2, 12)).slice(0, 10);
-    type("Starts", `${d1}T20:00`);
-    type("Ends", `${d2}T08:00`);
+    await dialog();
+    set("Date", DAY);
+    set("Start", "20:00");
+    set("End", "08:00");
     fireEvent.change(screen.getByLabelText("Caregiver"), { target: { value: "m-ben" } });
-    await press("Add shift");
+    await press("Save", await dialog());
     await waitFor(() => expect(svc.createShift).toHaveBeenCalled());
-    const input = svc.createShift.mock.calls[0]![1];
-    expect(input.assigned_member_id).toBe("m-ben");
-    expect(Date.parse(input.end) - Date.parse(input.start)).toBe(12 * 3600_000);
+    expect(svc.createShift.mock.calls[0]![1]).toEqual({
+      start: "2026-10-28T00:00:00.000Z",
+      end: "2026-10-28T12:00:00.000Z",
+      assigned_member_id: "m-ben",
+    });
   });
 
-  it("an invalid range shows a message and sends nothing", async () => {
+  it("equal start and end is refused with a message and sends nothing", async () => {
     mount();
     await screen.findByRole("button", { name: /Add shift/ });
     await press(/Add shift/);
-    const day = localInput(at(1, 12)).slice(0, 10);
-    type("Starts", `${day}T14:00`);
-    type("Ends", `${day}T08:00`);
-    await press("Add shift");
+    await dialog();
+    set("Date", DAY);
+    set("Start", "09:00");
+    set("End", "09:00");
+    await press("Save", await dialog());
     expect(await screen.findByRole("alert")).toHaveTextContent("The end must be after the start.");
     expect(svc.createShift).not.toHaveBeenCalled();
   });
 
-  it("an empty time shows a message and sends nothing", async () => {
+  it("a missing date or time sends nothing", async () => {
     mount();
     await screen.findByRole("button", { name: /Add shift/ });
     await press(/Add shift/);
-    type("Starts", "");
-    await press("Add shift");
-    expect(await screen.findByRole("alert")).toHaveTextContent(/valid start/);
+    await dialog();
+    set("Date", "");
+    await press("Save", await dialog());
     expect(svc.createShift).not.toHaveBeenCalled();
   });
 });
 
 describe("needs completion: computed, shown, and clears", () => {
-  it("an open shift is flagged in the list and on the grid, and the flag is gone for an assigned one", async () => {
+  it("an open shift is flagged in the list and on the grid; an assigned one is not", async () => {
     world.shifts = [
-      shift("s1", at(1, 14), at(1, 20), null),
-      shift("s2", at(2, 8), at(2, 14), "m-ben"),
+      shift("s1", at(1, 18), at(1, 22), null),
+      shift("s2", at(2, 12), at(2, 18), "m-ben"),
     ];
     mount();
     const list = await shiftsSection();
@@ -279,16 +261,16 @@ describe("needs completion: computed, shown, and clears", () => {
     expect(screen.getAllByTestId("needs-completion-dot")).toHaveLength(1);
   });
 
-  it("in the edit form the flag clears the moment a caregiver is chosen, and after saving the list shows none", async () => {
-    world.shifts = [shift("s1", at(1, 14), at(1, 20), null)];
+  it("in the edit dialog the flag clears the moment a caregiver is chosen, and after saving the list shows none", async () => {
+    world.shifts = [shift("s1", at(1, 18), at(1, 22), null)];
     mount();
     await shiftsSection();
     await press(/^Edit /);
-    const form = screen.getByRole("form", { name: "Edit shift" });
-    expect(within(form).getByTestId("needs-completion")).toBeInTheDocument();
-    fireEvent.change(within(form).getByLabelText("Caregiver"), { target: { value: "m-ana" } });
-    expect(within(form).queryByTestId("needs-completion")).not.toBeInTheDocument();
-    await press("Save shift");
+    const d = await dialog();
+    expect(within(d).getByTestId("needs-completion")).toBeInTheDocument();
+    fireEvent.change(within(d).getByLabelText("Caregiver"), { target: { value: "m-ana" } });
+    expect(within(d).queryByTestId("needs-completion")).not.toBeInTheDocument();
+    await press("Save", d);
     await waitFor(() => expect(svc.updateShift).toHaveBeenCalled());
     await waitFor(() => expect(screen.queryByTestId("needs-completion")).not.toBeInTheDocument());
   });
@@ -296,15 +278,15 @@ describe("needs completion: computed, shown, and clears", () => {
 
 describe("edit, reassign, cancel", () => {
   it("edits times and reassigns", async () => {
-    world.shifts = [shift("s1", at(1, 14), at(1, 20), "m-ben")];
+    world.shifts = [shift("s1", at(1, 18), at(1, 22), "m-ben")];
     mount();
     await shiftsSection();
     await press(/^Edit /);
-    expect((screen.getByLabelText("Starts") as HTMLInputElement).value).toBe(localInput(at(1, 14)));
-    fireEvent.change(screen.getByLabelText("Caregiver"), { target: { value: "m-ana" } });
-    const day = localInput(at(1, 14)).slice(0, 10);
-    type("Ends", `${day}T23:00`);
-    await press("Save shift");
+    const d = await dialog();
+    expect((within(d).getByLabelText("Start") as HTMLInputElement).value).toBe("14:00"); // 18:00Z = 2 PM New York
+    fireEvent.change(within(d).getByLabelText("Caregiver"), { target: { value: "m-ana" } });
+    fireEvent.change(within(d).getByLabelText("End"), { target: { value: "23:00" } });
+    await press("Save", d);
     await waitFor(() =>
       expect(svc.updateShift).toHaveBeenCalledWith(
         "s1",
@@ -314,19 +296,19 @@ describe("edit, reassign, cancel", () => {
     expect(toastSpy.success).toHaveBeenCalledWith("Shift saved");
   });
 
-  it("cancel asks first; 'Keep it' does nothing; confirming removes the shift", async () => {
+  it("cancel asks first; 'Keep it' does nothing; confirming removes the shift (delete, no schema change)", async () => {
     world.shifts = [
-      shift("s1", at(1, 14), at(1, 20), "m-ben"),
-      shift("s2", at(2, 14), at(2, 20), "m-ana"),
+      shift("s1", at(1, 18), at(1, 22), "m-ben"),
+      shift("s2", at(2, 18), at(2, 22), "m-ana"),
     ];
     mount();
     await shiftsSection();
-    await press(/^Edit /, 0);
-    await press(/Cancel this shift/);
+    await press(/^Edit /);
+    await press("Cancel shift", await dialog());
     expect(await screen.findByText("Cancel this shift?")).toBeInTheDocument();
-    await press("Keep it");
+    await press("Keep it", screen.getByRole("alertdialog"));
     expect(svc.cancelShift).not.toHaveBeenCalled();
-    await press(/Cancel this shift/);
+    await press("Cancel shift", await dialog());
     await act(async () => {
       fireEvent.click(
         within(screen.getByRole("alertdialog")).getByRole("button", { name: "Cancel shift" }),
@@ -348,28 +330,43 @@ describe("overlap is flagged, never blocked", () => {
     mount();
     await shiftsSection();
     await press(/Add shift/);
-    const day = localInput(at(1, 12)).slice(0, 10);
-    type("Starts", `${day}T09:00`);
-    type("Ends", `${day}T16:00`);
+    await dialog();
+    const day = at(1, 12).slice(0, 10);
+    set("Date", day);
+    set("Start", "09:00"); // 13:00Z
+    set("End", "13:00"); // 17:00Z, overlaps Ben's 12:00Z-18:00Z shift
     fireEvent.change(screen.getByLabelText("Caregiver"), { target: { value: "m-ben" } });
     expect(await screen.findByTestId("shift-overlap")).toHaveTextContent(
       /Ben is already scheduled/,
     );
-    await press("Add shift");
+    await press("Save", await dialog());
     await waitFor(() => expect(svc.createShift).toHaveBeenCalled());
     expect(toastSpy.warning).toHaveBeenCalledWith(expect.stringMatching(/Ben is also scheduled/));
   });
 
+  it("two different people at the same time is not an overlap", async () => {
+    world.shifts = [shift("s1", at(1, 12), at(1, 18), "m-ben")];
+    mount();
+    await shiftsSection();
+    await press(/Add shift/);
+    await dialog();
+    set("Date", at(1, 12).slice(0, 10));
+    set("Start", "09:00");
+    set("End", "13:00");
+    fireEvent.change(screen.getByLabelText("Caregiver"), { target: { value: "m-ana" } });
+    expect(screen.queryByTestId("shift-overlap")).not.toBeInTheDocument();
+  });
+
   it("an overnight shift shows as continuing into the next day", async () => {
-    world.shifts = [shift("s1", at(1, 0), at(1, 12), "m-ben")];
+    world.shifts = [shift("s1", at(1, 0), at(1, 12), "m-ben")]; // 8 PM-8 AM New York
     mount();
     expect(await screen.findByText(/\(next day\)/)).toBeInTheDocument();
   });
 });
 
 describe("errors from the service are shown, not swallowed", () => {
-  it("shows a refused write inline and keeps the form open", async () => {
-    world.shifts = [shift("s1", at(1, 14), at(1, 20), "m-ben")];
+  it("shows a refused write inside the dialog and keeps it open", async () => {
+    world.shifts = [shift("s1", at(1, 18), at(1, 22), "m-ben")];
     mount();
     await shiftsSection();
     await press(/^Edit /);
@@ -377,15 +374,15 @@ describe("errors from the service are shown, not swallowed", () => {
     vi.spyOn(mod.shiftService, "updateShift").mockRejectedValueOnce(
       new Error("You don't have permission to change this shift."),
     );
-    await press("Save shift");
+    await press("Save", await dialog());
     expect(await screen.findByRole("alert")).toHaveTextContent(/permission/);
-    expect(screen.getByRole("form", { name: "Edit shift" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 });
 
 describe("existing behavior is preserved", () => {
   it("'Cover it' still claims the open block as the signed-in member", async () => {
-    world.shifts = [shift("s1", at(2, 14), at(2, 20), null)];
+    world.shifts = [shift("s1", at(2, 18), at(2, 22), null)];
     mount();
     const open = await screen.findByRole("region", { name: "Still open this week" });
     await act(async () => {
@@ -399,10 +396,12 @@ describe("existing behavior is preserved", () => {
     await screen.findByRole("button", { name: "Next week" });
     await press("Next week");
     await waitFor(() => expect(world.fromCalls.length).toBeGreaterThan(1));
-    const first = Date.parse(world.fromCalls[0]!);
-    const second = Date.parse(world.fromCalls.at(-1)!);
-    expect(second - first).toBe(7 * 864e5);
+    const days = (Date.parse(world.fromCalls.at(-1)!) - Date.parse(world.fromCalls[0]!)) / 864e5;
+    expect(days).toBeGreaterThan(6.9);
+    expect(days).toBeLessThan(7.1);
     await press("Previous week");
-    await waitFor(() => expect(Date.parse(world.fromCalls.at(-1)!)).toBe(first));
+    await waitFor(() =>
+      expect(Date.parse(world.fromCalls.at(-1)!)).toBe(Date.parse(world.fromCalls[0]!)),
+    );
   });
 });

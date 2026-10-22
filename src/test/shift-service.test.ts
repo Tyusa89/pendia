@@ -236,6 +236,23 @@ describe("existing claim flow is unchanged", () => {
     await shiftService.claim(s.id, "m-ana");
     expect(fake.tables.shift[0]).toMatchObject({ assigned_member_id: "m-ana", status: "claimed" });
   });
+  it("two people claiming the same open shift: the first wins, the second is told, nothing is overwritten", async () => {
+    const s = seed({});
+    await shiftService.claim(s.id, "m-ana");
+    await expect(shiftService.claim(s.id, "m-ben")).rejects.toThrow(/already took/);
+    expect(fake.tables.shift[0]).toMatchObject({ assigned_member_id: "m-ana", status: "claimed" });
+  });
+  it("a claim only takes an OPEN shift: an assigned shift is never reassigned by claiming", async () => {
+    const s = seed({ assigned_member_id: "m-ben", status: "claimed" });
+    await expect(shiftService.claim(s.id, "m-ana")).rejects.toThrow(/already took/);
+    expect(fake.tables.shift[0]!.assigned_member_id).toBe("m-ben");
+  });
+  it("a non-organizer's claim is refused by the database rules (member claiming is a separate, later change)", async () => {
+    fake.me.role = "member";
+    const s = seed({});
+    await expect(shiftService.claim(s.id, "m-ana")).rejects.toThrow(/can't change the schedule/);
+    expect(fake.tables.shift[0]!.assigned_member_id).toBeNull();
+  });
   it("listRange still returns a week's shifts in time order", async () => {
     seed({ start: t("18:00"), end: t("23:00") });
     seed({ start: t("12:00"), end: t("18:00") });

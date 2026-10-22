@@ -124,8 +124,15 @@ export type Database = {
       handoff: {
         Row: {
           ate: boolean | null
+          audio_mime: string | null
+          audio_path: string | null
+          audio_size_bytes: number | null
+          audio_wav_mime: string | null
+          audio_wav_path: string | null
+          audio_wav_size_bytes: number | null
           author_member_id: string | null
           created_at: string
+          duration_seconds: number | null
           family_id: string
           id: string
           meds_taken: boolean | null
@@ -133,18 +140,18 @@ export type Database = {
           shift_id: string | null
           unusual: string | null
           watch_answers: Json
-          audio_mime: string | null
-          audio_path: string | null
-          audio_size_bytes: number | null
-          audio_wav_mime: string | null
-          audio_wav_path: string | null
-          audio_wav_size_bytes: number | null
-          duration_seconds: number | null
         }
         Insert: {
           ate?: boolean | null
+          audio_mime?: string | null
+          audio_path?: string | null
+          audio_size_bytes?: number | null
+          audio_wav_mime?: string | null
+          audio_wav_path?: string | null
+          audio_wav_size_bytes?: number | null
           author_member_id?: string | null
           created_at?: string
+          duration_seconds?: number | null
           family_id: string
           id?: string
           meds_taken?: boolean | null
@@ -152,18 +159,18 @@ export type Database = {
           shift_id?: string | null
           unusual?: string | null
           watch_answers?: Json
+        }
+        Update: {
+          ate?: boolean | null
           audio_mime?: string | null
           audio_path?: string | null
           audio_size_bytes?: number | null
           audio_wav_mime?: string | null
           audio_wav_path?: string | null
           audio_wav_size_bytes?: number | null
-          duration_seconds?: number | null
-        }
-        Update: {
-          ate?: boolean | null
           author_member_id?: string | null
           created_at?: string
+          duration_seconds?: number | null
           family_id?: string
           id?: string
           meds_taken?: boolean | null
@@ -171,13 +178,6 @@ export type Database = {
           shift_id?: string | null
           unusual?: string | null
           watch_answers?: Json
-          audio_mime?: string | null
-          audio_path?: string | null
-          audio_size_bytes?: number | null
-          audio_wav_mime?: string | null
-          audio_wav_path?: string | null
-          audio_wav_size_bytes?: number | null
-          duration_seconds?: number | null
         }
         Relationships: [
           {
@@ -667,6 +667,10 @@ export type Database = {
         Args: { _family_id: string; _what: string }
         Returns: boolean
       }
+      recording_can_read: { Args: { p: string }; Returns: boolean }
+      recording_can_write: { Args: { p: string }; Returns: boolean }
+      recording_path_family: { Args: { p: string }; Returns: string }
+      recording_path_type: { Args: { p: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never

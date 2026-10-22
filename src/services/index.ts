@@ -148,9 +148,17 @@ export const shiftService = {
     );
   },
   async claim(id: string, memberId: string) {
-    return ok(
-      await supabase.from("shift").update({ assigned_member_id: memberId, status: "claimed" }).eq("id", id).select().single(),
+    // Only claims a shift that is still open, so two people tapping at once can't overwrite each other.
+    const rows = ok(
+      await supabase
+        .from("shift")
+        .update({ assigned_member_id: memberId, status: "claimed" })
+        .eq("id", id)
+        .is("assigned_member_id", null)
+        .select(),
     );
+    if (!rows.length) throw new Error("Someone already took this shift, or you can't change the schedule.");
+    return rows[0];
   },
   // ---- coverage editing (C1): organizer-only by the database's row-level rules; the checks here make bad input fail early ----
 
@@ -243,8 +251,8 @@ export const shiftService = {
     return { shift, overlaps };
   },
   /**
-   * Cancel = delete the shift. `shift.status` only allows open / claimed / swap, so there is no "canceled" status to set,
-   * and adding one would be a schema change. Handoffs that point at the shift keep working (their shift_id becomes null).
+   * Cancel = delete the shift. `shift.status` only allows open / claimed / swap (checked against the live database), so
+   * there is no "canceled" status to set, and adding one would be a schema change. Handoffs that point at the shift keep working (their shift_id becomes null).
    */
   async cancelShift(id: string) {
     const rows = ok(await supabase.from("shift").delete().eq("id", id).select());
