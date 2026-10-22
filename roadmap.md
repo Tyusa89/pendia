@@ -6,6 +6,10 @@
 - [x] Verify preference persistence and both pages in the signed-in app.
 
 # Desktop and laptop experience
+- [x] Compact desktop Coverage and sidebar presentation with CSS only; preserve Coverage C1 source and mobile/tablet layout.
+- [x] Verify the four requested laptop/desktop sizes, mobile/tablet preservation and existing shift regression tests; do not publish.
+
+Compact Coverage verification: desktop blocks are 40px (32.8% shorter); handoff section is about 81px instead of 166px, with a right-aligned action; content is capped at 1280px. Signed-in checks passed at 1280×720, 1366×768, 1440×900 and 1920×1080 without horizontal overflow; 360px/768px measurements are identical to before. Populated browser-only shift fixtures confirmed readability and edit controls without writes; real account has no shifts. Add-dialog focus return, sidebar collapse and handoff navigation passed; 64 existing regression tests passed and build OK. Coverage source/logic and backend unchanged; nothing published or deployed.
 - [x] Add desktop sidebar and wider workspace while preserving phone/tablet navigation.
 - [x] Rebalance dashboard, appointments, medications, handoffs and recording controls without touching Coverage C1 logic.
 - [x] Verify tests, four requested widths, keyboard dialogs, scrolling and temporary recording/playback; report unavailable live-data checks.

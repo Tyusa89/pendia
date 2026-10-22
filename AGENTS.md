@@ -15,4 +15,5 @@
 - Demo family is seeded in the migration; users join it via the `join_demo_family()` RPC.
 - The authenticated shell uses bottom tabs below 1024px and a collapsible desktop sidebar above it; shared sidebar dimensions also position the recording dock so navigation never overlaps recording controls.
 - Desktop layout work leaves the Coverage page and shift logic untouched until Coverage C1 PR #21 overlap is reviewed; calendar space is provided by the shared shell to avoid concurrent scheduling changes.
+- Coverage desktop density refinements are scoped in global CSS to the existing semantic section labels at the desktop breakpoint; this preserves Coverage C1 source and behavior without conflicting scheduling edits.
 - Display preferences are browser-local and applied by the authenticated shell provider; unconnected assistant and notification capabilities stay disabled rather than implying delivery or AI access.
