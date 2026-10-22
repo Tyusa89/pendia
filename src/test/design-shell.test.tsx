@@ -212,6 +212,7 @@ describe("coverage on a phone", () => {
     render(wrap(<Page />));
     await screen.findByRole("region", { name: "This week" });
     expect(await screen.findByLabelText(/Monday Morning .*: Marco Morales/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Wednesday Afternoon .*: open/)).toBeInTheDocument();
+    // The fixture starts at 14:00 UTC, which is morning in the family's New York time zone.
+    expect(screen.getByLabelText(/Wednesday Morning .*: open/)).toBeInTheDocument();
   });
 });
