@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "spike": "node spike/diarization/cli.ts",
+    "spike:rest": "node spike/rest/cli.ts",
     "spike:test": "vitest run spike"
   },
   "overrides": {
