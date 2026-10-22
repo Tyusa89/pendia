@@ -35,8 +35,8 @@ function VisitDetail({ me, timeZone }: { me: Member; timeZone: string }) {
   return (
     <div>
       <Link to="/visits" className="-ml-1 inline-flex min-h-11 items-center gap-2 font-semibold text-primary"><ArrowLeft className="size-5" /> All visits</Link>
-      <div className="mt-4 grid items-start gap-5 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.35fr)]">
-      <aside aria-label="Other visits" className="hidden min-w-0 md:block">
+      <div className="mt-4 grid items-start gap-5 lg:grid-cols-[minmax(15rem,0.75fr)_minmax(0,1.65fr)]">
+      <aside aria-label="Other visits" className="hidden min-w-0 lg:block">
         <AppointmentList familyId={me.family_id} timeZone={timeZone} canWrite={me.role === "organizer"} compact />
       </aside>
       <div className="min-w-0 space-y-5">

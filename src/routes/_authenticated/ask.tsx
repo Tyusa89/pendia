@@ -16,7 +16,7 @@ export const Route = createFileRoute("/_authenticated/ask")({
 });
 
 function AskPage() {
-  return <>
+  return <div className="reading-view">
     <Button asChild variant="link" className="mb-3 px-0"><Link to="/family"><ArrowLeft /> Family</Link></Button>
     <PageTitle title="Ask Pendia" />
     <div className="mb-5 flex items-center gap-2 text-sm font-semibold text-accent-foreground">
@@ -35,5 +35,5 @@ function AskPage() {
     </div>
     <label htmlFor="ask-question" className="mb-2 block font-semibold">Your question</label>
     <Input id="ask-question" disabled placeholder="Assistant not connected" />
-  </>;
+  </div>;
 }

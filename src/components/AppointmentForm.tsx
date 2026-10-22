@@ -90,8 +90,8 @@ export function AppointmentForm({
   const field = "space-y-2";
 
   return (
-    <form onSubmit={submit} className="space-y-5" noValidate>
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+    <form onSubmit={submit} className="space-y-5 lg:grid lg:grid-cols-2 lg:gap-5 lg:space-y-0" noValidate>
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:col-span-2">
         <div className={field}>
           <Label htmlFor="appt-start" className="text-base">
             Starts
@@ -185,7 +185,7 @@ export function AppointmentForm({
           onChange={(e) => setReason(e.target.value)}
         />
       </div>
-      <div className={field}>
+      <div className={`${field} lg:col-span-2`}>
         <Label htmlFor="appt-notes" className="text-base">
           Notes
         </Label>
@@ -197,7 +197,7 @@ export function AppointmentForm({
         />
       </div>
 
-      <label className="flex items-start gap-3 rounded-xl border p-3">
+      <label className="flex items-start gap-3 rounded-xl border p-3 lg:col-span-2">
         <input
           type="checkbox"
           className="mt-1 size-5 shrink-0"
@@ -215,7 +215,7 @@ export function AppointmentForm({
       {overlaps.length > 0 && (
         <div
           role="status"
-          className="flex gap-3 rounded-xl bg-unassigned p-3 text-unassigned-foreground"
+          className="flex gap-3 rounded-xl bg-unassigned p-3 text-unassigned-foreground lg:col-span-2"
           data-testid="form-overlap-warning"
         >
           <AlertTriangle className="mt-0.5 size-5 shrink-0" aria-hidden />
@@ -232,12 +232,12 @@ export function AppointmentForm({
         </div>
       )}
       {(problem || error) && (
-        <p role="alert" className="rounded-xl bg-warning p-3 text-warning-foreground">
+        <p role="alert" className="rounded-xl bg-warning p-3 text-warning-foreground lg:col-span-2">
           {problem ?? error}
         </p>
       )}
 
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:col-span-2">
         <Button type="submit" size="lg" className="h-14" disabled={busy}>
           {busy ? "Saving…" : submitLabel}
         </Button>

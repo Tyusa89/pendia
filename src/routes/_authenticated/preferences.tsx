@@ -34,7 +34,7 @@ function PreferencesPage() {
     <Button asChild variant="link" className="mb-3 px-0"><Link to="/family"><ArrowLeft /> Family</Link></Button>
     <PageTitle title="Preferences & Accessibility" subtitle="Your display choices on this device" />
     {!storageAvailable && <p role="status" className="mb-4 text-destructive">Your browser cannot save preferences. Choices will reset when you reload.</p>}
-    <div className="space-y-4">
+    <div className="grid items-start gap-4 lg:grid-cols-2">
       <Panel aria-label="AI assistance">
         <h2 className="font-sans text-sm font-bold uppercase tracking-wide text-muted-foreground">AI assistance</h2>
         <Setting title="Ask Pendia assistant" description="Not connected" disabled />

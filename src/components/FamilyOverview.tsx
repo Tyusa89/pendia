@@ -119,6 +119,7 @@ export function FamilyOverview({ me, timeZone }: { me: Member; timeZone: string 
           </Link>
         ))}
       </nav>
+      <div className="grid items-start gap-5 lg:grid-cols-[repeat(auto-fit,minmax(min(22rem,100%),1fr))]">
       {seesVisits && next && (
         <section className="space-y-3">
           <div className="flex items-center justify-between gap-3">
@@ -154,6 +155,7 @@ export function FamilyOverview({ me, timeZone }: { me: Member; timeZone: string 
           </Link>
         </section>
       )}
+      </div>
     </div>
   );
 }

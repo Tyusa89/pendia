@@ -120,7 +120,7 @@ function Handoffs({ me }: { me: Member }) {
 
   return (
     <>
-      <div className="grid items-start gap-5 md:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]">
+      <div className="grid items-start gap-5 md:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)] lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:gap-8">
         <div className="min-w-0 space-y-4">
           <PageTitle title="Handoff" subtitle="Quick check-in before you leave" />
           {justSaved && (

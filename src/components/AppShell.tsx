@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import {
   CalendarDays,
   ClipboardCheck,
@@ -15,6 +15,7 @@ import {
 import { authService } from "@/services";
 import { useFamily } from "@/hooks/use-family";
 import { Button } from "@/components/ui/button";
+import { DesktopNavigation } from "@/components/DesktopNavigation";
 
 const nav = [
   { to: "/family", label: "Family", icon: Home },
@@ -47,12 +48,13 @@ function AssistantSlot({ variant }: { variant: "top" | "side" }) {
 }
 
 /**
- * Shared top bar and six fixed bottom tabs at every width, with safe-area room for the phone home indicator.
+ * Shared care workspace: bottom tabs on phones/tablets, collapsible sidebar on desktop.
  */
 export function AppShell({ children }: { children: ReactNode }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const { data } = useFamily();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   async function signOut() {
     await qc.cancelQueries();
@@ -75,10 +77,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   );
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className={`pendia-workspace flex min-h-screen flex-col ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
+      <DesktopNavigation collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed((value) => !value)} familyName={data?.family?.name} />
       <nav
         aria-label="Main"
-        className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t border-border bg-card pb-[calc(0.25rem+env(safe-area-inset-bottom))] pt-1 max-[17em]:max-md:grid-cols-3 md:px-[max(1rem,calc((100%-48rem)/2))]"
+        className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t border-border bg-card pb-[calc(0.25rem+env(safe-area-inset-bottom))] pt-1 max-[17em]:max-md:grid-cols-3 md:px-[max(1rem,calc((100%-48rem)/2))] lg:hidden"
       >
         <Link
           to="/family"
@@ -112,9 +115,10 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </nav>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col lg:ml-[var(--side-w)]">
+        <a href="#care-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-card focus:p-3 focus:text-primary focus:ring-2 focus:ring-ring">Skip to care content</a>
         <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur">
-          <div className="mx-auto grid min-h-16 w-full max-w-[48rem] grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-4 py-2 md:px-7">
+          <div className="mx-auto grid min-h-16 w-full max-w-[48rem] grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-4 py-2 md:px-7 lg:min-h-20 lg:max-w-[1440px] lg:px-8">
           <Link
             to="/family"
             className="inline-flex min-h-11 items-center font-display text-2xl font-semibold text-primary"
@@ -135,7 +139,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
           </div>
         </header>
-        <main className="mx-auto w-full max-w-[48rem] flex-1 px-4 pb-[calc(var(--nav-h)+2rem+env(safe-area-inset-bottom))] pt-5 md:px-7 md:pt-8">
+        <main id="care-content" tabIndex={-1} className="care-content mx-auto w-full max-w-[48rem] flex-1 px-4 pb-[calc(var(--nav-h)+2rem+env(safe-area-inset-bottom))] pt-5 md:px-7 md:pt-8 lg:max-w-[1440px] lg:px-8 lg:pb-12">
           {children}
           <p className="mt-10 text-center text-[0.9412rem] text-muted-foreground">
             Not medical advice. Check with your doctor or pharmacist.
