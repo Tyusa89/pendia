@@ -10,10 +10,10 @@ import {
   MessageCircle,
   Pill,
   Stethoscope,
+  SlidersHorizontal,
 } from "lucide-react";
 import { authService } from "@/services";
 import { useFamily } from "@/hooks/use-family";
-import { features } from "@/lib/features";
 import { Button } from "@/components/ui/button";
 
 const nav = [
@@ -26,25 +26,23 @@ const nav = [
 ] as const;
 
 /**
- * The reserved place for the optional AI assistant. Renders nothing while `features.assistant` is off, so the app
- * looks and works the same without it. (No route exists for it yet.)
+ * Navigation to the assistant's availability page; does not enable AI.
  */
 function AssistantSlot({ variant }: { variant: "top" | "side" }) {
-  if (!features.assistant) return null;
   return variant === "top" ? (
-    <span
+    <Button asChild variant="outline" className="min-h-11 rounded-full px-3.5">
+    <Link to="/ask"
       data-testid="assistant-slot"
-      className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-input bg-card px-3.5 font-semibold"
     >
       <MessageCircle className="size-[18px]" aria-hidden /> Ask
-    </span>
+    </Link></Button>
   ) : (
-    <span
+    <Link to="/ask"
       data-testid="assistant-slot"
       className="flex min-h-12 items-center gap-3 rounded-xl px-3.5 font-semibold text-muted-foreground"
     >
       <MessageCircle className="size-[22px]" aria-hidden /> Ask Pendia
-    </span>
+    </Link>
   );
 }
 
@@ -131,6 +129,9 @@ export function AppShell({ children }: { children: ReactNode }) {
               </span>
             )}
             <AssistantSlot variant="top" />
+            <Button asChild variant="ghost" size="icon" className="size-11 rounded-full">
+              <Link to="/preferences" aria-label="Preferences & Accessibility" title="Preferences & Accessibility"><SlidersHorizontal className="size-5" /></Link>
+            </Button>
             {signOutButton}
           </div>
           </div>

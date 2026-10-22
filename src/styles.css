@@ -150,3 +150,24 @@
     --nav-h: 3.25rem;
   }
 }
+
+html[data-text-size="large"] { font-size: 125%; }
+html[data-high-contrast="true"] {
+  --foreground: oklch(0.22 0.03 235);
+  --card-foreground: var(--foreground);
+  --muted-foreground: oklch(0.3 0.03 235);
+  --border: oklch(0.5 0.025 250);
+  --input: oklch(0.5 0.025 250);
+}
+html[data-reduce-motion="true"] *,
+html[data-reduce-motion="true"] *::before,
+html[data-reduce-motion="true"] *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+html[data-large-buttons="true"] button:not([role="switch"]),
+html[data-large-buttons="true"] a { min-height: 3.25rem; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
