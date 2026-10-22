@@ -34,6 +34,7 @@ import {
   isOpen,
   missingFromShift,
   mondayInZone,
+  NO_REQUIREMENTS_NOTE,
   overlapsForMember,
   shiftWeek,
   validateShift,
@@ -158,6 +159,7 @@ function Coverage({ me, family }: { me: Member; family: Family }) {
   return (
     <>
       <PageTitle title="Coverage" subtitle={coverageSummary(shifts)} action={organizer && <Button variant="outline" onClick={() => newShift()}><Plus /> Add shift</Button>} />
+      <p className="-mt-2 mb-4 text-muted-foreground">{NO_REQUIREMENTS_NOTE}</p>
       {todayShifts.length > 0 && <section aria-label="Today's coverage" className="mb-5 space-y-3">
         <h2 className="font-sans text-sm font-bold uppercase text-muted-foreground">Today · {new Date(`${today}T12:00:00Z`).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" })}</h2>
         {todayShifts.map((s) => {
