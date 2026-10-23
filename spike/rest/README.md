@@ -1,7 +1,8 @@
 # Meta Voice Transcribe: one-shot REST test (Phase M1, PREPARATION ONLY)
 
-**Status: prepared offline. Nothing here has called Meta, spent credits, deployed, or read a secret.** The live call is
-disabled by default and needs a separate, explicit founder authorization.
+**Status:** A local live-attempt script reported a transport-level network error before receiving an HTTP response. Whether
+Meta received a request is unresolved. Live Voice Transcribe is unverified and excluded from the November 4 hackathon
+submission. The live call is disabled by default and needs a separate, explicit founder authorization.
 
 Synthetic data only. `META_API_KEY` is server-side only: it is read from the process environment by `cli.ts` and
 nowhere else, never written to a file, log, error, scorecard or artifact.
