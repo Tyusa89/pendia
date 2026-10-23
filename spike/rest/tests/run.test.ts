@@ -75,13 +75,13 @@ describe("the one request", () => {
     expect(init.redirect).toBe("error");
     expect(init.signal).toBeInstanceOf(AbortSignal);
     expect((init.headers as Record<string, string>)["Authorization"]).toBe(`Bearer ${FAKE_KEY}`);
-    const form = init.body as FormData;
-    expect(JSON.parse(await (form.get("request") as File).text())).toEqual({
-      model: MODEL,
-      mode: MODE,
-      audioEncoding: "WAV",
-    });
-    expect((form.get("audio") as File).size).toBe(wav.byteLength);
+    const body = Buffer.from(init.body as Uint8Array).toString("latin1");
+    const headers = init.headers as Record<string, string>;
+    expect(headers["Content-Type"]).toMatch(/^multipart\/form-data; boundary=/);
+    expect(body).toContain('name="request"\r\nContent-Type: application/json\r\n\r\n');
+    expect(body).toContain(`{"mode":"${MODE}","model":"${MODEL}","audioEncoding":"WAV"}`);
+    expect(body).toContain('name="audio"; filename="rest-synthetic.wav"');
+    expect((init.body as Uint8Array).length).toBeGreaterThan(wav.byteLength);
     expect(r.status).toBe(200);
     expect(existsSync(lock)).toBe(true);
     expect(blockedFetch).not.toHaveBeenCalled();

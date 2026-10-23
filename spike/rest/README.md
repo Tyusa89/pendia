@@ -9,9 +9,15 @@ nowhere else, never written to a file, log, error, scorecard or artifact.
 ## Contract (corrected in the follow-up to PR #37)
 
 The first version of this runner guessed the multipart field names and the response keys. The founder supplied the documented
-contract from <https://dev.meta.ai/docs/speech-to-text>, and the code now follows it. **That page still could not be fetched
-from the build sandbox (DNS failure), so it was not re-read here; the contract below is taken from the founder's
-transcription of it.**
+contract from <https://dev.meta.ai/docs/speech-to-text>, and the code follows it. **That page could not be fetched from the
+build sandbox (DNS failure), so it was not re-read here.** The founder independently checked Meta's official multipart example
+and reported it to this repository's maintainers; the layout below matches that example, which is:
+
+```sh
+curl -X POST https://api.meta.ai/v1/asr/transcribe -H "Authorization: Bearer $META_API_KEY" \
+  -F 'request={"mode":"DIARIZATION","model":"muse-voice-transcribe-1.0","audioEncoding":"WAV"};type=application/json' \
+  -F 'audio=@rest-synthetic.wav'
+```
 
 | Item                                               | Value                                                                             | Status                           |
 | -------------------------------------------------- | --------------------------------------------------------------------------------- | -------------------------------- |
@@ -24,29 +30,37 @@ transcription of it.**
 | Reply                                              | `sessionId`, `transcript`, `audioDurationMs`, `turns[]`                           | Documented                       |
 | Turn                                               | `turnId`, `startMs`, `endMs`, `transcript`, `speaker`                             | Documented                       |
 | Timestamps                                         | **milliseconds** (converted to seconds internally)                                | Documented                       |
-| Content-Type of the `request` part                 | sent as `application/json`                                                        | **Not confirmed**                |
-| `filename` on the `request` part                   | the form-data API sends `filename="blob"` for a JSON Blob                         | **Not confirmed**                |
+| Content-Type of the `request` part                 | `application/json`                                                                | Documented (official example)    |
+| `filename` on the `request` part                   | none: `request` is a plain form field                                             | Documented (official example)    |
 | Format of `speaker` labels                         | any non-empty text or number                                                      | Not specified                    |
 | Whether this model really separates the two voices | the point of the test                                                             | Unknown                          |
 
 The earlier guesses (`file`/`model`/`mode` parts; `text`, `start`, `end` keys; seconds) are rejected, not tolerated: a reply
 in any other shape fails closed, and the scorecard reports the key names it saw (never values).
 
-### Unverified multipart detail (deliberately NOT changed)
+### Multipart layout (written by hand to match the official example)
 
-Serialized offline, the request goes out as:
+The platform `FormData` cannot send a JSON field with a Content-Type but no filename (it adds `filename="blob"` to any Blob), so
+`request.ts` writes the multipart body itself. On the wire:
 
 ```
-request: Content-Disposition: form-data; name="request"; filename="blob"   Content-Type: application/json
-audio:   Content-Disposition: form-data; name="audio"; filename="synthetic-visit.wav"   Content-Type: audio/wav
+--<boundary>
+Content-Disposition: form-data; name="request"
+Content-Type: application/json
+
+{"mode":"DIARIZATION","model":"muse-voice-transcribe-1.0","audioEncoding":"WAV"}
+--<boundary>
+Content-Disposition: form-data; name="audio"; filename="rest-synthetic.wav"
+Content-Type: audio/wav
+
+<the WAV bytes>
+--<boundary>--
 ```
 
-Two details are **not confirmed by Meta's documentation**: (1) the `Content-Type` of the `request` part (`application/json` is
-the usual convention but is a guess), and (2) the `filename="blob"` that the platform adds to a JSON part, which a server could
-treat as a file upload rather than a form field. **No correction has been made and none should be guessed.** Before the live
-call, someone who can reach the page must compare against the **official example** (likely a `curl -F` line showing how
-`request` is sent, with or without `;type=application/json`) and then change `request.ts` in one place if it differs. If the
-guess is wrong the single call will most likely come back HTTP 400/415 and, as always, is not retried.
+The `request` part has `Content-Type: application/json` and **no filename**; `audio` is the WAV, byte for byte. The boundary is
+random per request and is checked not to occur in the audio. Tests parse the real serialized bytes (and the platform's own
+multipart parser) to check this. Small remaining differences from curl, none of which should matter to a server: curl's own
+`Content-Type` guess for a `.wav` file may differ from `audio/wav`, and curl's boundary format differs.
 
 ## Files
 
@@ -95,7 +109,11 @@ Audio and scorecards are written only under the git-ignored `spike-output/` (own
 - Nothing in `dev`, `build`, `lint`, `test` or `spike:test` runs the CLI; the application never reads `META_API_KEY`.
 - The workflow reads the key only from the environment secret `META_SPIKE_ENV_API_KEY` and refuses (before the CLI starts) when it is empty.
 
-## One-time GitHub setup (needs a repository admin; nothing here has been configured)
+## GitHub Actions path (NOT the chosen path)
+
+**Required reviewers is unavailable for this private repository on the current GitHub plan, so GitHub cannot pause this workflow for a second approval.** The chosen path is a local run (next section). Anything below is only relevant if the workflow is ever used, and must not be treated as independent approval.
+
+### One-time GitHub setup (needs a repository admin; nothing here has been configured)
 
 **Order matters: do all of this, and verify it in GitHub, BEFORE this PR is merged.** Merging is the moment the workflow
 becomes dispatchable. The environment can be created before the workflow file exists.
@@ -121,19 +139,58 @@ auto-created, unprotected environment cannot reach the repository-level key. **T
 replace the required reviewer or the main-only rule, which stop an unauthorized run from starting at all, and it cannot
 detect them. Configure and verify those first.
 
-## Exact approval and execution procedure (for a later, separate authorization)
+## Running the single test locally on Windows (the chosen path)
 
-1. Founder (or a reviewer who can reach the page) reads the official documentation once more and confirms the contract table above, in particular the Content-Type of the `request` part.
-2. Founder confirms the multipart `request` part against the official example (see "Unverified multipart detail"), then authorizes exactly one live request in writing.
-3. Complete and independently verify the GitHub setup above, **then** merge the PR (separate approval).
-4. **Actions -> Meta REST spike (manual, protected) -> Run workflow** on `main`; type `I_HAVE_APPROVAL`.
-5. The job pauses for the environment reviewer; approve it once.
-6. The job generates the audio, validates it, prints the redacted request, makes **one** request, and writes the sanitized
-   scorecard to the job summary. No artifacts are uploaded.
-7. Read the scorecard. A second attempt needs a new authorization and a fresh run.
+Windows support: repository paths use `fileURLToPath` and `path.relative` (not a URL's `.pathname`), so `C:\...` paths, spaces and
+other drives work; tests feed Windows paths through Node's win32 rules. **`generate` is not supported on Windows** (it needs
+ffmpeg with `flite` and a POSIX temp path), so use the pre-generated clip.
 
-**Stop conditions (no request is sent or no further action is taken):** official docs not re-read by someone who can reach them; environment, secret or
-branch rule missing; any guard refusal; HTTP error (including 401/403/429); timeout; malformed reply. Do not retry.
+Prerequisites: Node 22.18 or newer (`node --version`), Git. No `npm install` is needed (only Node built-ins are used).
+
+```powershell
+git clone https://github.com/Tyusa89/pendia.git C:\pendia-spike\pendia
+cd C:\pendia-spike\pendia
+git checkout feature-m1-meta-rest-contract-fix
+git rev-parse HEAD        # must equal the commit the maintainers give you
+```
+
+Put the clip and its timings outside the repo, e.g. `C:\pendia-spike\audio\rest-synthetic.wav` and `rest-synthetic.timings.json`;
+check with `Get-FileHash <file> -Algorithm SHA256` against the hash the maintainers give you.
+
+Offline checks (no key set, nothing sent):
+
+```powershell
+$env:META_API_KEY            # prints nothing
+node spike/rest/cli.ts check --wav C:\pendia-spike\audio\rest-synthetic.wav
+node spike/rest/cli.ts plan  --wav C:\pendia-spike\audio\rest-synthetic.wav
+node spike/rest/cli.ts run   --wav C:\pendia-spike\audio\rest-synthetic.wav     # "Disabled ... Nothing was sent."
+```
+
+Supply the key without printing it, committing it, or saving it in history (process-scope only; never `setx`):
+
+```powershell
+Set-PSReadLineOption -HistorySaveStyle SaveNothing
+$s = Read-Host "Meta key (hidden)" -AsSecureString
+$b = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($s)
+$env:META_API_KEY = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($b)
+[Runtime.InteropServices.Marshal]::ZeroFreeBSTR($b); $s = $null
+```
+
+The one live call, ONLY after the founder's written go-ahead:
+
+```powershell
+$env:SPIKE_ALLOW_LIVE = "I_HAVE_APPROVAL"
+node spike/rest/cli.ts run --wav C:\pendia-spike\audio\rest-synthetic.wav --timings C:\pendia-spike\audio\rest-synthetic.timings.json --live --confirm-one-call
+Get-Content spike-output\rest-scorecard.json      # sanitized: numbers, codes, key names; no transcript text, no key
+Remove-Item Env:META_API_KEY, Env:SPIKE_ALLOW_LIVE -ErrorAction SilentlyContinue
+```
+
+Then close the terminal and revoke or rotate the key. The runner makes exactly one request and never retries; it claims a latch and
+an exclusive lock file (`spike-output\rest-call.lock`) before sending, so a failed call still blocks a second attempt. Do not delete
+the lock to try again: a second attempt needs a new written authorization.
+
+**Stop conditions (no request is sent or no further action is taken):** any guard refusal; HTTP error (including 400/401/403/429);
+timeout; malformed reply. Do not retry.
 
 ## Estimated cost of one call
 

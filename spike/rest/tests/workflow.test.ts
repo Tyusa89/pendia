@@ -230,10 +230,17 @@ describe("setup documentation", () => {
     expect(readme).toMatch(/verif(y|ied) (them )?(independently )?in GitHub/i);
     expect(readme).toMatch(/before (this PR is )?merg/i);
   });
-  it("documents the unverified `request` part filename and Content-Type without guessing a correction", () => {
-    expect(readme).toContain('filename="blob"');
-    expect(readme).toMatch(/Content-Type of the `request` part/);
-    expect(readme).toMatch(/official example/i);
-    expect(readme).toMatch(/not (been )?(changed|corrected)|no correction/i);
+  it("documents the official multipart layout: `request` is JSON with no filename, and `audio` is the WAV", () => {
+    expect(readme).toMatch(/type=application\/json/);
+    expect(readme).toMatch(/\*\*no filename\*\*/);
+    expect(readme).toContain("rest-synthetic.wav");
+    expect(readme).not.toContain("Unverified multipart detail");
+  });
+  it("documents the local Windows run, the Windows path handling, and that Required reviewers is unavailable", () => {
+    expect(readme).toMatch(/Running the single test locally on Windows/);
+    expect(readme).toContain("fileURLToPath");
+    expect(readme).toMatch(/Required reviewers is unavailable/);
+    expect(readme).toMatch(/Read-Host[^\n]*-AsSecureString/);
+    expect(readme).not.toMatch(/setx\s+META/);
   });
 });
