@@ -548,12 +548,18 @@ describe("the demo is untouched: the contract is isolated and unreachable from t
       /\bfetch\b|XMLHttpRequest|WebSocket|localStorage|sessionStorage|process\.env|import\.meta\.env|navigator|window\.|document\./,
     );
   });
-  it("nothing in the app, the routes, the demo or the pipeline index refers to it", () => {
-    const offenders = walk(join(root, "src"))
+  it("nothing in the app, the routes, the demo or the pipeline index refers to it; only the server-side Spark modules do", () => {
+    const importers = walk(join(root, "src"))
       .filter((f) => !/\/test\//.test(f) && !f.endsWith("spark-contract.ts"))
       .filter((f) => /spark-contract/.test(readFileSync(f, "utf8")))
-      .map((f) => f.replace(root, ""));
-    expect(offenders).toEqual([]);
+      .map((f) => f.replace(`${root}/`, ""))
+      .sort();
+    // the HTTP builder (pure, src/lib/spark), the server-only client and the gated server handler: added with the live-provider PR
+    expect(importers).toEqual([
+      "src/lib/spark/spark-http.ts",
+      "src/server/spark-live.server.ts",
+      "src/server/spark-synthetic.server.ts",
+    ]);
   });
   it("Demo Mode still cannot be switched to live", () => {
     expect(PIPELINE_MODE).toBe("demo");
