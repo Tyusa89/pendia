@@ -156,6 +156,46 @@ describe("failures are fixed codes, never raw responses", () => {
     expect(e.code).toBe("timeout");
     expect(f).toHaveBeenCalledTimes(1);
   });
+  it("a body stream that fails mid-read is network_error with an allowlisted cause, not a raw error", async () => {
+    const boom = Object.assign(new TypeError("terminated SECRET-BODY-TEXT"), {
+      cause: { code: "ECONNRESET", message: "SECRET-BODY-TEXT" },
+    });
+    const stream = new ReadableStream<Uint8Array>({
+      pull(c) {
+        c.error(boom);
+      },
+    });
+    const f = vi.fn(async () => new Response(stream, { status: 200 }));
+    const e = await fail(call(f));
+    expect(e).toBeInstanceOf(SparkHttpError);
+    expect(e.code).toBe("network_error");
+    expect(e.message).toContain("ECONNRESET");
+    expect(e.message).not.toContain("SECRET-BODY-TEXT");
+    expect(f).toHaveBeenCalledTimes(1);
+  });
+  it("a body stream aborted by the timeout is timeout", async () => {
+    const f = vi.fn(async (_u: string, init: RequestInit) => {
+      const stream = new ReadableStream<Uint8Array>({
+        start(c) {
+          init.signal!.addEventListener("abort", () => c.error(init.signal!.reason));
+        },
+      });
+      return new Response(stream, { status: 200 });
+    });
+    const e = await fail(call(f, { timeoutMs: 20 }));
+    expect(e.code).toBe("timeout");
+    expect(f).toHaveBeenCalledTimes(1);
+  });
+  it("a body stream failure with a non-allowlisted cause adds no cause text", async () => {
+    const stream = new ReadableStream<Uint8Array>({
+      pull(c) {
+        c.error(Object.assign(new Error("x"), { cause: { code: "bad code with spaces" } }));
+      },
+    });
+    const e = await fail(call(vi.fn(async () => new Response(stream))));
+    expect(e.code).toBe("network_error");
+    expect(e.message).not.toContain("cause");
+  });
   it("a body that is not JSON is malformed_response", async () => {
     expect((await fail(call(vi.fn(async () => new Response("<html>"))))).code).toBe(
       "malformed_response",

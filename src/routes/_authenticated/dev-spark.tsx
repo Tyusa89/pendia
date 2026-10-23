@@ -53,12 +53,6 @@ function DevSpark() {
       {status.data && !status.data.enabled && (
         <div className="space-y-2">
           <p>This tool is not enabled.</p>
-          {status.data.reason === "not_allowlisted" && status.data.yourUserId && (
-            <p className="text-muted-foreground">
-              It is switched on, but your account is not on the server&apos;s allow-list. Your
-              account id: <code className="break-all">{status.data.yourUserId}</code>
-            </p>
-          )}
         </div>
       )}
 

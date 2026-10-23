@@ -22,10 +22,13 @@ tier), validates the answer with the merged Spark contract (`src/lib/visit-pipel
 
 1. Signed in (`requireSupabaseAuth`) on both server functions.
 2. `SPARK_LIVE_ENABLED` is exactly `true` (default: off).
-3. The caller's user id is in `SPARK_LIVE_USER_IDS` (comma-separated; empty = nobody). When the flag is on but the caller is
-   not listed, the page shows their own id so the owner can add it.
+3. The caller's user id is in `SPARK_LIVE_USER_IDS` (comma-separated; empty = nobody). Callers who are not listed learn nothing
+   about the configuration: the status is just `{ enabled: false }` (no reason, no id). Find your own id in the Supabase auth
+   users list; the page does not show it.
 4. `META_API_KEY` is set on the server. It is read only in `spark-synthetic.server.ts`, never returned, logged or sent to the browser.
-5. Per-user rate cap (5 per 10 minutes) and a per-instance cap (best effort).
+5. Per-user rate cap (5 per 10 minutes) and a per-instance cap (20). **Both caps live in server-instance memory: they are per
+   server instance, reset on restart or cold start, and are not shared between instances. They are a guard against accidental
+   repeats, not a global spending limit. The real spending limit is the one set on the Meta key itself.**
 6. The browser sends only `{ fixtureId: "demo-visit-1" }`; any other field or value is rejected. The server loads the fixture itself.
 
 ## Enabling it (a separate, explicit approval; not part of this PR)

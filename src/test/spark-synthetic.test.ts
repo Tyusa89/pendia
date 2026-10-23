@@ -12,6 +12,7 @@ import {
   sparkStatus,
 } from "@/server/spark-synthetic.server";
 import type { FetchLike } from "@/server/spark-live.server";
+import type { SparkEnv } from "@/server/spark-synthetic.server";
 import {
   DOCTOR_TURNS,
   PATIENT_TURNS,
@@ -77,18 +78,35 @@ describe("disabled by default: every gate must be open", () => {
 });
 
 describe("the status shown to the page", () => {
-  it("says only enabled or not; shows the caller their own id only when the flag is on but they are not listed", () => {
+  it("tells a listed user why it is off, and a user outside the list nothing at all", () => {
     expect(sparkStatus(ENV_ON, USER)).toEqual({ enabled: true, reason: null });
-    expect(sparkStatus({}, USER)).toEqual({ enabled: false, reason: "off" });
-    expect(sparkStatus({ ...ENV_ON, SPARK_LIVE_USER_IDS: "x" }, USER)).toEqual({
+    expect(sparkStatus({ ...ENV_ON, SPARK_LIVE_ENABLED: "false" }, USER)).toEqual({
       enabled: false,
-      reason: "not_allowlisted",
-      yourUserId: USER,
+      reason: "off",
     });
     expect(sparkStatus({ ...ENV_ON, META_API_KEY: "" }, USER)).toEqual({
       enabled: false,
       reason: "no_key",
     });
+  });
+  it("a user outside the allow-list gets exactly { enabled: false } in every configuration", () => {
+    const configs: SparkEnv[] = [
+      {},
+      ENV_ON,
+      { ...ENV_ON, SPARK_LIVE_USER_IDS: "x" },
+      { ...ENV_ON, SPARK_LIVE_USER_IDS: "" },
+      { ...ENV_ON, META_API_KEY: "" },
+      { ...ENV_ON, SPARK_LIVE_ENABLED: "false", SPARK_LIVE_USER_IDS: "x" },
+    ];
+    for (const c of configs.map((e) => ({
+      ...e,
+      SPARK_LIVE_USER_IDS: e.SPARK_LIVE_USER_IDS ?? "x",
+    }))) {
+      const st = sparkStatus(c, "outsider-id");
+      expect(st).toEqual({ enabled: false });
+      expect(JSON.stringify(st)).not.toContain("outsider-id");
+    }
+    expect(sparkStatus(ENV_ON, "")).toEqual({ enabled: false });
   });
   it("never contains the key or the allow-list", () => {
     for (const env of [ENV_ON, { ...ENV_ON, SPARK_LIVE_USER_IDS: "x,y" }, {}]) {

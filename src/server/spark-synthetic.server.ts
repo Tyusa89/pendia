@@ -43,18 +43,19 @@ export function sparkGate(env: SparkEnv, userId: string): SparkGate {
   return "enabled";
 }
 
-export interface SparkStatus {
-  enabled: boolean;
-  reason: "off" | "not_allowlisted" | "no_key" | null;
-  /** Shown only when the feature is on but this user is not listed, so the owner can add themselves. */
-  yourUserId?: string;
-}
+/** Users outside the allow-list get `{ enabled: false }` and nothing else: no reason, no id, no hint about the flag or key. */
+export type SparkStatus =
+  { enabled: boolean } | { enabled: boolean; reason: "off" | "no_key" | null };
 
 export function sparkStatus(env: SparkEnv, userId: string): SparkStatus {
+  const allowed = (env.SPARK_LIVE_USER_IDS ?? "")
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean);
+  if (!userId || !allowed.includes(userId)) return { enabled: false };
   const g = sparkGate(env, userId);
   if (g === "enabled") return { enabled: true, reason: null };
-  if (g === "not_allowlisted") return { enabled: false, reason: g, yourUserId: userId };
-  return { enabled: false, reason: g };
+  return { enabled: false, reason: g === "no_key" ? "no_key" : "off" };
 }
 
 export interface SparkCheck {

@@ -135,6 +135,6 @@ describe("the dev page is protected and not reachable through navigation", () =>
   });
   it("the feature is off by default: the status of an empty server environment is not enabled", async () => {
     const { sparkStatus } = await import("@/server/spark-synthetic.server");
-    expect(sparkStatus({}, "any-user")).toEqual({ enabled: false, reason: "off" });
+    expect(sparkStatus({}, "any-user")).toEqual({ enabled: false });
   });
 });

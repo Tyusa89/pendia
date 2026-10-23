@@ -130,7 +130,20 @@ export async function callSparkOnce(opts: {
       `The request failed before a reply arrived${cause ? ` (cause: ${cause})` : ""}.`,
     );
   }
-  const text = await readBounded(res, SPARK_MAX_RESPONSE_BYTES);
+  let text: string;
+  try {
+    text = await readBounded(res, SPARK_MAX_RESPONSE_BYTES);
+  } catch (e) {
+    if (e instanceof SparkHttpError) throw e;
+    const n = (e as { name?: string } | null)?.name;
+    if (n === "TimeoutError" || n === "AbortError")
+      throw new SparkHttpError("timeout", "The request timed out.");
+    const cause = causeCode(e);
+    throw new SparkHttpError(
+      "network_error",
+      `The reply was cut off before it finished${cause ? ` (cause: ${cause})` : ""}.`,
+    );
+  }
   const elapsedMs = now() - t0;
   if (!res.ok) {
     const token = providerErrorToken(text);
