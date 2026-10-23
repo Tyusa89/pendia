@@ -48,8 +48,10 @@ pages and by third-party integrations (LiteLLM, promptfoo, OpenClaw):
   count toward the output cap (hence `max_completion_tokens: 6000`).
 - Standard pricing $1.25 / $4.25 per million input / output tokens.
 
-**UNVERIFIED (settled only by the first live call):** the exact `json_schema` wrapper (`name`, `strict`, `schema`); which JSON-Schema
-keywords strict mode accepts (the wire schema deliberately uses only `type`, `properties`, `required`, `additionalProperties`,
+**Matches Meta's documented structured-output example** (muse-spark-1.3, Chat Completions): `response_format = { type: "json_schema",
+json_schema: { name, schema } }`, answer read from `choices[0].message.content`. No `strict` field is sent.
+
+**UNVERIFIED (settled only by the first live call):** which JSON-Schema keywords Meta accepts (including nullable `type` arrays; the wire schema deliberately uses only `type`, `properties`, `required`, `additionalProperties`,
 `items`, `enum`, while every length/pattern/count limit is still enforced locally); the max-tokens parameter name; the refusal field;
 the error-body shape; timeouts; and the Standard data-policy text for 1.3.
 

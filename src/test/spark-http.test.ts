@@ -50,8 +50,13 @@ describe("the request body", () => {
   it("asks for structured output through response_format with the wire schema", () => {
     expect(body.response_format).toEqual({
       type: "json_schema",
-      json_schema: { name: "visit_extraction", strict: true, schema: SPARK_WIRE_SCHEMA },
+      json_schema: { name: "visit_extraction", schema: SPARK_WIRE_SCHEMA },
     });
+  });
+  it("matches Meta's documented wrapper exactly: json_schema has only name and schema, no strict", () => {
+    expect(Object.keys(body.response_format).sort()).toEqual(["json_schema", "type"]);
+    expect(Object.keys(body.response_format.json_schema).sort()).toEqual(["name", "schema"]);
+    expect(JSON.stringify(body)).not.toContain('"strict"');
   });
   it("never uses reasoning_effort none (a reported 400), and leaves room for the answer after reasoning", () => {
     expect(body.reasoning_effort).toBe("low");

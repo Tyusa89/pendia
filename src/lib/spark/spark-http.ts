@@ -7,8 +7,9 @@
 //               structured output through `response_format` on Chat Completions (the Responses API's `text.format` sent here
 //               is a 400); the model always reasons and `reasoning_effort: "none"` is a 400; reasoning tokens are billed as
 //               output and count toward the output cap.
-//   UNVERIFIED: the exact `response_format.json_schema` wrapper (name / strict / schema), which JSON-Schema keywords strict mode
-//               accepts, the max-tokens parameter name, the refusal field, the error-body shape, any timeout limits.
+//   documented: Meta's structured-output example for muse-spark-1.3 sends `response_format: { type: "json_schema", json_schema:
+//               { name, schema } }` (no `strict` field) and reads `choices[0].message.content`; this builder matches it.
+//   UNVERIFIED: which JSON-Schema keywords Meta's structured output accepts (nullable type arrays included), the max-tokens parameter name, the refusal field, the error-body shape, any timeout limits.
 // Every UNVERIFIED item is a one-line change here. The first live call exists to settle them; nothing is presented as fact.
 import {
   SPARK_MODEL_ID,
@@ -78,7 +79,7 @@ export interface ChatCompletionsBody {
   messages: Array<{ role: "system" | "user"; content: string }>;
   response_format: {
     type: "json_schema";
-    json_schema: { name: string; strict: true; schema: unknown };
+    json_schema: { name: string; schema: unknown };
   };
   reasoning_effort: typeof SPARK_REASONING_EFFORT;
   max_completion_tokens: number;
@@ -95,7 +96,7 @@ export function buildChatCompletionsBody(req: SparkRequest): ChatCompletionsBody
     ],
     response_format: {
       type: "json_schema",
-      json_schema: { name: "visit_extraction", strict: true, schema: SPARK_WIRE_SCHEMA },
+      json_schema: { name: "visit_extraction", schema: SPARK_WIRE_SCHEMA },
     },
     reasoning_effort: SPARK_REASONING_EFFORT,
     max_completion_tokens: SPARK_MAX_OUTPUT_TOKENS,
