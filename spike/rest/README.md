@@ -64,18 +64,18 @@ multipart parser) to check this. Small remaining differences from curl, none of 
 
 ## Files
 
-| File                                          | Purpose                                                                               |
-| --------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `config.ts`                                   | Endpoint, model, mode, limits, timeout, approval token, error type                    |
-| `wav-check.ts`                                | Validates format, duration, size                                                      |
-| `request.ts`                                  | Builds the single POST; `describeRequest` for the redacted plan                       |
-| `response.ts`                                 | Strict parser for the reply; key-name-only shape report                               |
-| `run.ts`                                      | The one-shot runner: guards, single-call latch + lock, timeout, no retry, redaction   |
-| `scorecard.ts`                                | Sanitized scorecard; word error rate                                                  |
-| `synth.ts`                                    | Local synthetic two-voice audio (ffmpeg `flite`), deterministic layout, real overlaps |
-| `cli.ts`                                      | `generate`, `check`, `plan`, `run`                                                    |
-| `tests/`                                      | Offline tests (no network)                                                            |
-| `../../.github/workflows/meta-rest-spike.yml` | Manual, protected workflow                                                            |
+| File           | Purpose                                                                                           |
+| -------------- | ------------------------------------------------------------------------------------------------- |
+| `config.ts`    | Endpoint, model, mode, limits, timeout, approval token, error type                                |
+| `wav-check.ts` | Validates format, duration, size                                                                  |
+| `request.ts`   | Builds the single POST; `describeRequest` for the redacted plan                                   |
+| `response.ts`  | Strict parser for the reply; key-name-only shape report                                           |
+| `run.ts`       | The one-shot runner: guards, single-call latch + lock, timeout, no retry, redaction               |
+| `raw.ts`       | Saves the raw reply (status, allowlisted headers, body bytes) before anything is parsed or scored |
+| `scorecard.ts` | Sanitized scorecard; word error rate                                                              |
+| `synth.ts`     | Local synthetic two-voice audio (ffmpeg `flite`), deterministic layout, real overlaps             |
+| `cli.ts`       | `generate`, `check`, `plan`, `run`                                                                |
+| `tests/`       | Offline tests (no network)                                                                        |
 
 Reused from `../diarization/`: the script parser and ground truth, the scorer and its thresholds (unchanged: at least
 90% turn accuracy, zero patient-to-doctor leakage, fail closed), `scrubSecret`, `assertStandardModel`, `safeOutputPath`.
@@ -107,37 +107,35 @@ Audio and scorecards are written only under the git-ignored `spike-output/` (own
 - Errors carry fixed codes only (`http_429`, `timeout`, `malformed_response`, ...), with the key and any `Bearer` token scrubbed.
 - The scorecard holds numbers, booleans, turn numbers, fixed codes and key names. Tests prove no transcript text appears.
 - Nothing in `dev`, `build`, `lint`, `test` or `spike:test` runs the CLI; the application never reads `META_API_KEY`.
-- The workflow reads the key only from the environment secret `META_SPIKE_ENV_API_KEY` and refuses (before the CLI starts) when it is empty.
 
-## GitHub Actions path (NOT the chosen path)
+## No GitHub Actions path
 
-**Required reviewers is unavailable for this private repository on the current GitHub plan, so GitHub cannot pause this workflow for a second approval.** The chosen path is a local run (next section). Anything below is only relevant if the workflow is ever used, and must not be treated as independent approval.
+**There is no GitHub Actions workflow for this test.** Required reviewers is unavailable for this private repository on the
+current GitHub plan, so GitHub cannot pause a workflow for a second approval, and a typed phrase is only a declaration. The
+live-capable workflow added in #37 is removed by this branch (and a test fails if any workflow that mentions the spike, the
+key or `workflow_dispatch` reappears). The one live call is made from the operator's own machine, with the key held only in
+that terminal session. Until this branch is merged, the older workflow file from #37 is still on `main`; it uses the old,
+wrong request format and should be left disabled.
 
-### One-time GitHub setup (needs a repository admin; nothing here has been configured)
+## Raw reply preservation
 
-**Order matters: do all of this, and verify it in GitHub, BEFORE this PR is merged.** Merging is the moment the workflow
-becomes dispatchable. The environment can be created before the workflow file exists.
+The reply to the one paid request is written to disk **before anything checks the status, parses JSON or scores it**, so a
+surprising reply can always be examined, even when parsing fails. Two files are created (exclusive create, owner-only mode,
+never overwriting earlier evidence) in the git-ignored `spike-output\` folder, which `safeOutputPath` enforces:
 
-1. **Settings -> Environments -> New environment**, name exactly `meta-spike`. GitHub silently creates a missing environment
-   with _no_ protection when a workflow names it, so it must already exist, configured, when the workflow first runs.
-2. In `meta-spike`: **Required reviewers** -> add the founder (and nobody who should not be able to release a paid call).
-   Leave "Prevent self-review" as appropriate for a one-person team, and tick **Prevent administrators from bypassing** if offered.
-3. **Deployment branches and tags -> Selected branches -> `main`** only.
-4. **Environment secrets -> Add secret** named exactly **`META_SPIKE_ENV_API_KEY`** (the Pendia Development key), **inside
-   `meta-spike`, not as a repository secret.** The workflow reads _only_ this name. The existing repository-level `META_API_KEY`
-   is **not used** by this workflow and is never read by it; whether to keep or delete that repository secret is a separate
-   decision, and nothing in this repository touches it.
-5. **Verify independently in GitHub** (the workflow cannot check these for you): open Settings -> Environments -> `meta-spike`
-   and confirm that Required reviewers lists the right person, Deployment branches shows Selected branches = `main`, and the
-   environment (not the repository) holds `META_SPIKE_ENV_API_KEY`. Only then merge.
-6. The workflow file must be on `main` to run (it refuses other refs), so it can only be used after the PR is merged.
+| File                          | Contents                                                                                                                                                                                                                   |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `rest-raw-response.body`      | The body exactly as received (bytes, not decoded text)                                                                                                                                                                     |
+| `rest-raw-response.meta.json` | HTTP status, whether it was a success, only the headers `content-type`, `content-length`, `content-encoding` and `date`, byte counts, SHA-256 of what was received and of what was saved, elapsed time, and a capture time |
 
-**What the workflow does if setup is incomplete.** The key comes only from `secrets.META_SPIKE_ENV_API_KEY`. If the
-environment or that secret is missing, GitHub supplies an empty value, the live step's guard prints a refusal and exits
-before the CLI starts, and (as a second layer) the CLI itself refuses an empty key before claiming the single call. So an
-auto-created, unprotected environment cannot reach the repository-level key. **This is a second layer only:** it does not
-replace the required reviewer or the main-only rule, which stop an unauthorized run from starting at all, and it cannot
-detect them. Configure and verify those first.
+What is never stored: any request header, the Authorization value, cookies or any other response header. If the body happens to
+contain the API key, it is replaced by `***` and recorded (`keyRedactions`, plus both hashes). Nothing is truncated silently: the
+reply is read up to a hard ceiling of 32 MiB, and a longer reply is cut with `truncated: true` in the metadata and the
+scorecard. If no reply arrives (timeout, network error) only the metadata file is written, with the outcome code. A failure to
+write never hides the result: the scorecard reports `rawResponse.saved: false` with a fixed error code.
+
+The scorecard carries only facts about these files (names, status, sizes, hashes), never their content. The body is a fictional
+transcript, but treat it as local evidence: do not paste it anywhere unless asked.
 
 ## Running the single test locally on Windows (the chosen path)
 
@@ -184,6 +182,9 @@ node spike/rest/cli.ts run --wav C:\pendia-spike\audio\rest-synthetic.wav --timi
 Get-Content spike-output\rest-scorecard.json      # sanitized: numbers, codes, key names; no transcript text, no key
 Remove-Item Env:META_API_KEY, Env:SPIKE_ALLOW_LIVE -ErrorAction SilentlyContinue
 ```
+
+After the run, the sanitized evidence is also on disk: `Get-Content spike-output\rest-raw-response.meta.json` shows the status, headers
+and hashes (safe to paste). The body file `spike-output\rest-raw-response.body` is the raw reply; do not paste it unless asked.
 
 Then close the terminal and revoke or rotate the key. The runner makes exactly one request and never retries; it claims a latch and
 an exclusive lock file (`spike-output\rest-call.lock`) before sending, so a failed call still blocks a second attempt. Do not delete

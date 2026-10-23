@@ -15,6 +15,7 @@ import { blockNetwork, blockedFetch, FAKE_KEY, goodTurns, json, wavBytes } from 
 
 let dir: string;
 let lock: string;
+let rawPaths: { body: string; meta: string };
 const env = { META_API_KEY: FAKE_KEY, SPIKE_ALLOW_LIVE: APPROVAL_TOKEN };
 const wav = wavBytes({ seconds: 3 });
 
@@ -23,11 +24,12 @@ beforeEach(() => {
   _resetLatchForTests();
   dir = mkdtempSync(join(tmpdir(), "rest-spike-test-"));
   lock = join(dir, "rest-call.lock");
+  rawPaths = { body: join(dir, "raw.body"), meta: join(dir, "raw.meta.json") };
 });
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
 const run = (fetchImpl: FetchLike, over: Partial<Parameters<typeof transcribeOnce>[0]> = {}) =>
-  transcribeOnce({ wav, env, confirmOneCall: true, fetchImpl, lockPath: lock, ...over });
+  transcribeOnce({ wav, env, confirmOneCall: true, fetchImpl, lockPath: lock, rawPaths, ...over });
 const codeOf = async (p: Promise<unknown>) => {
   try {
     await p;

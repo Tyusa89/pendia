@@ -1,5 +1,6 @@
 // @vitest-environment node
-// The live call can only happen through the protected workflow or an explicit command. These tests pin that down.
+// The live call can only happen through an explicit command typed on the operator's own machine. There is NO GitHub
+// Actions workflow for it. These tests pin that down.
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -10,93 +11,22 @@ import { FAKE_KEY, wavBytes } from "./helpers.ts";
 
 const root = new URL("../../../", import.meta.url).pathname;
 const read = (p: string) => readFileSync(join(root, p), "utf8");
-const wf = read(".github/workflows/meta-rest-spike.yml");
-const code = wf.replace(/^\s*#.*$/gm, ""); // ignore comments
 
-describe("protected manual workflow", () => {
-  it("is workflow_dispatch only: no push, pull request, schedule, merge or other trigger", () => {
-    const on = code.split(/^permissions:/m)[0]!;
-    expect(on).toMatch(/^on:\n {2}workflow_dispatch:/m);
-    for (const t of [
-      "push",
-      "pull_request",
-      "pull_request_target",
-      "schedule",
-      "workflow_run",
-      "repository_dispatch",
-      "release",
-      "merge_group",
-      "issues",
-      "issue_comment",
-    ])
-      expect(on).not.toMatch(new RegExp(`^\\s*${t}:`, "m"));
+describe("no GitHub Actions workflow can run the live call", () => {
+  const dir = join(root, ".github/workflows");
+  const files = existsSync(dir) ? readdirSync(dir) : [];
+  it("the live-capable workflow file is gone", () => {
+    expect(existsSync(join(dir, "meta-rest-spike.yml"))).toBe(false);
   });
-  it("needs the protected environment, a typed approval phrase and main, with a timeout and concurrency guard", () => {
-    expect(code).toMatch(/^\s+environment: meta-spike$/m);
-    expect(code).toMatch(/^\s+timeout-minutes: 10$/m);
-    expect(code).toMatch(
-      /^concurrency:\n {2}group: meta-rest-spike\n {2}cancel-in-progress: false/m,
-    );
-    expect(code).toMatch(
-      /if: github\.ref == 'refs\/heads\/main' && inputs\.approval == 'I_HAVE_APPROVAL'/,
-    );
-    expect(APPROVAL_TOKEN).toBe("I_HAVE_APPROVAL");
+  it("no workflow file exists that mentions the spike, the key, or the environment", () => {
+    for (const f of files)
+      expect(read(`.github/workflows/${f}`), f).not.toMatch(
+        /spike\/rest|spike:rest|META_API_KEY|META_SPIKE|meta-spike|asr\/transcribe/,
+      );
   });
-  it("has read-only permissions and never asks for write access", () => {
-    expect(code).toMatch(/^permissions:\n {2}contents: read$/m);
-    expect(code).not.toMatch(/:\s*write\b/);
-    expect(code).not.toMatch(/id-token|pull-requests|actions:|packages|deployments/);
-  });
-  it("uses ONLY the environment secret META_SPIKE_ENV_API_KEY and never the repository-level META_API_KEY", () => {
-    expect(code.match(/secrets\./g)).toHaveLength(1);
-    expect(code.match(/secrets\.META_SPIKE_ENV_API_KEY\b/g)).toHaveLength(1);
-    expect(code).not.toMatch(/secrets\.META_API_KEY\b/);
-    expect(code).not.toMatch(
-      /secrets\.GITHUB_TOKEN|secrets\.\w*\[|toJSON\(secrets\)|secrets: inherit/,
-    );
-  });
-  it("exposes the secret to exactly one step, as an environment variable, and never prints it", () => {
-    const steps = code.split(/^\s+- name: /m).slice(1);
-    const withSecret = steps.filter((s) => s.includes("secrets.META_SPIKE_ENV_API_KEY"));
-    expect(withSecret).toHaveLength(1);
-    expect(withSecret[0]).toMatch(/^ONE live transcription request/);
-    expect(withSecret[0]).toMatch(/META_API_KEY: \$\{\{ secrets\.META_SPIKE_ENV_API_KEY \}\}/);
-    // nothing prints, traces or dumps the environment
-    expect(code).not.toMatch(
-      /(echo|printf|cat|tee)[^\n]*\$\{?META_API_KEY|set -x|printenv|^\s*env\s*$|toJSON|--debug|ACTIONS_STEP_DEBUG/m,
-    );
-  });
-  it("refuses when the secret is absent or empty: a guard in the live step runs BEFORE the CLI and exits non-zero", () => {
-    const step = code
-      .split(/^\s+- name: /m)
-      .find((x) => x.startsWith("ONE live transcription request"))!;
-    const guard = step.indexOf('if [ -z "${META_API_KEY}" ]; then');
-    const exit1 = step.indexOf("exit 1", guard);
-    const cli = step.indexOf("node spike/rest/cli.ts run");
-    expect(guard).toBeGreaterThan(-1);
-    expect(exit1).toBeGreaterThan(guard);
-    expect(cli).toBeGreaterThan(exit1); // the refusal comes first, so no request can follow it
-    expect(step).toMatch(/No request was made/);
-    // the guard's only use of the variable is the emptiness test (never its value)
-    expect(step.match(/\$\{?META_API_KEY/g)).toHaveLength(1);
-  });
-  it("makes the one live call once, with the confirm flag, and uploads no artifacts", () => {
-    expect(code.match(/spike\/rest\/cli\.ts run/g)).toHaveLength(1);
-    expect(code).toMatch(/--live --confirm-one-call/);
-    expect(code).not.toMatch(/upload-artifact|actions\/cache|download-artifact|release/);
-    expect(code).not.toMatch(/\bcurl\b|\bwget\b/);
-  });
-  it("pins every action to a full commit SHA, drops checkout credentials and installs no dependencies", () => {
-    const uses = [...code.matchAll(/uses:\s*(\S+)/g)].map((m) => m[1]!);
-    expect(uses.length).toBeGreaterThan(0);
-    for (const u of uses) expect(u).toMatch(/^[\w.-]+\/[\w.-]+@[0-9a-f]{40}$/);
-    expect(code).toMatch(/persist-credentials: false/);
-    expect(code).not.toMatch(/npm (ci|install)|bun (install|i)\b|pnpm|yarn/);
-  });
-  it("is the only workflow, so nothing else can reach the runner", () => {
-    for (const f of readdirSync(join(root, ".github/workflows")))
-      if (f !== "meta-rest-spike.yml")
-        expect(read(`.github/workflows/${f}`)).not.toMatch(/spike\/rest|META_API_KEY/);
+  it("the repository defines no workflow_dispatch workflow at all", () => {
+    for (const f of files)
+      expect(read(`.github/workflows/${f}`), f).not.toMatch(/workflow_dispatch/);
   });
 });
 
@@ -218,29 +148,28 @@ describe("the command line is disabled by default", () => {
   it("cleans up", () => rmSync(dir, { recursive: true, force: true }));
 });
 
-describe("setup documentation", () => {
+describe("documentation", () => {
   const readme = read("spike/rest/README.md");
-  it("names the environment-only secret and says the repository-level key is not used", () => {
-    expect(readme).toContain("META_SPIKE_ENV_API_KEY");
-    expect(readme).toMatch(/repository-level `META_API_KEY`[\s\S]{0,80}?\*\*not used\*\*/);
-  });
-  it("says reviewer and main-only rules must be configured and verified in GitHub before merge", () => {
-    expect(readme).toMatch(/Required reviewers/);
-    expect(readme).toMatch(/Selected branches/);
-    expect(readme).toMatch(/verif(y|ied) (them )?(independently )?in GitHub/i);
-    expect(readme).toMatch(/before (this PR is )?merg/i);
+  it("says there is no GitHub Actions path and the run is local", () => {
+    expect(readme).toMatch(/There is no GitHub Actions workflow/);
+    expect(readme).toMatch(/Running the single test locally on Windows/);
+    expect(readme).not.toMatch(/Run workflow|Environment secrets|environment `meta-spike`/);
   });
   it("documents the official multipart layout: `request` is JSON with no filename, and `audio` is the WAV", () => {
     expect(readme).toMatch(/type=application\/json/);
     expect(readme).toMatch(/\*\*no filename\*\*/);
     expect(readme).toContain("rest-synthetic.wav");
-    expect(readme).not.toContain("Unverified multipart detail");
   });
-  it("documents the local Windows run, the Windows path handling, and that Required reviewers is unavailable", () => {
-    expect(readme).toMatch(/Running the single test locally on Windows/);
+  it("documents the Windows path handling and secure key entry", () => {
     expect(readme).toContain("fileURLToPath");
-    expect(readme).toMatch(/Required reviewers is unavailable/);
     expect(readme).toMatch(/Read-Host[^\n]*-AsSecureString/);
     expect(readme).not.toMatch(/setx\s+META/);
+  });
+  it("documents the raw response files: what is saved, what never is, and that truncation is recorded", () => {
+    expect(readme).toContain("rest-raw-response.body");
+    expect(readme).toContain("rest-raw-response.meta.json");
+    expect(readme).toMatch(/before (anything|the reply is)[^\n]*(checks|parsed|parses)/i);
+    expect(readme).toMatch(/truncated/);
+    expect(readme).toMatch(/never (stored|saved|written)/i);
   });
 });

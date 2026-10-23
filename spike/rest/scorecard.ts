@@ -4,6 +4,7 @@ import { scoreSegments, type ScoreResult } from "../diarization/score.ts";
 import { tokenize, type Turn } from "../diarization/groundtruth.ts";
 import type { Segment } from "../diarization/events.ts";
 import { MODEL, REST_URL } from "./config.ts";
+import type { RawInfo } from "./raw.ts";
 import type { ObservedShape } from "./response.ts";
 import type { WavInfo } from "./wav-check.ts";
 
@@ -24,6 +25,20 @@ export interface Scorecard {
     reportedAudioSeconds: number | null;
     observedKeys: ObservedShape;
   };
+  /** Facts about the saved raw reply (file names, sizes, hashes). Never its content. */
+  rawResponse: {
+    saved: boolean;
+    error: string | null;
+    bodyFile: string | null;
+    metaFile: string | null;
+    status: number | null;
+    bytesReceived: number;
+    bytesSaved: number;
+    truncated: boolean;
+    keyRedactions: number;
+    sha256Original: string | null;
+    sha256Saved: string | null;
+  } | null;
   score: {
     scorable: boolean;
     pass: boolean;
@@ -77,6 +92,7 @@ export function buildScorecard(input: {
   segments: Segment[] | null;
   parseErrorCode: string | null;
   reportedAudioSeconds?: number | null;
+  raw?: RawInfo | null;
   observed: ObservedShape;
   truth: Turn[];
   timings?: Record<string, [number, number]>;
@@ -98,6 +114,7 @@ export function buildScorecard(input: {
         }
       : null,
     notes: input.notes ?? [],
+    rawResponse: input.raw ? { ...input.raw } : null,
   };
   if (!segs) {
     return {

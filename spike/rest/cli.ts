@@ -9,7 +9,15 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { safeOutputPath } from "../diarization/output.ts";
 import { parseScript } from "../diarization/groundtruth.ts";
-import { APPROVAL_TOKEN, LOCK_NAME, RestSpikeError, SCORECARD_NAME } from "./config.ts";
+import {
+  APPROVAL_TOKEN,
+  LOCK_NAME,
+  RAW_BODY_NAME,
+  RAW_META_NAME,
+  RestSpikeError,
+  SCORECARD_NAME,
+} from "./config.ts";
+import type { RawInfo } from "./raw.ts";
 import { describeRequest } from "./request.ts";
 import { observedShape, parseTranscribeResponse } from "./response.ts";
 import { sanitize, transcribeOnce } from "./run.ts";
@@ -73,6 +81,11 @@ async function main(): Promise<number> {
       : undefined;
     const lockPath = safeOutputPath(undefined, LOCK_NAME);
     const scorePath = safeOutputPath(undefined, SCORECARD_NAME);
+    const rawPaths = {
+      body: safeOutputPath(undefined, RAW_BODY_NAME),
+      meta: safeOutputPath(undefined, RAW_META_NAME),
+    };
+    let rawInfo: RawInfo | null = null;
     const key = process.env["META_API_KEY"] ?? "";
     let card;
     try {
@@ -82,6 +95,10 @@ async function main(): Promise<number> {
         confirmOneCall: args.includes("--confirm-one-call"),
         fetchImpl: (url, init) => fetch(url, init),
         lockPath,
+        rawPaths,
+        onRaw: (i) => {
+          rawInfo = i;
+        },
       });
       const observed = observedShape(r.json);
       let segments = null;
@@ -101,6 +118,7 @@ async function main(): Promise<number> {
         segments,
         parseErrorCode,
         reportedAudioSeconds,
+        raw: rawInfo,
         observed,
         truth: truth(),
         ...(timings ? { timings } : {}),
@@ -114,11 +132,20 @@ async function main(): Promise<number> {
         http: { status: err.status, elapsedMs: null },
         segments: null,
         parseErrorCode: err.code,
+        raw: rawInfo,
         observed: { top: [], turn: [] },
         truth: truth(),
         notes: ["The request did not produce a scorable reply."],
       });
     }
+    const r = rawInfo as RawInfo | null;
+    console.error(
+      r
+        ? r.saved
+          ? `Raw reply saved (status ${r.status ?? "none"}, ${r.bytesSaved} bytes) to ${r.bodyFile ?? "(no body)"} and ${r.metaFile}. Not printed.`
+          : `Raw reply could NOT be saved (${r.error ?? "unknown"}).`
+        : "No reply arrived, so there is no raw reply to save.",
+    );
     writeFileSync(scorePath, JSON.stringify(card, null, 2), { mode: 0o600 });
     console.log(JSON.stringify(card, null, 2));
     return card.score.pass ? 0 : 1;

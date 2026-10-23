@@ -87,6 +87,7 @@ describe("the scorecard is sanitized", () => {
         "live",
         "model",
         "notes",
+        "rawResponse",
         "response",
         "schema",
         "score",
