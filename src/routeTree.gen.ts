@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as DemoRouteImport } from './routes/demo'
 import { Route as AuthenticatedAskRouteImport } from './routes/_authenticated/ask'
 import { Route as AuthenticatedCoverageRouteImport } from './routes/_authenticated/coverage'
+import { Route as AuthenticatedDevSparkRouteImport } from './routes/_authenticated/dev-spark'
 import { Route as AuthenticatedDigestRouteImport } from './routes/_authenticated/digest'
 import { Route as AuthenticatedFamilyRouteImport } from './routes/_authenticated/family'
 import { Route as AuthenticatedHandoffsRouteImport } from './routes/_authenticated/handoffs'
@@ -53,6 +54,11 @@ const AuthenticatedAskRoute = AuthenticatedAskRouteImport.update({
 const AuthenticatedCoverageRoute = AuthenticatedCoverageRouteImport.update({
   id: '/coverage',
   path: '/coverage',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDevSparkRoute = AuthenticatedDevSparkRouteImport.update({
+  id: '/dev-spark',
+  path: '/dev-spark',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedDigestRoute = AuthenticatedDigestRouteImport.update({
@@ -115,6 +121,7 @@ export interface FileRoutesByFullPath {
   '/demo': typeof DemoRoute
   '/ask': typeof AuthenticatedAskRoute
   '/coverage': typeof AuthenticatedCoverageRoute
+  '/dev-spark': typeof AuthenticatedDevSparkRoute
   '/digest': typeof AuthenticatedDigestRoute
   '/family': typeof AuthenticatedFamilyRoute
   '/handoffs': typeof AuthenticatedHandoffsRoute
@@ -132,6 +139,7 @@ export interface FileRoutesByTo {
   '/demo': typeof DemoRoute
   '/ask': typeof AuthenticatedAskRoute
   '/coverage': typeof AuthenticatedCoverageRoute
+  '/dev-spark': typeof AuthenticatedDevSparkRoute
   '/digest': typeof AuthenticatedDigestRoute
   '/family': typeof AuthenticatedFamilyRoute
   '/handoffs': typeof AuthenticatedHandoffsRoute
@@ -151,6 +159,7 @@ export interface FileRoutesById {
   '/demo': typeof DemoRoute
   '/_authenticated/ask': typeof AuthenticatedAskRoute
   '/_authenticated/coverage': typeof AuthenticatedCoverageRoute
+  '/_authenticated/dev-spark': typeof AuthenticatedDevSparkRoute
   '/_authenticated/digest': typeof AuthenticatedDigestRoute
   '/_authenticated/family': typeof AuthenticatedFamilyRoute
   '/_authenticated/handoffs': typeof AuthenticatedHandoffsRoute
@@ -170,6 +179,7 @@ export interface FileRouteTypes {
     | '/demo'
     | '/ask'
     | '/coverage'
+    | '/dev-spark'
     | '/digest'
     | '/family'
     | '/handoffs'
@@ -187,6 +197,7 @@ export interface FileRouteTypes {
     | '/demo'
     | '/ask'
     | '/coverage'
+    | '/dev-spark'
     | '/digest'
     | '/family'
     | '/handoffs'
@@ -205,6 +216,7 @@ export interface FileRouteTypes {
     | '/demo'
     | '/_authenticated/ask'
     | '/_authenticated/coverage'
+    | '/_authenticated/dev-spark'
     | '/_authenticated/digest'
     | '/_authenticated/family'
     | '/_authenticated/handoffs'
@@ -266,6 +278,13 @@ declare module '@tanstack/react-router' {
       path: '/coverage'
       fullPath: '/coverage'
       preLoaderRoute: typeof AuthenticatedCoverageRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/dev-spark': {
+      id: '/_authenticated/dev-spark'
+      path: '/dev-spark'
+      fullPath: '/dev-spark'
+      preLoaderRoute: typeof AuthenticatedDevSparkRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/digest': {
@@ -344,6 +363,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAskRoute: typeof AuthenticatedAskRoute
   AuthenticatedCoverageRoute: typeof AuthenticatedCoverageRoute
+  AuthenticatedDevSparkRoute: typeof AuthenticatedDevSparkRoute
   AuthenticatedDigestRoute: typeof AuthenticatedDigestRoute
   AuthenticatedFamilyRoute: typeof AuthenticatedFamilyRoute
   AuthenticatedHandoffsRoute: typeof AuthenticatedHandoffsRoute
@@ -359,6 +379,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAskRoute: AuthenticatedAskRoute,
   AuthenticatedCoverageRoute: AuthenticatedCoverageRoute,
+  AuthenticatedDevSparkRoute: AuthenticatedDevSparkRoute,
   AuthenticatedDigestRoute: AuthenticatedDigestRoute,
   AuthenticatedFamilyRoute: AuthenticatedFamilyRoute,
   AuthenticatedHandoffsRoute: AuthenticatedHandoffsRoute,

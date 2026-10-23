@@ -68,8 +68,8 @@ describe("no accidental invocation", () => {
     walk(join(root, "supabase"));
     expect(hits.filter((h) => !h.startsWith("package.json"))).toEqual([]);
   });
-  it("the application source never reads META_API_KEY", () => {
-    const bad: string[] = [];
+  it("the application source reads META_API_KEY only in the one gated, server-only Spark module", () => {
+    const found: string[] = [];
     const walk = (dir: string) => {
       for (const e of readdirSync(dir, { withFileTypes: true })) {
         const p = join(dir, e.name);
@@ -79,11 +79,13 @@ describe("no accidental invocation", () => {
           !/\/test\//.test(p) &&
           /META_API_KEY/.test(readFileSync(p, "utf8"))
         )
-          bad.push(p);
+          found.push(p.replace(root, ""));
       }
     };
     walk(join(root, "src"));
-    expect(bad).toEqual([]);
+    // src/server/*.server.ts cannot be imported by client code (the build denies it); the Spark live provider is gated
+    // behind SPARK_LIVE_ENABLED and an allow-list. Nothing else in src may mention the key.
+    expect(found).toEqual(["src/server/spark-synthetic.server.ts"]);
   });
 });
 
