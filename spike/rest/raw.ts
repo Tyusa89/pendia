@@ -8,9 +8,9 @@
 // saved body is cut AND `truncated` is recorded in the metadata and the scorecard.
 // This module makes no network request; run.ts makes the only one.
 import { createHash } from "node:crypto";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { accessSync, constants, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { basename, dirname } from "node:path";
-import { ALLOWED_HOST } from "./config.ts";
+import { ALLOWED_HOST, RestSpikeError } from "./config.ts";
 
 /** The only response headers written to disk. Anything else (set-cookie, request ids, tokens...) is dropped. */
 export const HEADER_ALLOWLIST = [
@@ -50,6 +50,43 @@ export const NOT_SAVED: RawInfo = Object.freeze({
 });
 
 const sha256 = (b: Uint8Array) => createHash("sha256").update(b).digest("hex");
+
+/**
+ * Checked BEFORE the one-call lock is claimed, so a mistake here can never cost the authorization:
+ * both paths must be given (distinct, non-empty text), no earlier evidence may exist at either path, and the folder must
+ * be creatable and writable. Touches the file system only (creates the folder if needed); no network, writes no files.
+ */
+export function assertRawPathsUsable(
+  rawPaths: { body?: unknown; meta?: unknown } | null | undefined,
+): void {
+  const body = rawPaths?.body;
+  const meta = rawPaths?.meta;
+  if (
+    typeof body !== "string" ||
+    typeof meta !== "string" ||
+    body.trim() === "" ||
+    meta.trim() === "" ||
+    body === meta
+  )
+    throw new RestSpikeError(
+      "raw_paths_missing",
+      "Where to save the raw reply was not given; nothing was claimed or sent.",
+    );
+  if (existsSync(body) || existsSync(meta))
+    throw new RestSpikeError(
+      "raw_exists",
+      "Earlier raw-reply evidence exists at the target; it is never overwritten. Nothing was sent.",
+    );
+  try {
+    mkdirSync(dirname(meta), { recursive: true, mode: 0o700 });
+    accessSync(dirname(meta), constants.W_OK);
+  } catch {
+    throw new RestSpikeError(
+      "raw_unwritable",
+      "The folder for the raw reply cannot be written; nothing was claimed or sent.",
+    );
+  }
+}
 
 /** Reads the body as bytes up to `limit`; a longer body is cut and reported, never silently. Stream errors keep what arrived. */
 export async function readBounded(

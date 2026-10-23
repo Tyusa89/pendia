@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { APPROVAL_TOKEN, MAX_RAW_BYTES, MAX_RESPONSE_BYTES } from "../config.ts";
-import { redactKey, readBounded } from "../raw.ts";
+import { redactKey, readBounded, saveRaw } from "../raw.ts";
 import { parseTranscribeResponse, observedShape } from "../response.ts";
 import { _resetLatchForTests, transcribeOnce, type FetchLike } from "../run.ts";
 import { buildScorecard } from "../scorecard.ts";
@@ -256,22 +256,48 @@ describe("no reply at all", () => {
   });
 });
 
-describe("saving never hides the result and never overwrites evidence", () => {
-  it("an unwritable location is reported as raw_write_failed while the call's own outcome is unchanged", async () => {
+describe("evidence is protected, and a bad raw location is refused BEFORE the call is claimed", () => {
+  it("existing evidence is never overwritten: the call is refused up front, so the authorization is not spent", async () => {
+    writeFileSync(paths.body, "EARLIER EVIDENCE");
+    const f = vi.fn(reply("{}", 200));
+    const { err } = await run(f as unknown as FetchLike);
+    expect(err!.code).toBe("raw_exists");
+    expect(f).not.toHaveBeenCalled();
+    expect(existsSync(join(dir, "rest-call.lock"))).toBe(false);
+    expect(readFileSync(paths.body, "utf8")).toBe("EARLIER EVIDENCE");
+  });
+  it("an unwritable location is refused up front (fetch not called, lock not created)", async () => {
     const blocker = join(dir, "afile");
     writeFileSync(blocker, "x");
-    const text = JSON.stringify(goodTurns([["A", "hi"]]));
-    const { ok, raw } = await run(reply(text), {
+    const f = vi.fn(reply("{}", 200));
+    const { err } = await run(f as unknown as FetchLike, {
       rawPaths: { body: join(blocker, "b"), meta: join(blocker, "m.json") },
     });
-    expect(ok!.status).toBe(200);
-    expect(raw).toMatchObject({ saved: false, error: "raw_write_failed" });
+    expect(err!.code).toBe("raw_unwritable");
+    expect(f).not.toHaveBeenCalled();
+    expect(existsSync(join(dir, "rest-call.lock"))).toBe(false);
   });
-  it("existing evidence is never overwritten", async () => {
-    writeFileSync(paths.body, "EARLIER EVIDENCE");
-    const { raw } = await run(reply("{}", 200));
-    expect(raw).toMatchObject({ saved: false, error: "raw_exists" });
-    expect(readFileSync(paths.body, "utf8")).toBe("EARLIER EVIDENCE");
+  it("if saving still fails AFTER the reply (e.g. the disk fills), the result is not hidden and nothing throws", () => {
+    const blocker = join(dir, "afile2");
+    writeFileSync(blocker, "x");
+    const info = saveRaw({
+      bodyPath: join(blocker, "b"),
+      metaPath: join(blocker, "m.json"),
+      key: FAKE_KEY,
+      status: 200,
+      ok: true,
+      bytes: new Uint8Array([1, 2, 3]),
+      truncated: false,
+      readError: false,
+      elapsedMs: 1,
+      outcome: "reply_received",
+    });
+    expect(info).toMatchObject({
+      saved: false,
+      error: "raw_write_failed",
+      status: 200,
+      bytesReceived: 3,
+    });
   });
 });
 

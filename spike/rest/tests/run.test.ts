@@ -125,6 +125,8 @@ describe("the one request", () => {
     );
     _resetLatchForTests();
     rmSync(lock);
+    rmSync(rawPaths.body, { force: true });
+    rmSync(rawPaths.meta, { force: true });
     const big = "x".repeat(MAX_RESPONSE_BYTES + 1);
     expect((await codeOf(run((async () => json(big)) as FetchLike))).code).toBe(
       "response_too_large",
