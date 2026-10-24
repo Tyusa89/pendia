@@ -9,6 +9,7 @@
 import { DEMO_SPEAKER_SUGGESTION, DEMO_TRANSCRIPT } from "@/lib/visit-pipeline/fixture";
 import { extractWithModel, type SparkRejection } from "@/lib/visit-pipeline/spark-contract";
 import { SPARK_FIXTURE_ID } from "@/lib/spark/spark-live-input";
+import { isLisinoprilTenToTwenty } from "@/lib/spark/dose-match";
 import type { ConfirmedSpeakerMap, VisitExtraction } from "@/lib/visit-pipeline/types";
 import { makeSparkComplete, type FetchLike, type SparkCallResult } from "./spark-live.server";
 import type { SparkHttpError } from "@/lib/spark/spark-http";
@@ -59,7 +60,7 @@ export function sparkStatus(env: SparkEnv, userId: string): SparkStatus {
 }
 
 export interface SparkCheck {
-  /** a Lisinopril change to 20 mg, from the doctor */
+  /** a Lisinopril change from 10 mg to 20 mg (spelled out or in digits), from the doctor */
   medChange: boolean;
   /** the blood-test follow-up */
   task: boolean;
@@ -110,9 +111,7 @@ function summarize(
 ): SparkCheck {
   const all = [...x.med_changes, ...x.tasks, ...x.watch_items];
   return {
-    medChange: x.med_changes.some(
-      (m) => /lisinopril/i.test(m.medication) && /\b20\b/.test(m.after),
-    ),
+    medChange: x.med_changes.some(isLisinoprilTenToTwenty),
     task: x.tasks.some((t) => /blood test|drive/i.test(t.title)),
     watch: x.watch_items.some((w) => /ankle/i.test(w.text)),
     itemCount: all.length,
