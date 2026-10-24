@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { NOT_MEDICAL_ADVICE } from "@/lib/visit-pipeline/labels";
 import { SPARK_FIXTURE_ID } from "@/lib/spark/spark-live-input";
+import { sparkDisabledNotice } from "@/lib/spark/spark-status-notice";
 import { getSparkLiveStatus, runSparkSyntheticExtraction } from "@/lib/spark/spark-live.functions";
 
 // DEVELOPMENT TOOL. Not linked from any navigation. Protected twice: this route sits under the signed-in layout, and BOTH
@@ -50,11 +51,7 @@ function DevSpark() {
 
       {status.isLoading && <p>Checking…</p>}
       {status.isError && <p>This tool is not available.</p>}
-      {status.data && !status.data.enabled && (
-        <div className="space-y-2">
-          <p>This tool is not enabled.</p>
-        </div>
-      )}
+      {status.data && !status.data.enabled && <p>{sparkDisabledNotice(status.data)}</p>}
 
       {status.data?.enabled && (
         <section className="space-y-3 rounded-xl bg-card p-4 shadow-card" aria-label="Run">
