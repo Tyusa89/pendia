@@ -2,7 +2,7 @@
 // reads no environment itself (the caller passes the key in), and has no UI, storage or database access.
 //
 // Guarantees (each pinned by a test): exactly one POST per call, to exactly SPARK_CHAT_URL; the key only in the Authorization
-// header; a timeout; no redirects; no retries (there is no loop); a bounded body; errors are fixed codes. Nothing from a
+// header; a timeout; redirects refused, never followed; no retries (there is no loop); a bounded body; errors are fixed codes. Nothing from a
 // response body ever reaches an error message: only an allowlisted provider error token and an allowlisted transport cause
 // code are surfaced, because they are non-sensitive and make a failure diagnosable.
 import type { SparkRequest } from "@/lib/visit-pipeline/spark-contract";
@@ -84,6 +84,96 @@ export function providerErrorToken(bodyText: string): string | null {
   return null;
 }
 
+const DNS_CODES = new Set(["ENOTFOUND", "EAI_AGAIN", "EAI_NODATA", "EAI_FAIL", "EAI_NONAME"]);
+const CONNECTION_CODES = new Set([
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "ECONNABORTED",
+  "EPIPE",
+  "ETIMEDOUT",
+  "EHOSTUNREACH",
+  "ENETUNREACH",
+  "ENETDOWN",
+  "UND_ERR_SOCKET",
+  "UND_ERR_CLOSED",
+  "UND_ERR_CONNECT_TIMEOUT",
+]);
+const isTlsCode = (c: string) =>
+  /^(CERT_|UNABLE_TO_|DEPTH_ZERO_|SELF_SIGNED_|ERR_TLS_|ERR_SSL_|ERR_OSSL_)/.test(c) ||
+  c === "EPROTO";
+
+/** Error and cause messages are read ONLY to pick a fixed category; their text is never returned. */
+function errorText(e: unknown): string {
+  const m = (e as { message?: unknown } | null)?.message;
+  const c = (e as { cause?: { message?: unknown } } | null)?.cause?.message;
+  return `${typeof m === "string" ? m : ""} ${typeof c === "string" ? c : ""}`.toLowerCase();
+}
+
+/**
+ * Turns a thrown fetch/body error (no HTTP reply) into a fixed code and a fixed message. Only an allowlisted cause code and an
+ * allowlisted error-class name may be added; nothing from the error text, request or response is ever included.
+ */
+export function classifyTransportError(e: unknown): SparkHttpError {
+  const n = (e as { name?: string } | null)?.name;
+  if (n === "TimeoutError" || n === "AbortError")
+    return new SparkHttpError("timeout", "The request timed out.");
+  const code = causeCode(e);
+  const text = errorText(e);
+  const suffix = code ? ` (cause: ${code})` : "";
+  if (code && DNS_CODES.has(code))
+    return new SparkHttpError(
+      "dns_failure",
+      `The server could not resolve the Meta API host name${suffix}.`,
+    );
+  if (code && isTlsCode(code))
+    return new SparkHttpError(
+      "tls_failure",
+      `The secure (TLS) connection to Meta could not be established${suffix}.`,
+    );
+  if (code && CONNECTION_CODES.has(code))
+    return new SparkHttpError(
+      "connection_failed",
+      `The connection to Meta failed or was reset before a reply arrived${suffix}.`,
+    );
+  if (/redirect/.test(text))
+    return new SparkHttpError(
+      "redirect_refused",
+      "Meta answered with a redirect, which is refused.",
+    );
+  if (/getaddrinfo|enotfound|dns|name resolution|could not resolve/.test(text))
+    return new SparkHttpError(
+      "dns_failure",
+      `The server could not resolve the Meta API host name${suffix}.`,
+    );
+  if (/certificate|\btls\b|\bssl\b|handshake/.test(text))
+    return new SparkHttpError(
+      "tls_failure",
+      `The secure (TLS) connection to Meta could not be established${suffix}.`,
+    );
+  if (/connection (lost|reset|refused|closed)|socket|econn|network connection/.test(text))
+    return new SparkHttpError(
+      "connection_failed",
+      `The connection to Meta failed or was reset before a reply arrived${suffix}.`,
+    );
+  const kind = typeof n === "string" && /^[A-Za-z]{1,40}$/.test(n) ? n : null;
+  return new SparkHttpError(
+    "network_error",
+    `The request failed before a reply arrived${kind || code ? ` (${[kind ? `error: ${kind}` : "", code ? `cause: ${code}` : ""].filter(Boolean).join("; ")})` : ""}.`,
+  );
+}
+
+/** The host named by a redirect's Location header, only if it is a plain host name. */
+function redirectHost(res: Response): string | null {
+  try {
+    const loc = res.headers.get("location");
+    if (!loc) return null;
+    const host = new URL(loc, SPARK_CHAT_URL).hostname;
+    return /^[a-z0-9.-]{1,100}$/i.test(host) ? host : null;
+  } catch {
+    return null;
+  }
+}
+
 export interface SparkCallResult {
   parsed: ParsedChatCompletion;
   status: number;
@@ -117,17 +207,21 @@ export async function callSparkOnce(opts: {
         Accept: "application/json",
       },
       body,
-      redirect: "error",
+      redirect: "manual",
       signal: AbortSignal.timeout(opts.timeoutMs ?? SPARK_TIMEOUT_MS),
     });
   } catch (e) {
-    const n = (e as { name?: string } | null)?.name;
-    if (n === "TimeoutError" || n === "AbortError")
-      throw new SparkHttpError("timeout", "The request timed out.");
-    const cause = causeCode(e);
+    throw classifyTransportError(e);
+  }
+  // Redirects are never followed (a followed redirect could carry the key to another host). `manual` returns the 3xx itself,
+  // so it is reported as what it is instead of an anonymous network error.
+  if ((res.status >= 300 && res.status < 400) || res.type === "opaqueredirect") {
+    const host = redirectHost(res);
+    await res.body?.cancel().catch(() => undefined);
     throw new SparkHttpError(
-      "network_error",
-      `The request failed before a reply arrived${cause ? ` (cause: ${cause})` : ""}.`,
+      "redirect_refused",
+      `Meta answered HTTP ${res.status || 3} with a redirect${host ? ` to ${host}` : ""}, which is refused.`,
+      res.status || null,
     );
   }
   let text: string;
@@ -135,21 +229,18 @@ export async function callSparkOnce(opts: {
     text = await readBounded(res, SPARK_MAX_RESPONSE_BYTES);
   } catch (e) {
     if (e instanceof SparkHttpError) throw e;
-    const n = (e as { name?: string } | null)?.name;
-    if (n === "TimeoutError" || n === "AbortError")
-      throw new SparkHttpError("timeout", "The request timed out.");
-    const cause = causeCode(e);
-    throw new SparkHttpError(
-      "network_error",
-      `The reply was cut off before it finished${cause ? ` (cause: ${cause})` : ""}.`,
-    );
+    throw classifyTransportError(e);
   }
   const elapsedMs = now() - t0;
   if (!res.ok) {
     const token = providerErrorToken(text);
     throw new SparkHttpError(
       `http_${res.status}`,
-      `Meta answered HTTP ${res.status}${token ? ` (${token})` : ""}.`,
+      `Meta answered HTTP ${res.status}${token ? ` (${token})` : ""}${
+        res.status === 401 || res.status === 403
+          ? "; the server's API key was rejected or lacks access"
+          : ""
+      }.`,
       res.status,
     );
   }

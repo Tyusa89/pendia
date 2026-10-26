@@ -57,10 +57,32 @@ the error-body shape; timeouts; and the Standard data-policy text for 1.3.
 
 ## Failure behaviour
 
-Errors are fixed codes (`http_400`, `timeout`, `network_error (cause: ECONNRESET)`, `truncated`, `refused`, `invalid_answer`...).
-No response body, prompt text or key is ever returned or logged. For `invalid_answer` only the answer's size and its top-level key
-**names** are shown. An allowlisted provider error token (for example `invalid_request_error`) and an allowlisted transport cause
-code (for example `UNABLE_TO_VERIFY_LEAF_SIGNATURE`) are surfaced because they are non-sensitive and make a failure diagnosable.
+Errors are fixed codes. No response body, prompt text, error text or key is ever returned or logged. A request that gets no reply is
+classified into one of these (the error's text is used only to choose the class, never shown); an allowlisted cause code such as
+`ECONNRESET` and the error class name (such as `TypeError`) may be appended:
+
+| Code                                                                                    | Meaning                                                                                                                                              |
+| --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dns_failure`                                                                           | the host name could not be resolved (`ENOTFOUND`, `EAI_AGAIN`...)                                                                                    |
+| `connection_failed`                                                                     | refused, reset, unreachable or lost before a reply (`ECONNREFUSED`, `ECONNRESET`, "network connection lost"...)                                      |
+| `tls_failure`                                                                           | the TLS handshake or certificate check failed                                                                                                        |
+| `redirect_refused`                                                                      | Meta answered 3xx. Redirects are never followed (the key must not travel to another host); only the status and the target **host name** are reported |
+| `timeout`                                                                               | no complete reply within 60 s                                                                                                                        |
+| `network_error`                                                                         | anything else that threw before a reply: shows only `(error: <class>; cause: <code>)`                                                                |
+| `http_401` / `http_403`                                                                 | Meta rejected the key or the key lacks access (the message says so)                                                                                  |
+| `http_<status>`                                                                         | any other HTTP reply, with an allowlisted provider error token such as `invalid_request_error`                                                       |
+| `malformed_response`, `response_too_large`, `truncated`, `refused`, `invalid_answer`... | a reply that is not usable                                                                                                                           |
+
+For `invalid_answer` only the answer's size and its top-level key **names** are shown. There is no retry in any case.
+
+## Which key the app uses
+
+The server reads **only** the variable `META_API_KEY` (`src/server/spark-synthetic.server.ts`), from the server runtime's
+environment (Lovable Cloud -> Secrets). Nothing selects between keys and nothing logs or fingerprints the value, so the code cannot
+tell you which Meta key is stored. Keep the two purposes separate in Meta's console: the **Pendia Development** key for this app,
+the **meta-spike** key for spike testing only. To check which key a call used, look at the per-key usage in Meta's dashboard after
+an authorized test; to change the key, replace the value of `META_API_KEY` in Lovable Cloud -> Secrets (paste it directly into
+that field; never into chat, a commit or an issue).
 
 ## Not in scope
 
