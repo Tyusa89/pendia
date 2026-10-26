@@ -51,7 +51,7 @@ describe("the one request", () => {
     const f = fakeMeta(text);
     await call(f);
     const init = f.mock.calls[0]![1];
-    expect(init.redirect).toBe("error");
+    expect(init.redirect).toBe("manual"); // never followed: a 3xx is reported as redirect_refused
     expect(init.signal).toBeInstanceOf(AbortSignal);
   });
   it("measures elapsed time with the injected clock", async () => {
@@ -131,7 +131,7 @@ describe("failures are fixed codes, never raw responses", () => {
       });
     });
     const e = await fail(call(f));
-    expect(e.code).toBe("network_error");
+    expect(e.code).toBe("connection_failed");
     expect(e.message).toContain("(cause: ECONNRESET)");
     expect(e.message).not.toContain(KEY);
     expect(e.message).not.toContain("secret detail");
@@ -168,7 +168,7 @@ describe("failures are fixed codes, never raw responses", () => {
     const f = vi.fn(async () => new Response(stream, { status: 200 }));
     const e = await fail(call(f));
     expect(e).toBeInstanceOf(SparkHttpError);
-    expect(e.code).toBe("network_error");
+    expect(e.code).toBe("connection_failed");
     expect(e.message).toContain("ECONNRESET");
     expect(e.message).not.toContain("SECRET-BODY-TEXT");
     expect(f).toHaveBeenCalledTimes(1);

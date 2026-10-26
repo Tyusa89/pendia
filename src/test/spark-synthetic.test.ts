@@ -280,7 +280,7 @@ describe("failures return fixed codes and no raw content", () => {
       });
     });
     const r = await run(f);
-    expect(r).toMatchObject({ ok: false, code: "network_error" });
+    expect(r).toMatchObject({ ok: false, code: "tls_failure" });
     expect(r.ok === false && r.message).toContain("UNABLE_TO_VERIFY_LEAF_SIGNATURE");
     expect(f).toHaveBeenCalledTimes(1);
   });
