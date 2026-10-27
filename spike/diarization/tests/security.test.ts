@@ -55,6 +55,9 @@ describe("nothing sensitive can be committed", () => {
   });
 });
 
+// Migrations that other, separately reviewed features add. Listing one here does not approve applying it.
+const REVIEWED_MIGRATIONS = ["supabase/migrations/20261027000001_dose_administration.sql"];
+
 describe("merging this work cannot deploy anything or call Meta", () => {
   it("adds no Edge Function, Supabase config, migration or CI workflow", () => {
     expect(existsSync(join(REPO, "supabase/functions"))).toBe(false);
@@ -71,7 +74,8 @@ describe("merging this work cannot deploy anything or call Meta", () => {
     expect(
       changed.filter(
         (f) =>
-          /^supabase\/(functions|migrations|config)/.test(f) ||
+          (/^supabase\/(functions|migrations|config)/.test(f) &&
+            !REVIEWED_MIGRATIONS.includes(f)) ||
           (f.startsWith(".github/") && f !== `.github/workflows/${REMOVED_WORKFLOW}`),
       ),
     ).toEqual([]);

@@ -151,6 +151,10 @@ export const visitService = {
   },
 };
 
+// ---------- Dose administration reports (Feature C): implemented in ./dose-service ----------
+export { doseService } from "./dose-service";
+export type { ScheduleRow, ReportArgs } from "./dose-service";
+
 // ---------- Medications ----------
 export const medicationService = {
   async list(familyId: string) {

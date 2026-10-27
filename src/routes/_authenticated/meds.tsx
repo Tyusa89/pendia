@@ -5,16 +5,25 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Empty, PageTitle, Panel, WithFamily } from "@/components/AppShell";
+import { MedicationDay } from "@/components/medication-day/MedicationDay";
 import { medicationService } from "@/services";
 
 export const Route = createFileRoute("/_authenticated/meds")({
   head: () => ({
     meta: [
       { title: "Medications — Pendia" },
-      { name: "description", content: "The shared current medication list." }, { property: "og:title", content: "Medications — Pendia" }, { property: "og:description", content: "The shared current medication list." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" },
+      { name: "description", content: "The shared current medication list." },
+      { property: "og:title", content: "Medications — Pendia" },
+      { property: "og:description", content: "The shared current medication list." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: () => <WithFamily>{({ family }) => <Meds familyId={family.id} />}</WithFamily>,
+  component: () => (
+    <WithFamily>
+      {({ family, me }) => <Meds familyId={family.id} timeZone={family.timezone} me={me} />}
+    </WithFamily>
+  ),
 });
 
 const statusStyle: Record<string, string> = {
@@ -23,7 +32,15 @@ const statusStyle: Record<string, string> = {
   stopped: "bg-muted text-muted-foreground",
 };
 
-function Meds({ familyId }: { familyId: string }) {
+function Meds({
+  familyId,
+  timeZone,
+  me,
+}: {
+  familyId: string;
+  timeZone: string;
+  me: { id: string; role: string; can_see_meds: boolean };
+}) {
   const qc = useQueryClient();
   const { data = [] } = useQuery({
     queryKey: ["meds", familyId],
@@ -75,6 +92,14 @@ function Meds({ familyId }: { familyId: string }) {
           </Button>
         </Panel>
       )}
+      <MedicationDay
+        familyId={familyId}
+        timeZone={timeZone}
+        me={me}
+        medications={data
+          .filter((m) => m.status === "active")
+          .map((m) => ({ id: m.id, name: m.name }))}
+      />
       {data.length === 0 ? (
         <Empty>No medications listed.</Empty>
       ) : (
@@ -82,18 +107,21 @@ function Meds({ familyId }: { familyId: string }) {
           {data.map((m) => (
             <Panel key={m.id} className="space-y-4">
               <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-              <div className="min-w-0">
-                <p className="break-words text-xl font-semibold">
-                  {m.name} <span className="font-normal text-muted-foreground">{m.dose}</span>
-                </p>
+                <div className="min-w-0">
+                  <p className="break-words text-xl font-semibold">
+                    {m.name} <span className="font-normal text-muted-foreground">{m.dose}</span>
+                  </p>
+                </div>
+                <span
+                  className={`shrink-0 rounded-full px-3 py-1 text-[0.8235rem] font-bold capitalize ${statusStyle[m.status]}`}
+                >
+                  {m.status}
+                </span>
               </div>
-              <span
-                className={`shrink-0 rounded-full px-3 py-1 text-[0.8235rem] font-bold capitalize ${statusStyle[m.status]}`}
-              >
-                {m.status}
-              </span>
+              <div className="border-t border-border pt-3">
+                <p className="font-semibold">When to take it</p>
+                <p className="mt-1 text-muted-foreground">{m.schedule || "Schedule not set"}</p>
               </div>
-              <div className="border-t border-border pt-3"><p className="font-semibold">When to take it</p><p className="mt-1 text-muted-foreground">{m.schedule || "Schedule not set"}</p></div>
             </Panel>
           ))}
         </div>
