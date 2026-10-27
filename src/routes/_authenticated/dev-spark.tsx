@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { NOT_MEDICAL_ADVICE } from "@/lib/visit-pipeline/labels";
+import type { MedVerification } from "@/lib/visit-pipeline/med-verifier";
+import { verificationLabel } from "@/lib/visit-pipeline/verification-labels";
 import { SPARK_FIXTURE_ID } from "@/lib/spark/spark-live-input";
 import { sparkDisabledNotice } from "@/lib/spark/spark-status-notice";
 import { getSparkLiveStatus, runSparkSyntheticExtraction } from "@/lib/spark/spark-live.functions";
@@ -109,6 +111,10 @@ function DevSpark() {
                 Items kept: {result.check.itemCount}; dropped for missing evidence:{" "}
                 {result.check.rejectedCount}
               </li>
+              <li>
+                Medication values verified: <strong>{result.check.medVerified}</strong>; unverified
+                (kept for review): <strong>{result.check.medUnverified}</strong>
+              </li>
             </ul>
           </div>
 
@@ -120,6 +126,7 @@ function DevSpark() {
                 head: `${m.medication}: ${m.before} → ${m.after}${m.timing ? ` (${m.timing})` : ""}`,
                 s: m.source,
                 unclear: m.unclear,
+                v: m.verification,
               })),
             ],
             [
@@ -149,6 +156,7 @@ function DevSpark() {
                   head: string;
                   s: { speaker: string; start_s: number; quote: string };
                   unclear: boolean;
+                  v?: MedVerification | undefined;
                 }>
               ).length === 0 ? (
                 <p className="text-muted-foreground">None.</p>
@@ -160,6 +168,7 @@ function DevSpark() {
                       head: string;
                       s: { speaker: string; start_s: number; quote: string };
                       unclear: boolean;
+                      v?: MedVerification | undefined;
                     }>
                   ).map((i) => (
                     <li key={i.id} className="rounded-lg bg-muted p-3">
@@ -174,6 +183,12 @@ function DevSpark() {
                         {i.unclear
                           ? ` · Unclear: ${result.uncertainty[i.id] ?? "no reason given"}`
                           : ""}
+                      </p>
+                      <p className="text-sm">
+                        <strong>{verificationLabel(i.v).short}.</strong>{" "}
+                        <span className="text-muted-foreground">
+                          {verificationLabel(i.v).detail}
+                        </span>
                       </p>
                     </li>
                   ))}

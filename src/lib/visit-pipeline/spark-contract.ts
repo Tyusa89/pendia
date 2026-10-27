@@ -10,10 +10,13 @@
 //   * a structurally invalid answer (extra keys, wrong types, missing citation, prose around the JSON) is rejected whole and
 //     never repaired;
 //   * the summary is built by code from the accepted quotes, not written by the model;
-//   * only the Standard model id is accepted, never a "-contributor" one.
+//   * only the Standard model id is accepted, never a "-contributor" one;
+//   * every medication item is labelled "value-verified" or "unverified" by med-verifier.ts, which reads the validated quote on
+//     its own (it never drops an item, and never grants "verified" without a quote that parses to the same values).
 // Not imported by Demo Mode, the routes or index.ts: the app cannot reach it. Synthetic data only.
 import { z } from "zod";
 import { assertSpeakerMap, guardExtraction, GuardError } from "./guard";
+import { verifyMedValue } from "./med-verifier";
 import { checkAgainstTranscript, parseVisitExtraction, ProviderOutputError } from "./schema";
 import type {
   ConfirmedSpeakerMap,
@@ -378,6 +381,11 @@ export function mapSparkOutput(
       timing: m.timing,
       unclear: m.uncertainty.state === "unclear",
       source,
+      // independent of the model: parsed from the validated quote only; labels the item, never removes it
+      verification: verifyMedValue(
+        { medication: m.medication, before: m.before, after: m.after },
+        source.quote,
+      ),
     });
   });
   const tasks: ProposedTask[] = [];

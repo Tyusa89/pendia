@@ -2,6 +2,7 @@
 // does not match is rejected (fail closed), never repaired. `checkAgainstTranscript` makes sure every quoted source is
 // really in the transcript, so an extraction cannot cite words nobody said.
 import { z } from "zod";
+import { VERIFICATION_REASONS, VERIFICATION_SCOPE } from "./med-verifier";
 import type { TranscriptResult, VisitExtraction } from "./types";
 
 const provenance = z.discriminatedUnion("mode", [
@@ -55,6 +56,18 @@ const source = z
   .object({ speaker: z.string().min(1), start_s: z.number().min(0), quote: z.string().min(1) })
   .strict();
 const id = z.string().min(1);
+const verification = z
+  .object({
+    status: z.enum(["value-verified", "unverified"]),
+    reason: z.enum(VERIFICATION_REASONS),
+    scope: z.literal(VERIFICATION_SCOPE),
+  })
+  .strict()
+  // fail closed: "value-verified" is only ever paired with the reason "verified", and nothing else may carry it
+  .refine(
+    (v) => (v.status === "value-verified") === (v.reason === "verified"),
+    "inconsistent verification",
+  );
 
 export const visitExtractionSchema = z
   .object({
@@ -70,6 +83,7 @@ export const visitExtractionSchema = z
           timing: z.string().nullable(),
           unclear: z.boolean(),
           source,
+          verification: verification.optional(),
         })
         .strict(),
     ),
@@ -114,7 +128,8 @@ export function parseTranscriptResult(value: unknown): TranscriptResult {
 export function parseVisitExtraction(value: unknown): VisitExtraction {
   const r = visitExtractionSchema.safeParse(value);
   if (!r.success) throw fail("The visit summary", r.error);
-  return r.data;
+  // zod types an absent optional as `| undefined`; the parsed object simply omits the key.
+  return r.data as VisitExtraction;
 }
 
 const norm = (s: string) =>

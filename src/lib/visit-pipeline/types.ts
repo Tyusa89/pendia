@@ -2,6 +2,7 @@
 // return. Demo Mode implements them with prerecorded synthetic data; the live Muse Voice Transcribe / Muse Spark 1.3
 // providers (server-side only, after the spike is approved) will implement the same interfaces, so the screens and the
 // safety rules do not change when they are connected.
+import type { MedVerification } from "./med-verifier";
 
 /**
  * Where a result came from. A demo result can never be mistaken for a live one: the two shapes share no value, and the UI
@@ -69,6 +70,11 @@ export interface ProposedMedChange {
   timing: string | null;
   unclear: boolean;
   source: SourceRef;
+  /**
+   * Independent check of the values against the doctor's quote (live Spark items only; absent in Demo Mode). It covers the
+   * medication name, dose, unit and before/after direction, never timing or frequency. Absent = quotation-checked only.
+   */
+  verification?: MedVerification;
 }
 export interface ProposedTask {
   id: string;

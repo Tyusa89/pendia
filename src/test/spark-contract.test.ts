@@ -540,7 +540,9 @@ describe("the demo is untouched: the contract is isolated and unreachable from t
   it("the module imports only its pipeline siblings and zod: no Supabase, services, hooks, React or router", () => {
     const src = read("src/lib/visit-pipeline/spark-contract.ts");
     const imports = [...src.matchAll(/from\s+"([^"]+)"/g)].map((m) => m[1]);
-    expect(imports.sort()).toEqual(["./guard", "./schema", "./types", "zod"].sort());
+    expect(imports.sort()).toEqual(
+      ["./guard", "./med-verifier", "./schema", "./types", "zod"].sort(),
+    );
   });
   it("uses no network, device, storage or environment API", () => {
     const code = read("src/lib/visit-pipeline/spark-contract.ts").replace(/^\s*\/\/.*$/gm, "");
