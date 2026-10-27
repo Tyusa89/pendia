@@ -57,6 +57,19 @@ export function assertLiveApproved(
     );
 }
 
+/**
+ * Proxy mode sends no credential of its own, so a request that bypassed the proxy would reach Meta unauthenticated and use up
+ * the single call. Refuse before the call is claimed unless Node is told to route fetch through the session proxy.
+ */
+export function assertProxyConfigured(env: Record<string, string | undefined>): void {
+  const proxy = (env["HTTPS_PROXY"] ?? env["https_proxy"] ?? "").trim();
+  if (!proxy || env["NODE_USE_ENV_PROXY"] !== "1")
+    throw new RestSpikeError(
+      "proxy_not_configured",
+      "Proxy authentication needs HTTPS_PROXY and NODE_USE_ENV_PROXY=1, so the request goes through the agent proxy. Nothing was sent.",
+    );
+}
+
 /** Redacts the credential and any Bearer token from text that might reach a log or a scorecard. */
 export function sanitize(text: string, apiKey: string): string {
   return scrubSecret(text, apiKey)
@@ -88,6 +101,11 @@ export async function transcribeOnce(opts: {
   /** Receives the raw-save report even when the call then fails, so the scorecard can describe it. */
   onRaw?: (info: RawInfo) => void;
   timeoutMs?: number;
+  /**
+   * Opt-in proxy-authentication mode: no META_API_KEY is needed and no Authorization header is built; the agent proxy
+   * supplies it. Refused unless this process is itself routed through that proxy (see `assertProxyConfigured`).
+   */
+  authViaProxy?: boolean;
   /** Test hook: a smaller ceiling than MAX_RAW_BYTES. */
   rawLimit?: number;
   now?: () => number;
@@ -99,7 +117,8 @@ export async function transcribeOnce(opts: {
   try {
     // 1. Refusals that cost nothing.
     assertLiveApproved(opts.env, opts.confirmOneCall);
-    if (!key) throw new RestSpikeError("missing_key", "META_API_KEY is not set.");
+    if (opts.authViaProxy) assertProxyConfigured(opts.env);
+    else if (!key) throw new RestSpikeError("missing_key", "META_API_KEY is not set.");
     // A call already made (this process, or this folder) is reported as such before anything else is checked.
     if (latch)
       throw new RestSpikeError(
@@ -113,7 +132,9 @@ export async function transcribeOnce(opts: {
       );
     assertRawPathsUsable(opts.rawPaths); // before the call is claimed: a mistake here can never cost the authorization
     const audio = validateWavForUpload(opts.wav);
-    const { url, init } = buildTranscribeRequest(key, opts.wav);
+    const { url, init } = buildTranscribeRequest(key, opts.wav, undefined, {
+      authViaProxy: opts.authViaProxy === true,
+    });
     assertEndpointAllowed(url);
 
     // 2. Claim the single call. After this point the request may be made, so nothing below can ever run twice.

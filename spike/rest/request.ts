@@ -13,7 +13,7 @@ export interface BuiltRequest {
   url: string;
   init: RequestInit & {
     body: Uint8Array<ArrayBuffer>;
-    headers: { Authorization: string; Accept: string; "Content-Type": string };
+    headers: { Authorization?: string; Accept: string; "Content-Type": string };
   };
 }
 
@@ -71,19 +71,32 @@ export function buildMultipartBody(
   return out;
 }
 
+export interface RequestOptions {
+  /**
+   * Proxy-authentication mode (opt-in). The request carries NO Authorization header and `apiKey` is not read: the
+   * Claude Cloud agent proxy adds the Bearer header for api.meta.ai (a network secret), so the key never enters this process.
+   */
+  authViaProxy?: boolean;
+}
+
 export function buildTranscribeRequest(
   apiKey: string,
   wav: Uint8Array,
   boundary?: string,
+  options: RequestOptions = {},
 ): BuiltRequest {
-  const key = (apiKey ?? "").trim();
-  if (!key) throw new RestSpikeError("missing_key", "META_API_KEY is required (server-side only).");
-  // A key that could break out of the header is refused outright, without echoing it.
-  if ([...key].some((c) => c.charCodeAt(0) <= 32 || c.charCodeAt(0) === 127))
-    throw new RestSpikeError(
-      "bad_key_format",
-      "META_API_KEY contains whitespace or control characters.",
-    );
+  const viaProxy = options.authViaProxy === true;
+  const key = viaProxy ? "" : (apiKey ?? "").trim();
+  if (!viaProxy) {
+    if (!key)
+      throw new RestSpikeError("missing_key", "META_API_KEY is required (server-side only).");
+    // A key that could break out of the header is refused outright, without echoing it.
+    if ([...key].some((c) => c.charCodeAt(0) <= 32 || c.charCodeAt(0) === 127))
+      throw new RestSpikeError(
+        "bad_key_format",
+        "META_API_KEY contains whitespace or control characters.",
+      );
+  }
   assertStandardModel(MODEL);
 
   const b = boundary ?? randomBoundary();
@@ -92,7 +105,7 @@ export function buildTranscribeRequest(
     init: {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${key}`,
+        ...(viaProxy ? {} : { Authorization: `Bearer ${key}` }),
         Accept: "application/json",
         "Content-Type": `multipart/form-data; boundary=${b}`,
       },
@@ -106,15 +119,22 @@ export function buildTranscribeRequest(
 }
 
 /** What `plan` prints: the same request with the credential replaced and the audio summarized. */
-export function describeRequest(wavBytes: number) {
+export function describeRequest(wavBytes: number, options: RequestOptions = {}) {
+  const viaProxy = options.authViaProxy === true;
   return {
     method: "POST",
     url: REST_URL,
     headers: {
-      Authorization: "Bearer ***",
+      ...(viaProxy ? {} : { Authorization: "Bearer ***" }),
       Accept: "application/json",
       "Content-Type": "multipart/form-data; boundary=<random>",
     },
+    ...(viaProxy
+      ? {
+          authentication:
+            "none sent by this process: the agent proxy adds the Authorization header for api.meta.ai",
+        }
+      : {}),
     parts: {
       request: { contentType: "application/json", filename: null, json: requestPart() },
       audio: {

@@ -1,8 +1,8 @@
 // One-shot REST transcription test for Meta Voice Transcribe. Run with Node 22.18+ (type stripping) or Bun:
 //   node spike/rest/cli.ts generate [--out spike-output/rest-synthetic.wav]   build the synthetic WAV + timings (offline, ffmpeg)
 //   node spike/rest/cli.ts check    --wav f.wav                              validate the audio (offline)
-//   node spike/rest/cli.ts plan     --wav f.wav                              print the redacted request (offline, sends nothing)
-//   node spike/rest/cli.ts run      --wav f.wav [--timings t.json] --live --confirm-one-call
+//   node spike/rest/cli.ts plan     --wav f.wav [--auth-via-proxy]           print the redacted request (offline, sends nothing)
+//   node spike/rest/cli.ts run      --wav f.wav [--timings t.json] --live --confirm-one-call [--auth-via-proxy]
 //                                                                              THE ONE LIVE CALL. Refuses unless
 //                                                                              SPIKE_ALLOW_LIVE=I_HAVE_APPROVAL is set.
 // Nothing in package.json's test, build or lint scripts runs this file. It is DISABLED BY DEFAULT.
@@ -63,7 +63,13 @@ async function main(): Promise<number> {
   if (cmd === "plan") {
     const wav = readWav();
     validateWavForUpload(wav);
-    console.log(JSON.stringify(describeRequest(wav.byteLength), null, 2));
+    console.log(
+      JSON.stringify(
+        describeRequest(wav.byteLength, { authViaProxy: args.includes("--auth-via-proxy") }),
+        null,
+        2,
+      ),
+    );
     console.log("Plan only: nothing was sent. The credential is never printed.");
     return 0;
   }
@@ -93,6 +99,7 @@ async function main(): Promise<number> {
         wav,
         env: process.env,
         confirmOneCall: args.includes("--confirm-one-call"),
+        authViaProxy: args.includes("--auth-via-proxy"),
         fetchImpl: (url, init) => fetch(url, init),
         lockPath,
         rawPaths,
@@ -151,7 +158,7 @@ async function main(): Promise<number> {
     return card.score.pass ? 0 : 1;
   }
   console.error(
-    "Usage: cli.ts generate | check --wav f | plan --wav f | run --wav f [--timings t.json] --live --confirm-one-call",
+    "Usage: cli.ts generate | check --wav f | plan --wav f [--auth-via-proxy] | run --wav f [--timings t.json] --live --confirm-one-call [--auth-via-proxy]",
   );
   return 2;
 }

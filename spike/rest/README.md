@@ -109,6 +109,34 @@ Audio and scorecards are written only under the git-ignored `spike-output/` (own
 - The scorecard holds numbers, booleans, turn numbers, fixed codes and key names. Tests prove no transcript text appears.
 - Nothing in `dev`, `build`, `lint`, `test` or `spike:test` runs the CLI; the application never reads `META_API_KEY`.
 
+## Proxy authentication (opt-in): `--auth-via-proxy`
+
+Default behaviour is unchanged: the runner reads `META_API_KEY` from the environment and sends `Authorization: Bearer <key>`.
+
+When the test is run from a Claude Cloud session, a **network secret** can hold the key instead: the agent proxy adds the
+`Authorization: Bearer` header to requests for `api.meta.ai` after they leave the session's VM, so the key never enters this
+process, its environment, a file or a log. For that case `--auth-via-proxy` (opt-in, off by default) changes exactly two things:
+
+- no `Authorization` header is built or sent, and `META_API_KEY` is not required (a key that happens to be set is never sent
+  and is still redacted from anything saved);
+- the run is refused with `proxy_not_configured`, before the call is claimed, unless `HTTPS_PROXY` is set and
+  `NODE_USE_ENV_PROXY=1`. Without that, Node's `fetch` would bypass the proxy and Meta would receive an unauthenticated
+  request, using up the single call.
+
+Everything else is identical: the exact endpoint lock, `--live --confirm-one-call`, `SPIKE_ALLOW_LIVE=I_HAVE_APPROVAL`, the single
+call and its lock file, `redirect: "error"`, the 90 s timeout, no retry, raw-reply preservation and redaction.
+
+```sh
+node spike/rest/cli.ts plan --wav spike-output/rest-synthetic.wav --auth-via-proxy      # prints no Authorization header; sends nothing
+NODE_USE_ENV_PROXY=1 SPIKE_ALLOW_LIVE=I_HAVE_APPROVAL node spike/rest/cli.ts run \
+  --wav spike-output/rest-synthetic.wav --timings spike-output/rest-synthetic.timings.json \
+  --live --confirm-one-call --auth-via-proxy
+```
+
+Not verified: that the proxy attaches the header for this host and that Meta accepts the key. Only the live call shows that. If the
+proxy added no header, the reply is HTTP 401 and the single call is spent. The key still passes through the cloud egress gateway
+(it is not on the VM); the network secret and the allowed host should be removed afterwards.
+
 ## No GitHub Actions path
 
 **There is no GitHub Actions workflow for this test.** Required reviewers is unavailable for this private repository on the
