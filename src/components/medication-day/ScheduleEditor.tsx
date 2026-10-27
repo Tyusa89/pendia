@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Panel } from "@/components/AppShell";
+import { Card as Panel } from "@/components/medication-day/Card";
 import {
   WEEKDAY_LABEL,
   describeSchedule,

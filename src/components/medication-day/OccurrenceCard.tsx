@@ -1,7 +1,7 @@
 // One computed dose time on one day. Presentational only: no data access, so Demo Mode can reuse it.
 // A caregiver's report is shown as a report; "Not confirmed" is the honest state of a dose nobody has reported.
 import { Button } from "@/components/ui/button";
-import { Panel } from "@/components/AppShell";
+import { Card as Panel } from "@/components/medication-day/Card";
 import {
   CHANGE_REASON_LABEL,
   NOT_CONFIRMED_DETAIL,

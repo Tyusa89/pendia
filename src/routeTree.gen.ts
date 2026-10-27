@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as DemoRouteImport } from './routes/demo'
+import { Route as DemoMedsRouteImport } from './routes/demo-meds'
 import { Route as AuthenticatedAskRouteImport } from './routes/_authenticated/ask'
 import { Route as AuthenticatedCoverageRouteImport } from './routes/_authenticated/coverage'
 import { Route as AuthenticatedDevSparkRouteImport } from './routes/_authenticated/dev-spark'
@@ -44,6 +45,11 @@ const AuthRoute = AuthRouteImport.update({
 const DemoRoute = DemoRouteImport.update({
   id: '/demo',
   path: '/demo',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DemoMedsRoute = DemoMedsRouteImport.update({
+  id: '/demo-meds',
+  path: '/demo-meds',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAskRoute = AuthenticatedAskRouteImport.update({
@@ -119,6 +125,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/demo': typeof DemoRoute
+  '/demo-meds': typeof DemoMedsRoute
   '/ask': typeof AuthenticatedAskRoute
   '/coverage': typeof AuthenticatedCoverageRoute
   '/dev-spark': typeof AuthenticatedDevSparkRoute
@@ -137,6 +144,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/demo': typeof DemoRoute
+  '/demo-meds': typeof DemoMedsRoute
   '/ask': typeof AuthenticatedAskRoute
   '/coverage': typeof AuthenticatedCoverageRoute
   '/dev-spark': typeof AuthenticatedDevSparkRoute
@@ -157,6 +165,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/demo': typeof DemoRoute
+  '/demo-meds': typeof DemoMedsRoute
   '/_authenticated/ask': typeof AuthenticatedAskRoute
   '/_authenticated/coverage': typeof AuthenticatedCoverageRoute
   '/_authenticated/dev-spark': typeof AuthenticatedDevSparkRoute
@@ -177,6 +186,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/demo'
+    | '/demo-meds'
     | '/ask'
     | '/coverage'
     | '/dev-spark'
@@ -195,6 +205,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/demo'
+    | '/demo-meds'
     | '/ask'
     | '/coverage'
     | '/dev-spark'
@@ -214,6 +225,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/demo'
+    | '/demo-meds'
     | '/_authenticated/ask'
     | '/_authenticated/coverage'
     | '/_authenticated/dev-spark'
@@ -234,6 +246,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   DemoRoute: typeof DemoRoute
+  DemoMedsRoute: typeof DemoMedsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -264,6 +277,13 @@ declare module '@tanstack/react-router' {
       path: '/demo'
       fullPath: '/demo'
       preLoaderRoute: typeof DemoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/demo-meds': {
+      id: '/demo-meds'
+      path: '/demo-meds'
+      fullPath: '/demo-meds'
+      preLoaderRoute: typeof DemoMedsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/ask': {
@@ -400,6 +420,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   DemoRoute: DemoRoute,
+  DemoMedsRoute: DemoMedsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
