@@ -56,7 +56,10 @@ describe("nothing sensitive can be committed", () => {
 });
 
 // Migrations that other, separately reviewed features add. Listing one here does not approve applying it.
-const REVIEWED_MIGRATIONS = ["supabase/migrations/20261027000001_dose_administration.sql"];
+const REVIEWED_MIGRATIONS = [
+  "supabase/migrations/20261027000001_dose_administration.sql",
+  "supabase/migrations/20261027000002_family_delete_guard.sql",
+];
 
 describe("merging this work cannot deploy anything or call Meta", () => {
   it("adds no Edge Function, Supabase config, migration or CI workflow", () => {
