@@ -223,7 +223,7 @@ create or replace function public.dose_occurrences(_family_id uuid, _from date, 
 returns table (
   schedule_id uuid, medication_id uuid, medication_name text, dose_text text,
   local_date date, local_time time, tz text, scheduled_at timestamptz, time_state text,
-  status text, head_id uuid, reported_by_name text, reported_at timestamptz,
+  status text, head_id uuid, reported_by uuid, reported_by_name text, reported_at timestamptz,
   not_given_reason text, change_reason text, outside_window boolean,
   reports_differ boolean, open_disagreements int, history_count int
 )
@@ -239,7 +239,7 @@ begin
   if zone is null then return; end if;
   return query
   select o.sid, o.medication_id, o.mname, o.mdose, o.d, o.local_time, zone, o.sched_at, o.time_state,
-         coalesce(h.status, 'not_confirmed'), h.id, h.reporter_name, h.reported_at,
+         coalesce(h.status, 'not_confirmed'), h.id, h.reported_by, h.reporter_name, h.reported_at,
          h.not_given_reason, h.change_reason, coalesce(h.outside_window, false),
          coalesce(p.id is not null and p.reported_by <> h.reported_by and p.status is distinct from h.status, false),
          (select count(*)::int from public.dose_administration g where g.disputes = h.id),
