@@ -21,7 +21,7 @@ declare
   uc uuid := gen_random_uuid();   -- organizer of family C (nothing dose-related at all)
   ux uuid := gen_random_uuid();   -- organizer of family X (history, used for the administrator path)
   fa uuid; fb uuid; fc uuid; fx uuid; medA uuid; medB uuid; medX uuid; sA uuid; sB uuid; sX uuid;
-  lt date; n int := 0; c int; r record; guard_on boolean;
+  lt date; n int := 0; c int; r record; guard_on boolean; ec text; et text;
 begin
   insert into auth.users (id, aud, role, email) select u, 'authenticated', 'authenticated', u || '@test.invalid' from unnest(array[uo, um, ub, uc, ux]) u;
   insert into family (name, created_by) values ('Fam A', uo) returning id into fa;
@@ -111,8 +111,19 @@ begin
   reset role;
   select count(*) into c from dose_administration where family_id = fa and reporter_name = 'Carlos';
   if c <> 1 then raise exception 'FAIL: removing the member changed history'; end if; n := n + 1;
-  -- a medication with history is still protected by the existing foreign key
-  perform public.zz_expect_err(format($q$delete from medication where id = %L$q$, medA), 'update or delete on table "medication_schedule" violates foreign key constraint "dose_administration_schedule_id_fkey" on table "dose_administration"'); n := n + 1;
+  -- a medication with history is still protected by the existing foreign key: deleting it cascades to its schedule, and the
+  -- schedule is referenced by dose_administration_schedule_id_fkey (SQLSTATE 23503, constraint and table named by the server)
+  begin
+    delete from medication where id = medA;
+    raise exception 'FAIL: deleting a medication that has dose history was not refused';
+  exception when foreign_key_violation then
+    get stacked diagnostics ec = constraint_name, et = table_name;
+    if sqlstate <> '23503' or ec is distinct from 'dose_administration_schedule_id_fkey' or et is distinct from 'dose_administration' then
+      raise exception 'FAIL: expected 23503 on dose_administration_schedule_id_fkey / dose_administration, got % on % / %', sqlstate, ec, et; end if;
+  end;
+  n := n + 1;
+  select count(*) into c from medication where id = medA; if c <> 1 then raise exception 'FAIL: the medication was deleted'; end if; n := n + 1;
+  select count(*) into c from medication_schedule where id = sA; if c <> 1 then raise exception 'FAIL: the schedule was deleted'; end if; n := n + 1;
   -- history stays append-only
   perform public.zz_expect_err(format($q$delete from dose_administration where family_id = %L$q$, fa), 'dose reports are append-only: DELETE is not allowed'); n := n + 1;
   -- TRUNCATE ... CASCADE from the parent cannot wipe history either
