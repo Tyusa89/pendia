@@ -94,6 +94,107 @@ export type Database = {
           },
         ]
       }
+      dose_administration: {
+        Row: {
+          change_reason: string | null
+          client_request_id: string
+          disputes: string | null
+          dose_text: string | null
+          entry_kind: string
+          family_id: string
+          id: string
+          local_date: string
+          medication_name: string
+          not_given_reason: string | null
+          outside_window: boolean
+          reported_at: string
+          reported_by: string
+          reported_via: string
+          reporter_name: string
+          schedule_id: string
+          scheduled_at: string
+          seq: number
+          status: string | null
+          supersedes: string | null
+          tz: string
+        }
+        Insert: {
+          change_reason?: string | null
+          client_request_id: string
+          disputes?: string | null
+          dose_text?: string | null
+          entry_kind?: string
+          family_id: string
+          id?: string
+          local_date: string
+          medication_name: string
+          not_given_reason?: string | null
+          outside_window?: boolean
+          reported_at?: string
+          reported_by: string
+          reported_via?: string
+          reporter_name: string
+          schedule_id: string
+          scheduled_at: string
+          seq?: never
+          status?: string | null
+          supersedes?: string | null
+          tz: string
+        }
+        Update: {
+          change_reason?: string | null
+          client_request_id?: string
+          disputes?: string | null
+          dose_text?: string | null
+          entry_kind?: string
+          family_id?: string
+          id?: string
+          local_date?: string
+          medication_name?: string
+          not_given_reason?: string | null
+          outside_window?: boolean
+          reported_at?: string
+          reported_by?: string
+          reported_via?: string
+          reporter_name?: string
+          schedule_id?: string
+          scheduled_at?: string
+          seq?: never
+          status?: string | null
+          supersedes?: string | null
+          tz?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dose_administration_disputes_fkey"
+            columns: ["disputes"]
+            isOneToOne: false
+            referencedRelation: "dose_administration"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dose_administration_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "family"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dose_administration_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "medication_schedule"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dose_administration_supersedes_fkey"
+            columns: ["supersedes"]
+            isOneToOne: false
+            referencedRelation: "dose_administration"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       family: {
         Row: {
           created_at: string
@@ -307,6 +408,57 @@ export type Database = {
             columns: ["family_id"]
             isOneToOne: false
             referencedRelation: "family"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medication_schedule: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          days_of_week: number[]
+          ends_on: string | null
+          family_id: string
+          id: string
+          local_time: string
+          medication_id: string
+          starts_on: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          days_of_week: number[]
+          ends_on?: string | null
+          family_id: string
+          id?: string
+          local_time: string
+          medication_id: string
+          starts_on: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          days_of_week?: number[]
+          ends_on?: string | null
+          family_id?: string
+          id?: string
+          local_time?: string
+          medication_id?: string
+          starts_on?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medication_schedule_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "family"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medication_schedule_medication_id_fkey"
+            columns: ["medication_id"]
+            isOneToOne: false
+            referencedRelation: "medication"
             referencedColumns: ["id"]
           },
         ]
@@ -660,6 +812,72 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      dose_occurrences: {
+        Args: { _family_id: string; _from: string; _to: string }
+        Returns: {
+          change_reason: string
+          dose_text: string
+          head_id: string
+          history_count: number
+          local_date: string
+          local_time: string
+          medication_id: string
+          medication_name: string
+          not_given_reason: string
+          open_disagreements: number
+          outside_window: boolean
+          reported_at: string
+          reported_by: string
+          reported_by_name: string
+          reports_differ: boolean
+          schedule_id: string
+          scheduled_at: string
+          status: string
+          time_state: string
+          tz: string
+        }[]
+      }
+      dose_scheduled_at: {
+        Args: { _date: string; _time: string; _tz: string }
+        Returns: Record<string, unknown>
+      }
+      flag_dose_disagreement: {
+        Args: {
+          _client_request_id: string
+          _expected_head: string
+          _local_date: string
+          _schedule_id: string
+        }
+        Returns: {
+          change_reason: string | null
+          client_request_id: string
+          disputes: string | null
+          dose_text: string | null
+          entry_kind: string
+          family_id: string
+          id: string
+          local_date: string
+          medication_name: string
+          not_given_reason: string | null
+          outside_window: boolean
+          reported_at: string
+          reported_by: string
+          reported_via: string
+          reporter_name: string
+          schedule_id: string
+          scheduled_at: string
+          seq: number
+          status: string | null
+          supersedes: string | null
+          tz: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "dose_administration"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       is_family_member: { Args: { _family_id: string }; Returns: boolean }
       is_family_organizer: { Args: { _family_id: string }; Returns: boolean }
       join_demo_family: { Args: never; Returns: string }
@@ -671,6 +889,47 @@ export type Database = {
       recording_can_write: { Args: { p: string }; Returns: boolean }
       recording_path_family: { Args: { p: string }; Returns: string }
       recording_path_type: { Args: { p: string }; Returns: string }
+      report_dose: {
+        Args: {
+          _change_reason?: string
+          _client_request_id: string
+          _expected_head: string
+          _local_date: string
+          _not_given_reason?: string
+          _schedule_id: string
+          _status: string
+        }
+        Returns: {
+          change_reason: string | null
+          client_request_id: string
+          disputes: string | null
+          dose_text: string | null
+          entry_kind: string
+          family_id: string
+          id: string
+          local_date: string
+          medication_name: string
+          not_given_reason: string | null
+          outside_window: boolean
+          reported_at: string
+          reported_by: string
+          reported_via: string
+          reporter_name: string
+          schedule_id: string
+          scheduled_at: string
+          seq: number
+          status: string | null
+          supersedes: string | null
+          tz: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "dose_administration"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      valid_iso_days: { Args: { _d: number[] }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
