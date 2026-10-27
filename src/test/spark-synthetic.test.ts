@@ -179,6 +179,9 @@ describe("a full run against a fake Meta", () => {
       itemCount: 3,
       nonDoctorItems: 0,
       rejectedCount: 0,
+      // the fixture answer adds "once a day in the morning" to both doses, which the cited quote never said: kept, but unverified
+      medVerified: 0,
+      medUnverified: 1,
     });
     expect(r.extraction.provenance).toMatchObject({
       mode: "live",

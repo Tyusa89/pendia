@@ -141,6 +141,8 @@ describe("the dev check on the fictional visit with a fake Meta (no network)", (
       itemCount: 3,
       nonDoctorItems: 0,
       rejectedCount: 0,
+      medVerified: 1,
+      medUnverified: 0,
     });
     expect(r.extraction.med_changes[0]).toMatchObject({
       before: "ten milligrams",

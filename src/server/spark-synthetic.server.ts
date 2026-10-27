@@ -70,6 +70,10 @@ export interface SparkCheck {
   /** items whose source turn is NOT a doctor turn: must always be 0 */
   nonDoctorItems: number;
   rejectedCount: number;
+  /** medication items whose values the verifier confirmed against the quote (name, dose, unit, direction only) */
+  medVerified: number;
+  /** medication items kept for review but NOT verified; they are never dropped for this */
+  medUnverified: number;
 }
 
 export type SyntheticResult =
@@ -117,6 +121,8 @@ function summarize(
     itemCount: all.length,
     nonDoctorItems: all.filter((i) => map.map[i.source.speaker] !== "doctor").length,
     rejectedCount: rejected.length,
+    medVerified: x.med_changes.filter((m) => m.verification?.status === "value-verified").length,
+    medUnverified: x.med_changes.filter((m) => m.verification?.status !== "value-verified").length,
   };
 }
 
