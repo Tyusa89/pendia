@@ -26,3 +26,15 @@ period is `main` @ `b0ad286` (merge of PR #44, October 26, 2026).
   Timing, frequency and the instruction as a whole are not verified. Unverified items stay visible.
 - **Restrictions in force:** no live Meta calls, migrations, merges, deployments or publishing without separate approval.
 - **Pull request:** draft PR #45 (see the PR for tests and limitations).
+
+### 2026-10-27 05:49:40 UTC (00:49:40 CDT): Feature C started
+
+- **Feature:** C, medication administration reporting (Option B: persistent, permission-controlled; not demo-only).
+- **Authorization:** the founder's "Feature C Full Implementation Authorization".
+- **Baseline:** `main` @ `12af319` (merge of PR #46).
+- **Branch:** `feature-c-dose-administration`.
+- **Scope:** organizer-defined fixed-time schedules; occurrences computed, never stored or inferred from free text; Given / Not given /
+  Not confirmed as a family member's report (never "verified"); append-only history; corrections and disagreement flags; synthetic Demo Mode
+  at `/demo-meds`. Feature A verification stays independent.
+- **Restrictions in force:** the migration `20261027000001_dose_administration.sql` is committed but **not applied**; no merges,
+  deployments, publishing, credential changes or live Meta calls without separate approval.
