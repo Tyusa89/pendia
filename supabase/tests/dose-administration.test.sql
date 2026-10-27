@@ -605,6 +605,11 @@ begin
   ---------------------------------------------------------------- 11. deleting a whole family removes its history through the cascade (the explicit deletion path)
   select count(*) into c from dose_administration where family_id = fa;
   if c < 5 then raise exception 'FAIL: fixture: family A should have reports'; end if; n := n + 1;
+  -- when 20261027000002 (family-delete guard) is present the delete is refused; the administrator path is to switch the guard off
+  if exists (select 1 from pg_trigger where tgrelid = 'public.family'::regclass and tgname = 'family_delete_guard') then
+    perform public.zz_expect_err(format($q$delete from family where id = %L$q$, fa), 'family_has_dose_history'); n := n + 1;
+    alter table public.family disable trigger family_delete_guard;
+  end if;
   delete from family where id = fa;
   select count(*) into c from dose_administration where family_id = fa;
   if c <> 0 then raise exception 'FAIL: family deletion left reports behind'; end if; n := n + 1;
@@ -613,6 +618,9 @@ begin
   delete from family where id = fchi;
   select count(*) into c from dose_administration where family_id = fchi;
   if c <> 0 then raise exception 'FAIL: family deletion left reports behind (Chicago)'; end if; n := n + 1;
+  if exists (select 1 from pg_trigger where tgrelid = 'public.family'::regclass and tgname = 'family_delete_guard') then
+    alter table public.family enable trigger family_delete_guard;
+  end if;
 
   raise exception 'PASS: % assertions', n;
 end
