@@ -182,3 +182,85 @@ describe("offline fixture in the documented shape (synthetic script, no live cal
     expect(fixture.turns[7].startMs).toBeLessThan(fixture.turns[6].endMs);
   });
 });
+
+describe("live HTTP 200 reply (sanitized copy of the saved Meta response; sessionId replaced)", () => {
+  const live = JSON.parse(
+    readFileSync(new URL("./fixtures/live-200-sanitized.json", import.meta.url), "utf8"),
+  );
+  const truth = script();
+  // Reference turn windows (seconds) of the synthetic clip, as written by `generate` to rest-synthetic.timings.json.
+  const timings: Record<string, [number, number]> = {
+    "1": [0.5, 5.075],
+    "2": [5.761, 11.341],
+    "3": [11.824, 21.434],
+    "4": [22.133, 25.043],
+    "5": [25.582, 28.807],
+    "6": [29.528, 35.503],
+    "7": [36.022, 40.437],
+    "8": [39.237, 42.807],
+    "9": [43.304, 48.229],
+    "10": [48.698, 51.733],
+    "11": [52.238, 55.228],
+    "12": [55.818, 57.583],
+  };
+
+  it("contains the real quirk: one turn with an empty transcript and no speaker key", () => {
+    const quirky = live.turns.filter((t: Record<string, unknown>) => !("speaker" in t));
+    expect(quirky).toHaveLength(1);
+    expect(quirky[0].transcript).toBe("");
+  });
+  it("parses, ignoring only the empty non-speech turn", () => {
+    const p = parseTranscribeResponse(live);
+    expect(live.turns).toHaveLength(12);
+    expect(p.turnCount).toBe(11);
+    expect(p.ignoredEmptyTurns).toBe(1);
+    expect(p.speakerLabelCount).toBe(2);
+    expect(p.reportedAudioSeconds).toBe(58.24);
+    expect(p.segments.every((s) => s.text.trim() !== "")).toBe(true);
+  });
+  it("scores through the unchanged scorer: 12/12 speakers correct, no patient-to-doctor leakage", () => {
+    const p = parseTranscribeResponse(live);
+    const card = buildScorecard({
+      live: true,
+      audio: null,
+      http: { status: 200, elapsedMs: 0 },
+      segments: p.segments,
+      parseErrorCode: null,
+      reportedAudioSeconds: p.reportedAudioSeconds,
+      observed: observedShape(live),
+      truth,
+      timings,
+    });
+    expect(card.score.scorable).toBe(true);
+    expect(card.score.leakageTurns).toEqual([]);
+    expect(card.score.correctTurns).toBe(12);
+    expect(card.wordErrorRate).not.toBeNull();
+  });
+  it.each([
+    ["a nonempty turn with no speaker", { transcript: "hello" }],
+    ["a nonempty turn with a null speaker", { transcript: "hello", speaker: null }],
+    [
+      "a whitespace-only turn with a blank (non-missing) speaker",
+      { transcript: " ", speaker: " " },
+    ],
+    ["an empty turn with no timestamps", { startMs: undefined, endMs: undefined }],
+    ["an empty turn ending before it starts", { startMs: 5000, endMs: 1000 }],
+    ["an empty turn with an impossible time", { endMs: 1e12 }],
+    ["an empty turn without a turnId", { turnId: undefined }],
+    ["an empty turn whose transcript is not text", { transcript: null }],
+  ])("still rejects %s", (_n, over) => {
+    const emptyNoSpeaker = { turnId: 9, startMs: 100, endMs: 200, transcript: "" };
+    expect(code(reply({}, [turn(), { ...emptyNoSpeaker, ...over }]))).toBe("malformed_response");
+  });
+  it("still rejects a reply whose only turns are empty non-speech turns", () => {
+    const e = { turnId: 1, startMs: 0, endMs: 100, transcript: "" };
+    expect(code(reply({}, [e, { ...e, turnId: 2 }]))).toBe("malformed_response");
+  });
+  it("keeps an empty turn that DOES carry a speaker label as before (not counted as ignored)", () => {
+    const p = parseTranscribeResponse(
+      reply({}, [turn(), turn({ turnId: "t2", transcript: "", speaker: "B" })]),
+    );
+    expect(p.ignoredEmptyTurns).toBe(0);
+    expect(p.turnCount).toBe(2);
+  });
+});

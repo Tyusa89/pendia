@@ -17,6 +17,8 @@ export interface ParsedResponse {
   speakerLabelCount: number;
   /** The service's own measure of the audio length, in seconds (informational). */
   reportedAudioSeconds: number;
+  /** Turns with an empty transcript and no speaker (non-speech), left out of `segments`. */
+  ignoredEmptyTurns: number;
 }
 
 export interface ObservedShape {
@@ -65,15 +67,22 @@ export function parseTranscribeResponse(json: unknown): ParsedResponse {
   if (turns.length > MAX_TURNS) return fail("`turns` is implausibly long.");
 
   const segments: Segment[] = [];
+  let ignoredEmptyTurns = 0;
   for (const t of turns) {
     if (!isObject(t)) return fail("A turn is not an object.");
     if (label(t["turnId"]) === null) fail("A turn has no `turnId`.");
-    const speaker = label(t["speaker"]);
-    if (!speaker || speaker.length > 40) return fail("A turn has no usable `speaker`.");
     if (typeof t["transcript"] !== "string") return fail("A turn's `transcript` is not text.");
     const startMs = ms(t["startMs"], "`startMs`");
     const endMs = ms(t["endMs"], "`endMs`");
     if (endMs < startMs) return fail("A turn ends before it starts.");
+    // The live reply contained a non-speech turn: empty transcript and NO `speaker` key. It holds no spoken content, so it
+    // is ignored (and counted). Its id and times are still validated above; a turn with any text must still have a speaker.
+    if (t["transcript"].trim() === "" && (t["speaker"] === undefined || t["speaker"] === null)) {
+      ignoredEmptyTurns++;
+      continue;
+    }
+    const speaker = label(t["speaker"]);
+    if (!speaker || speaker.length > 40) return fail("A turn has no usable `speaker`.");
     segments.push({
       speaker,
       text: t["transcript"],
@@ -88,5 +97,6 @@ export function parseTranscribeResponse(json: unknown): ParsedResponse {
     turnCount: segments.length,
     speakerLabelCount: new Set(segments.map((s) => s.speaker)).size,
     reportedAudioSeconds: reportedMs / 1000,
+    ignoredEmptyTurns,
   };
 }
