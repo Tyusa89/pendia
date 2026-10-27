@@ -1,0 +1,90 @@
+{
+  "sessionId": "sanitized-session-id",
+  "transcript": "Good morning, Rosa. How have you you been feeling since the last visit? Pretty good. I take the lisinopril 10 milligrams every morning with my coffee. Your blood pressure is still a little high today. I want to increase the lisinopril from 10 milligrams to milligrams to 20 milligrams. Starting tomorrow. 20. Okay. Should I take it with food? Same as before. Once a day a day in the morning. I'm also booking a blood blood test within the next two weeks. Someone will need to drive you there. My son Carlos can probably drive me. Tell him him to call the lab first. Yes, the front desk will give you the lab's number. One more thing more thing. If your ankles start to swell call the office right away. Call the office if my ankles swell. I will. Good. We'll see you after the blood test. Thank you doctor.",
+  "audioDurationMs": 58240,
+  "turns": [
+    {
+      "turnId": 0,
+      "startMs": 460,
+      "endMs": 5740,
+      "transcript": "Good morning, Rosa. How have you you been feeling since the last visit?",
+      "speaker": "A"
+    },
+    {
+      "turnId": 1,
+      "startMs": 5820,
+      "endMs": 11980,
+      "transcript": "Pretty good. I take the lisinopril 10 milligrams every morning with my coffee.",
+      "speaker": "B"
+    },
+    {
+      "turnId": 2,
+      "startMs": 12380,
+      "endMs": 22140,
+      "transcript": "Your blood pressure is still a little high today. I want to increase the lisinopril from 10 milligrams to milligrams to 20 milligrams. Starting tomorrow.",
+      "speaker": "A"
+    },
+    {
+      "turnId": 3,
+      "startMs": 22220,
+      "endMs": 22380,
+      "transcript": ""
+    },
+    {
+      "turnId": 4,
+      "startMs": 22380,
+      "endMs": 25580,
+      "transcript": "20. Okay. Should I take it with food?",
+      "speaker": "B"
+    },
+    {
+      "turnId": 5,
+      "startMs": 25900,
+      "endMs": 29020,
+      "transcript": "Same as before. Once a day a day in the morning.",
+      "speaker": "A"
+    },
+    {
+      "turnId": 6,
+      "startMs": 29820,
+      "endMs": 36220,
+      "transcript": "I'm also booking a blood blood test within the next two weeks. Someone will need to drive you there.",
+      "speaker": "A"
+    },
+    {
+      "turnId": 7,
+      "startMs": 36380,
+      "endMs": 39980,
+      "transcript": "My son Carlos can probably drive me. Tell him him to call the lab first.",
+      "speaker": "B"
+    },
+    {
+      "turnId": 8,
+      "startMs": 39980,
+      "endMs": 48860,
+      "transcript": "Yes, the front desk will give you the lab's number. One more thing more thing. If your ankles start to swell call the office right away.",
+      "speaker": "A"
+    },
+    {
+      "turnId": 9,
+      "startMs": 48940,
+      "endMs": 52140,
+      "transcript": "Call the office if my ankles swell. I will.",
+      "speaker": "B"
+    },
+    {
+      "turnId": 10,
+      "startMs": 52700,
+      "endMs": 55980,
+      "transcript": "Good. We'll see you after the blood test.",
+      "speaker": "A"
+    },
+    {
+      "turnId": 11,
+      "startMs": 56060,
+      "endMs": 57660,
+      "transcript": "Thank you doctor.",
+      "speaker": "B"
+    }
+  ]
+}

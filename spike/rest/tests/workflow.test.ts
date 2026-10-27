@@ -85,7 +85,11 @@ describe("no accidental invocation", () => {
     walk(join(root, "src"));
     // src/server/*.server.ts cannot be imported by client code (the build denies it); the Spark live provider is gated
     // behind SPARK_LIVE_ENABLED and an allow-list. Nothing else in src may mention the key.
-    expect(found).toEqual(["src/server/spark-synthetic.server.ts"]);
+    // meta-transcribe.server.ts is the Handoff voice-transcription module: server-only, behind META_TRANSCRIBE_ENABLED, organizer-only.
+    expect(found).toEqual([
+      "src/server/meta-transcribe.server.ts",
+      "src/server/spark-synthetic.server.ts",
+    ]);
   });
 });
 
