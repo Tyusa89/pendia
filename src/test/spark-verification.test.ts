@@ -95,6 +95,19 @@ describe("the label on each accepted medication item", () => {
       reason: "unsupported_detail",
     });
   });
+  it("a schedule the doctor said in ANOTHER turn does not support the item: unverified, not silently accepted", () => {
+    // turn 5 really is "Same as before, once a day in the morning." but the item cites turn 3, which says no such thing
+    const r = map(
+      answer({
+        med_changes: [live({ after: "twenty milligrams once a day in the morning" })],
+      }),
+    );
+    expect(r.extraction.med_changes).toHaveLength(1);
+    expect(r.extraction.med_changes[0]!.verification).toMatchObject({
+      status: "unverified",
+      reason: "unsupported_detail",
+    });
+  });
   it("labels only medication items: tasks and watch items stay quotation-checked", () => {
     const r = map(answer({ med_changes: [live()] }));
     for (const t of r.extraction.tasks) expect(t).not.toHaveProperty("verification");

@@ -19,8 +19,11 @@ Reasons: `medication_not_in_quote`, `unparseable_value`, `missing_value`, `value
 ## What "value-verified" does NOT mean
 
 It does not say timing, frequency or the instruction as a whole was checked. Every label carries the scope text
-"medication name, dose, unit, and before/after direction". The strict extra-details rule only goes the other way: a word or number in
-the structured fields that the quote does not contain makes the item `unverified`.
+"medication name, dose, unit, and before/after direction". The strict extra-details rule only goes the other way: if a structured field
+says anything more about its dose (a frequency, a schedule, a form such as "extended-release"), the quote must say the same words
+**right next to that same dose** (commas and filler words aside). A word that merely appears elsewhere in the quote (another sentence,
+another medication, another meaning) supports nothing, and the item is `unverified`. A detail said for the new dose does not support the
+same detail claimed for the old dose.
 
 ## Fail-closed rules
 

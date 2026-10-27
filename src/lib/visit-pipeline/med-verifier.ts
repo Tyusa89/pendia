@@ -405,9 +405,17 @@ const STOP = new Set([
 
 interface Field {
   dose: Dose;
-  /** words and bare numbers in the field that are not part of the dose: they must also be in the quote */
-  details: string[];
+  /**
+   * What the field says right BEFORE and right AFTER its dose, as word / number keys ("once", "a", "day", "#3"). A run that holds
+   * more than filler words must be said in the quote in the same place: directly next to the same dose.
+   */
+  pre: string[];
+  post: string[];
 }
+
+/** One comparable key per word or digit number; punctuation (commas, brackets, hyphens) is skipped on both sides. */
+const keyOf = (t: Tok): string | null => (t.t === "word" ? t.s : t.t === "num" ? `#${t.v}` : null);
+const keysOf = (toks: Tok[]): string[] => toks.map(keyOf).filter((k): k is string => k !== null);
 
 function parseField(text: string): Field | null {
   const { toks, malformed } = lex(text);
@@ -415,16 +423,11 @@ function parseField(text: string): Field | null {
   const m = findMentions(toks);
   if (m.ambiguous || m.list.length !== 1) return null;
   const only = m.list[0]!;
-  const details: string[] = [];
-  const used = new Set<number>();
-  for (let k = only.from; k < only.to; k++) used.add(k);
-  for (const b of m.bare) for (let k = b.from; k < b.to; k++) used.add(k);
-  toks.forEach((tk, k) => {
-    if (used.has(k) || tk.t !== "word" || STOP.has(tk.s)) return;
-    details.push(tk.s);
-  });
-  for (const b of m.bare) details.push(`#${b.value}`);
-  return { dose: { value: only.value, unit: only.unit }, details };
+  return {
+    dose: { value: only.value, unit: only.unit },
+    pre: keysOf(toks.slice(0, only.from)),
+    post: keysOf(toks.slice(only.to)),
+  };
 }
 
 /** Letters only (parenthesised brand names dropped). Null when the name holds digits or nothing usable. */
@@ -528,7 +531,7 @@ function inListOrCombination(clause: Tok[], hit: { from: number; to: number }): 
 }
 
 type ClauseRead =
-  | { kind: "pair"; before: Dose; after: Dose }
+  | { kind: "pair"; before: Dose; after: Dose; beforeAt: Mention; afterAt: Mention; clause: Tok[] }
   | { kind: "none" }
   | { kind: "partial" }
   | { kind: "ambiguous" };
@@ -559,12 +562,18 @@ function readClause(clause: Tok[]): ClauseRead {
       kind: "pair",
       before: { value: a.value, unit: a.unit },
       after: { value: b.value, unit: b.unit },
+      beforeAt: a,
+      afterAt: b,
+      clause,
     };
   if (REVERSED.some((f) => sameWords(f, words)) && clause[a.from - 1]?.s === "to")
     return {
       kind: "pair",
       before: { value: b.value, unit: b.unit },
       after: { value: a.value, unit: a.unit },
+      beforeAt: b,
+      afterAt: a,
+      clause,
     };
   return { kind: "ambiguous" };
 }
@@ -572,6 +581,20 @@ function readClause(clause: Tok[]): ClauseRead {
 // ---------------------------------------------------------------------------------------------------------------------
 // The verifier
 // ---------------------------------------------------------------------------------------------------------------------
+const filler = (run: string[]) => run.every((w) => STOP.has(w));
+
+/** True when what the field says before/after its dose is exactly what the quote says before/after the same dose (or is only filler). */
+function detailsSaid(clause: Tok[], at: Mention, field: Field): boolean {
+  const post = keysOf(clause.slice(at.to));
+  const pre = keysOf(clause.slice(0, at.from));
+  const postOk = filler(field.post) || field.post.every((w, i) => post[i] === w);
+  const preOk =
+    filler(field.pre) ||
+    (field.pre.length <= pre.length &&
+      field.pre.every((w, i) => pre[pre.length - field.pre.length + i] === w));
+  return postOk && preOk;
+}
+
 export function verifyMedValue(item: MedValueInput, quote: string): MedVerification {
   try {
     return verify(item, quote);
@@ -617,16 +640,12 @@ function verify(item: MedValueInput, quote: string): MedVerification {
     return no(valuesMatch ? "unit_mismatch" : "value_mismatch");
   }
 
-  // Every other word or number in the structured fields must also be in the quote (frequency, schedule, form...).
-  const seen = new Set<string>();
-  for (const t of q.toks) {
-    if (t.t === "word") seen.add(t.s);
-    else if (t.t === "num") seen.add(`#${t.v}`);
-  }
-  const qm = findMentions(q.toks);
-  for (const n of [...qm.list, ...qm.bare]) seen.add(`#${n.value}`);
-  for (const w of [...before.details, ...after.details])
-    if (!seen.has(w)) return no("unsupported_detail");
+  // Anything else a structured field says about its dose (frequency, schedule, form...) must be said in the quote right next to
+  // that same dose, in the same words. A word that merely appears somewhere else in the quote (another sentence, another
+  // medication, another meaning) supports nothing. This only ever withholds "value-verified"; it never verifies those details.
+  for (const p of pairs)
+    if (!detailsSaid(p.clause, p.beforeAt, before) || !detailsSaid(p.clause, p.afterAt, after))
+      return no("unsupported_detail");
 
   return yes();
 }

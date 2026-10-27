@@ -347,19 +347,44 @@ describe("extra details in the structured fields (strict rule)", () => {
       "unsupported_detail",
     );
   });
-  it("the same details present in the quote do not block the dose check, but are still NOT claimed as verified", () => {
+  it("a detail said right next to the NEW dose does not block the dose check, but is still NOT claimed as verified", () => {
     const quote =
       "Increase Lisinopril from ten milligrams to twenty milligrams, once a day in the morning.";
-    const v = status(
-      {
-        ...item(),
-        before: "10 mg, once a day in the morning",
-        after: "20 mg, once a day in the morning",
-      },
-      quote,
-    );
+    const v = status({ ...item(), after: "20 mg, once a day in the morning" }, quote);
     expect(v.status).toBe("value-verified");
     expect(v.scope).not.toMatch(/frequency|timing|morning|daily/i);
+  });
+  it("the same detail claimed for the OLD dose is unsupported: the quote only says it after the new dose", () => {
+    const quote =
+      "Increase Lisinopril from ten milligrams to twenty milligrams, once a day in the morning.";
+    expect(
+      reasonOf(
+        {
+          ...item(),
+          before: "10 mg, once a day in the morning",
+          after: "20 mg, once a day in the morning",
+        },
+        quote,
+      ),
+    ).toBe("unsupported_detail");
+  });
+  it("what a field says BEFORE its dose must be said right before that dose in the quote", () => {
+    const early = "In the morning, increase Lisinopril from ten milligrams to twenty milligrams.";
+    expect(reasonOf({ ...item(), after: "in the morning twenty milligrams" }, early)).toBe(
+      "unsupported_detail",
+    );
+    const said = "Increase Lisinopril from extended-release ten milligrams to twenty milligrams.";
+    expect(verified({ ...item(), before: "extended-release 10 mg" }, said)).toBe(true);
+    expect(verified({ ...item(), before: "extended-release 10 mg" }, Q)).toBe(false);
+    expect(verified({ ...item(), after: "extended-release 20 mg" }, said)).toBe(false);
+  });
+  it("filler words alone never block", () => {
+    expect(
+      verified(
+        { ...item(), before: "the dose of ten milligrams", after: "a twenty milligrams" },
+        Q,
+      ),
+    ).toBe(true);
   });
   it("an extra number is checked too", () => {
     expect(reasonOf({ ...item(), after: "twenty milligrams, take 3" }, Q)).toBe(
@@ -370,6 +395,93 @@ describe("extra details in the structured fields (strict rule)", () => {
     expect(reasonOf({ ...item(), after: "twenty milligrams extended release" }, Q)).toBe(
       "unsupported_detail",
     );
+  });
+});
+
+describe("a detail that appears ELSEWHERE in the quote does not support the structured fields", () => {
+  // The structured fields claim a frequency/timing detail. It must be said about THIS dose, right next to it, not merely appear
+  // somewhere in the quote (another sentence, another medication, another subject).
+  const withAfter = (after: string) => ({ ...item(), after });
+  it.each([
+    [
+      "in another sentence, about another medication",
+      "Take your Metformin twice daily. Increase the Lisinopril from ten milligrams to twenty milligrams.",
+      "twenty milligrams twice daily",
+    ],
+    [
+      "before the medication, in the same sentence, about another medication",
+      "Metformin stays twice daily but Lisinopril goes from ten milligrams to twenty milligrams.",
+      "twenty milligrams twice daily",
+    ],
+    [
+      "after the dose, joined by 'but', about another medication",
+      "Lisinopril goes from ten milligrams to twenty milligrams but Metformin stays twice daily.",
+      "twenty milligrams twice daily",
+    ],
+    [
+      "after the dose, joined by a comma, about something else",
+      "Lisinopril goes from ten milligrams to twenty milligrams, check your pressure daily.",
+      "twenty milligrams daily",
+    ],
+    [
+      "a word used in another sense ('once' as a conjunction)",
+      "Once your pressure settles, Lisinopril goes from ten milligrams to twenty milligrams, a day at a time.",
+      "twenty milligrams once a day",
+    ],
+    [
+      "in the sentence before",
+      "Take it every morning. Lisinopril goes from ten milligrams to twenty milligrams.",
+      "twenty milligrams every morning",
+    ],
+    [
+      "separated from the dose by other words",
+      "Lisinopril goes from ten milligrams to twenty milligrams starting tomorrow, in the morning.",
+      "twenty milligrams in the morning",
+    ],
+    [
+      "as part of the medication's own hedge-free list of another drug",
+      "Lisinopril goes from ten milligrams to twenty milligrams. Metformin: once a day in the morning.",
+      "twenty milligrams once a day in the morning",
+    ],
+  ])("%s -> unverified (unsupported_detail)", (_n, quote, after) => {
+    expect(status(withAfter(after), quote)).toMatchObject({
+      status: "unverified",
+      reason: "unsupported_detail",
+    });
+  });
+  it("a detail on the OLD dose that the quote says only about the new one is unsupported", () => {
+    const quote = "Lisinopril from ten milligrams to twenty milligrams once a day in the morning.";
+    expect(reasonOf({ ...item(), before: "ten milligrams once a day in the morning" }, quote)).toBe(
+      "unsupported_detail",
+    );
+  });
+  it("a detail that a repeated sentence supports only the first time is unsupported", () => {
+    const quote =
+      "Lisinopril from ten milligrams to twenty milligrams daily. Again: Lisinopril from ten milligrams to twenty milligrams.";
+    expect(reasonOf(withAfter("twenty milligrams daily"), quote)).toBe("unsupported_detail");
+  });
+  it.each([
+    [
+      "directly after the dose",
+      "Raise the Lisinopril from ten milligrams to twenty milligrams once a day in the morning.",
+    ],
+    [
+      "with commas",
+      "Raise the Lisinopril from ten milligrams to twenty milligrams, once a day, in the morning.",
+    ],
+    [
+      "with the dose in digits",
+      "Raise the Lisinopril from 10 mg to 20 mg once a day in the morning.",
+    ],
+  ])("a detail said right after the dose is still accepted: %s", (_n, quote) => {
+    const v = status(withAfter("20 mg, once a day in the morning"), quote);
+    expect(v.status).toBe("value-verified");
+    expect(v.scope).toBe(VERIFICATION_SCOPE); // still only name, dose, unit and direction
+  });
+  it("timing said right after the dose is accepted as a detail but never claimed as verified", () => {
+    const v = status(withAfter("twenty milligrams, starting tomorrow"), Q);
+    expect(v.status).toBe("value-verified");
+    expect(JSON.stringify(v)).not.toMatch(/tomorrow|timing|frequency/i);
   });
 });
 
