@@ -19,7 +19,11 @@ import {
 } from "@/hooks/use-audio-recorder";
 import { formatTimestamp } from "@/lib/format";
 import type { PcmProvider } from "@/lib/pcm-capture";
-import { dictationTranscriber, type DictationTranscriber } from "@/services/dictation";
+import {
+  DictationError,
+  dictationTranscriber,
+  type DictationTranscriber,
+} from "@/services/dictation";
 
 /** What the page needs in order to save a recording (only used if the caregiver ticks "Keep"). */
 export interface KeptTake {
@@ -109,12 +113,17 @@ export function HandoffDictation({
     setTranscribing(true);
     setTranscribeError(null);
     try {
-      const { text } = await transcriber.transcribe(rec.audio.blob, { signal: ac.signal });
+      // The 16 kHz mono WAV copy is the transcription-ready one; without it the service will refuse the original.
+      const { text } = await transcriber.transcribe(rec.audio.wav ?? rec.audio.blob, {
+        signal: ac.signal,
+      });
       if (!ac.signal.aborted) setDraft(text);
-    } catch {
+    } catch (e) {
       if (!ac.signal.aborted)
         setTranscribeError(
-          "Couldn't turn this recording into text. Your recording is still here, and you can type the note instead.",
+          e instanceof DictationError
+            ? e.message
+            : "Couldn't turn this recording into text. Your recording is still here, and you can type the note instead.",
         );
     } finally {
       if (abortRef.current === ac) {
@@ -157,9 +166,11 @@ export function HandoffDictation({
       <p className="text-[0.9412rem] text-muted-foreground">
         {keep
           ? "This recording will be saved with the handoff when you press Save handoff."
-          : onKeepChange
-            ? "Your recording stays on this device. It isn't saved or uploaded unless you choose to keep it."
-            : "Your recording stays on this device. It isn't saved or uploaded."}
+          : transcriber.available
+            ? "Your recording stays on this device unless you press Transcribe or choose to keep it."
+            : onKeepChange
+              ? "Your recording stays on this device. It isn't saved or uploaded unless you choose to keep it."
+              : "Your recording stays on this device. It isn't saved or uploaded."}
       </p>
 
       <div role="status" aria-live="polite" className="min-h-6 text-base">
@@ -362,9 +373,16 @@ export function HandoffDictation({
                 <Loader2 className="animate-spin" /> Transcribing… tap to cancel
               </Button>
             ) : (
-              <Button type="button" className="w-full" onClick={() => void runTranscribe()}>
-                Transcribe
-              </Button>
+              <>
+                <p className="text-[0.9412rem] text-muted-foreground">
+                  Transcribe sends this recording to Meta's speech service to turn it into text. It
+                  is only sent when you press the button. Pendia does not store it unless you choose
+                  to keep the recording; how Meta handles it is covered by Meta's own terms.
+                </p>
+                <Button type="button" className="w-full" onClick={() => void runTranscribe()}>
+                  Transcribe
+                </Button>
+              </>
             )
           ) : (
             <p className="text-[0.9412rem] text-muted-foreground">
@@ -387,6 +405,14 @@ export function HandoffDictation({
           </label>
           <p className="text-[0.9412rem] text-muted-foreground">
             Not saved yet. Add it to the note, then press Save handoff.
+          </p>
+          <p
+            role="note"
+            className="rounded-xl bg-warning p-2.5 text-[0.9412rem] text-warning-foreground"
+          >
+            Check this against what was said. "Speaker A" and "Speaker B" are labels from the
+            transcription, not names. Fix any names, doses, medicines or instructions before adding
+            it.
           </p>
           <Textarea id="dictation-draft" value={draft} onChange={(e) => setDraft(e.target.value)} />
           <div className="flex flex-wrap gap-2 [&>*]:flex-1 [&>*]:basis-40">

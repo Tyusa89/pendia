@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { acknowledgeRecordingNotice, hasAcknowledgedRecordingNotice } from "@/lib/recording-notice";
 import { useMembers } from "@/hooks/use-family";
+import { useMetaTranscriber } from "@/lib/meta-transcribe/client";
 import { handoffService, recordingService, type Member } from "@/services";
 
 export const Route = createFileRoute("/_authenticated/handoffs")({
@@ -63,6 +64,7 @@ function Handoffs({ me }: { me: Member }) {
     queryFn: () => handoffService.activeWatchItems(fid),
   });
   const { data: members = [] } = useMembers(fid);
+  const transcriber = useMetaTranscriber(fid);
   const [ate, setAte] = useState<boolean | null>(null);
   const [meds, setMeds] = useState<boolean | null>(null);
   const [unusual, setUnusual] = useState("");
@@ -172,6 +174,7 @@ function Handoffs({ me }: { me: Member }) {
 
           <Panel aria-label="Voice note">
             <HandoffDictation
+              transcriber={transcriber}
               onAccept={(text) =>
                 setUnusual((prev) => (prev.trim() ? `${prev.trimEnd()}\n${text}` : text))
               }

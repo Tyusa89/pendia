@@ -45,14 +45,19 @@ describe("secrets and the live client exist only on the server", () => {
       .filter((f) => SECRET.test(strip(readFileSync(f, "utf8"))))
       .map(rel)
       .sort();
-    expect(offenders).toEqual(["src/server/spark-synthetic.server.ts"]);
+    // meta-transcribe.server.ts is the Handoff voice-transcription server module (see meta-transcribe-isolation.test.ts).
+    expect(offenders).toEqual([
+      "src/server/meta-transcribe.server.ts",
+      "src/server/spark-synthetic.server.ts",
+    ]);
   });
   it("the Meta host is written once, in the pure builder module, and only the server client uses the URL constant", () => {
     const withUrl = appFiles
       .filter((f) => /api\.meta\.ai/.test(strip(readFileSync(f, "utf8"))))
       .map(rel)
       .sort();
-    expect(withUrl).toEqual(["src/lib/spark/spark-http.ts"]);
+    // lib/meta-transcribe/contract.ts holds the separate speech-to-text endpoint (a different path from Spark's).
+    expect(withUrl).toEqual(["src/lib/meta-transcribe/contract.ts", "src/lib/spark/spark-http.ts"]);
     const users = appFiles
       .filter((f) => /SPARK_CHAT_URL/.test(strip(readFileSync(f, "utf8"))))
       .map(rel)
@@ -91,7 +96,11 @@ describe("Demo Mode cannot reach any of it", () => {
       .filter((f) => LIVE.test(strip(readFileSync(f, "utf8"))))
       .map(rel)
       .sort();
-    expect(importers).toEqual(["src/routes/_authenticated/dev-spark.tsx"]);
+    // transcribe.functions.ts is the Handoff transcription wrapper, not a Spark module; it is covered by its own isolation test.
+    expect(importers).toEqual([
+      "src/lib/meta-transcribe/transcribe.functions.ts",
+      "src/routes/_authenticated/dev-spark.tsx",
+    ]);
   });
   it("no demo component, demo logic, public route or pipeline index/provider refers to them", () => {
     const demo = appFiles.filter((f) =>
