@@ -21,7 +21,7 @@ declare
   ur uuid := gen_random_uuid();   -- member A with meds visibility, removed later ("Rita")
   ub uuid := gen_random_uuid();   -- organizer B (another family)
   fa uuid; fb uuid; mo uuid; mm uuid; mn uuid; mr uuid; mb uuid;
-  medA uuid; medA2 uuid; medB uuid; sA uuid; sA2 uuid; sB uuid; sWed uuid; sChi uuid; medChi uuid; sFlag uuid; sRet uuid; sNC uuid; sLim uuid; sEnded uuid; sTz uuid; sIdem uuid; q2 uuid; ubo uuid := gen_random_uuid(); who uuid;
+  medA uuid; medA2 uuid; medB uuid; sA uuid; sA2 uuid; sB uuid; sWed uuid; sChi uuid; medChi uuid; sFlag uuid; sRet uuid; sNC uuid; sLim uuid; sEnded uuid; sTz uuid; sIdem uuid; q2 uuid; ubo uuid := gen_random_uuid(); who uuid; badpriv text;
   lt date; d1 date; d2 date; dold date; dfut date;
   n int := 0; c int; r record; r2 record; hid uuid; head1 uuid; head2 uuid; q1 uuid; snapshot text; ok boolean;
   fchi uuid; uchi uuid; mchi uuid;
@@ -91,6 +91,21 @@ begin
   if c <> 1 then raise exception 'FAIL: dose_administration should have exactly one (read) policy, has %', c; end if; n := n + 1;
   select count(*) into c from pg_policies where schemaname = 'public' and tablename = 'dose_administration' and cmd <> 'SELECT';
   if c <> 0 then raise exception 'FAIL: dose_administration has a write policy'; end if; n := n + 1;
+
+  -- no role other than the table owner (and superusers) can write the evidence table directly, whatever the project's default
+  -- privileges handed out (hosted projects grant service_role and tooling roles INSERT on every new table)
+  select string_agg(ro.rolname || ':' || p, ', ') into badpriv
+    from pg_roles ro cross join unnest(array['INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER']) p
+   where not ro.rolsuper and ro.rolname !~ '^pg_'
+     and ro.rolname <> (select tableowner from pg_tables where schemaname = 'public' and tablename = 'dose_administration')
+     and has_table_privilege(ro.oid, 'public.dose_administration', p);
+  if badpriv is not null then raise exception 'FAIL: direct write privileges on dose_administration: %', badpriv; end if; n := n + 1;
+  select string_agg(ro.rolname || ':' || p, ', ') into badpriv
+    from pg_roles ro cross join unnest(array['USAGE', 'UPDATE']) p
+   where not ro.rolsuper and ro.rolname !~ '^pg_'
+     and ro.rolname <> (select tableowner from pg_tables where schemaname = 'public' and tablename = 'dose_administration')
+     and has_sequence_privilege(ro.oid, 'public.dose_administration_seq_seq', p);
+  if badpriv is not null then raise exception 'FAIL: sequence privileges on dose_administration_seq_seq: %', badpriv; end if; n := n + 1;
 
   ---------------------------------------------------------------- 2. schedules: who may write, integrity
   perform set_config('request.jwt.claims', json_build_object('sub', uo, 'role', 'authenticated')::text, true);

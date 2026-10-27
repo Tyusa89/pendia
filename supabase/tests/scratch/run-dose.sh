@@ -24,7 +24,20 @@ build pendia_dose_future "${FUTURE[@]}"
 # Feature C applied FIRST, the two pending migrations applied on top later
 LATE=(20261021000001_phase1_hardening 20261021000002_revoke_excess_grants 20261021000004_visit_appointments 20261027000001_dose_administration 20261022000001_coverage_requirements 20261022000002_member_access_invites)
 build pendia_dose_late "${LATE[@]}"
-for db in pendia_dose_live pendia_dose_future pendia_dose_late; do
+# hosted-project default privileges (read from the shared database's pg_default_acl): every new table in public is granted to
+# authenticated/service_role and, for the tooling role sandbox_exec, SELECT+INSERT; sequences to anon/authenticated/service_role
+"${P[@]}" -d postgres -c "do \$\$ begin if not exists (select 1 from pg_roles where rolname='service_role') then create role service_role nologin bypassrls; end if; if not exists (select 1 from pg_roles where rolname='sandbox_exec') then create role sandbox_exec nologin; end if; end \$\$"
+"${P[@]}" -d postgres -c "drop database if exists pendia_dose_acl" -c "create database pendia_dose_acl"
+"${P[@]}" -d pendia_dose_acl -f "$HERE/base.sql"
+"${P[@]}" -d pendia_dose_acl <<'SQL'
+alter default privileges for role postgres in schema public grant all on tables to authenticated, service_role;
+alter default privileges for role postgres in schema public grant select, insert on tables to sandbox_exec;
+alter default privileges for role postgres in schema public grant all on sequences to anon, authenticated, service_role;
+alter default privileges for role postgres in schema public grant select, usage on sequences to sandbox_exec;
+alter default privileges for role postgres in schema public grant execute on functions to anon, authenticated, service_role;
+SQL
+for f in "${LIVE[@]}"; do "${P[@]}" -d pendia_dose_acl -f "$REPO/supabase/migrations/$f.sql" 2>&1 | grep -v NOTICE || true; done
+for db in pendia_dose_live pendia_dose_future pendia_dose_late pendia_dose_acl; do
   printf '%-22s %-26s' "$db" "dose-administration"
   psql -X -d "$db" -f "$REPO/supabase/tests/dose-administration.test.sql" 2>&1 | grep -Eo '(PASS|FAIL): .*' | head -1
   printf '%-22s %-26s' "$db" "concurrency"

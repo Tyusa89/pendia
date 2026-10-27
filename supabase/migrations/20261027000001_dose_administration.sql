@@ -217,9 +217,18 @@ revoke all on public.medication_schedule from anon, public;
 grant select, insert, update, delete on public.medication_schedule to authenticated;
 revoke all on public.dose_administration from anon, public, authenticated;
 grant select on public.dose_administration to authenticated;
+-- Hosted projects hand every new table to service_role (everything) and to tooling roles (SELECT, INSERT) through default privileges.
+-- A direct INSERT would let such a role write a report under any name and time, so only the SECURITY DEFINER functions (running as the
+-- owner) may write this table. Reading stays open to service_role. The roles are guarded because they exist only on hosted projects.
+revoke all on sequence public.dose_administration_seq_seq from public, anon, authenticated;
 do $$ begin
   if exists (select 1 from pg_roles where rolname = 'service_role') then
-    revoke update, delete, truncate on public.dose_administration from service_role;
+    revoke insert, update, delete, truncate, references, trigger on public.dose_administration from service_role;
+    revoke all on sequence public.dose_administration_seq_seq from service_role;
+  end if;
+  if exists (select 1 from pg_roles where rolname = 'sandbox_exec') then
+    revoke all on public.dose_administration from sandbox_exec;
+    revoke all on sequence public.dose_administration_seq_seq from sandbox_exec;
   end if;
 end $$;
 
