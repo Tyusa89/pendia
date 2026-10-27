@@ -61,7 +61,7 @@ import no Supabase client, `src/services`, family hooks or `AppShell` (tests enf
 History rows cannot be updated, deleted or truncated by any role (including the table owner). The only exception is the foreign-key
 cascade of deleting the whole family, which requires the delete to come from a nested trigger **and** the family row to be gone already.
 
-Separate migration `20261027000002_family_delete_guard.sql` (reviewed on its own; **requires `20261027000001`**, independent of the two
+Separate migration `20261027000002_family_delete_guard.sql` (reviewed on its own; **requires `20261027000001`** and refuses to install, with a clear error and nothing left behind, if `public.dose_administration` is missing; independent of the two
 October 22 migrations) adds a `BEFORE DELETE` row trigger on `public.family` that raises `family_has_dose_history` (SQLSTATE `23503`)
 while any `dose_administration` row exists for that family. Consequences:
 

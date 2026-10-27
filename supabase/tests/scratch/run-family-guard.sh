@@ -58,6 +58,7 @@ for db in pendia_guard_live pendia_guard_future pendia_guard_acl; do
   printf '%-22s %-26s' "$db" "guard concurrency"; PGDATABASE="$db" bash "$REPO/supabase/tests/family-delete-guard-concurrency.sh" 2>&1 | tail -1
 done
 printf '%-22s %-26s' pendia_guard_nomig "BEFORE: race, no guard"; PGDATABASE=pendia_guard_nomig bash "$REPO/supabase/tests/family-delete-guard-concurrency.sh" 2>&1 | grep -m1 'the report is missing' || echo "(no failure shown)"
+printf '%-22s %-26s' pendia_guard_order "install order"; bash "$REPO/supabase/tests/family-delete-guard-order.sh" 2>&1 | tail -1
 # rollback leaves the delete behaviour as it was, and the migration re-applies
 "${P[@]}" -d pendia_guard_live -f "$REPO/supabase/rollback/${GUARD}.rollback.sql"
 printf '%-22s %-26s' pendia_guard_live "rollback removes guard"

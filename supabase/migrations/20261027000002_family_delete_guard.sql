@@ -10,6 +10,15 @@
 -- docs/design/dose-administration.md): disable this trigger, delete, enable it again.
 begin;
 
+-- Refuse to install without Feature C: the guard reads public.dose_administration, and without it every family delete would fail.
+-- Raised inside the transaction, so nothing below is created.
+do $$ begin
+  if to_regclass('public.dose_administration') is null then
+    raise exception 'family_delete_guard requires 20261027000001_dose_administration.sql to be applied first (public.dose_administration is missing)'
+      using errcode = '55000';
+  end if;
+end $$;
+
 create or replace function public.family_delete_guard() returns trigger
 language plpgsql security definer set search_path = public, pg_temp as $$
 begin
