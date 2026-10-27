@@ -43,7 +43,8 @@ Timestamp order, which is the order the Supabase tooling applies them:
 
 1. `20261022000001_coverage_requirements.sql` (pending founder approval)
 2. `20261022000002_member_access_invites.sql` (pending founder approval; **not** before the I-2 member-directory app changes)
-3. `20261027000001_dose_administration.sql` (this PR, pending founder approval)
+3. `20261027000001_dose_administration.sql` (PR #47, pending founder approval)
+4. `20261027000002_family_delete_guard.sql` (separate review, pending founder approval; apply only after step 3)
 
 Each needs its own approval. Because step 3 does not depend on 1 or 2, it may also be applied first, but the tooling then treats 1 and
 2 as out-of-order and needs an explicit include-all; applying in timestamp order avoids that. All three arrangements pass the full SQL
@@ -55,18 +56,36 @@ migrations, and before them with both applied on top.
 `/demo-meds`: synthetic people and medications on a fixed virtual clock; the same pure rule functions; sessionStorage only. Its modules
 import no Supabase client, `src/services`, family hooks or `AppShell` (tests enforce this).
 
-## Append-only and deletion: what remains
+## Append-only and deletion: the family-delete guard
 
-History rows cannot be updated, deleted or truncated by any role (including the table owner). The one exception is the foreign-key
-cascade of deleting the whole family: the delete must come from a nested trigger **and** the family row must already be gone, so a
-DELETE issued from some other trigger while the family exists is refused (tested). Remaining risks:
+History rows cannot be updated, deleted or truncated by any role (including the table owner). The only exception is the foreign-key
+cascade of deleting the whole family, which requires the delete to come from a nested trigger **and** the family row to be gone already.
 
-- An organizer can delete their family (existing policy), which erases its dose history with no retention hold. This is the intended
-  explicit-deletion path; a retention policy would have to be decided separately.
-- A database superuser can still bypass any trigger (`session_replication_role = replica`, `ALTER TABLE ... DISABLE TRIGGER`, dropping
-  the table); append-only is enforced against application roles, not against whoever administers the database. The rollback script
-  deliberately destroys history.
-- Reports are not signed or hash-chained, so tampering by an administrator would not be detectable.
+Separate migration `20261027000002_family_delete_guard.sql` (reviewed on its own; **requires `20261027000001`** and refuses to install, with a clear error and nothing left behind, if `public.dose_administration` is missing; independent of the two
+October 22 migrations) adds a `BEFORE DELETE` row trigger on `public.family` that raises `family_has_dose_history` (SQLSTATE `23503`)
+while any `dose_administration` row exists for that family. Consequences:
+
+- Families **without** dose history delete exactly as before, through the same policy and cascade (tested, including the member-invite
+  suite's "last organizer deletes their own family" case).
+- With history, the organizer's API `DELETE`, an unfiltered `DELETE FROM family`, and the owner/superuser are all refused; nothing is lost.
+  `TRUNCATE family CASCADE` is refused by the append-only truncate trigger.
+- A delete racing a first report waits on the report's foreign-key lock and is then refused (tested with two real sessions); without the
+  guard that race erased the report.
+- Removing a member, other family data, and every existing refusal (medication with history, direct history deletes) are unchanged.
+- The guard function is SECURITY DEFINER with a fixed `search_path` and no API-role execute grant. It checks the `dose_administration`
+  table directly, so row-level security cannot hide history from it.
+
+Deliberate erasure is an administrator act, not an app feature: as the table owner run, in one transaction,
+`ALTER TABLE public.family DISABLE TRIGGER family_delete_guard; DELETE FROM public.family WHERE id = ...; ALTER TABLE public.family ENABLE TRIGGER family_delete_guard;`
+The cascade then removes the history (tested). There is still no product UI or retention policy for this; that remains a founder decision.
+
+Remaining bypasses, all requiring database-administrator privileges and not available to API roles:
+
+- the table owner (`postgres` on the hosted project) or a superuser can `DISABLE TRIGGER`, `DROP TRIGGER`, `DROP TABLE`, or run with
+  `session_replication_role = replica`, which skips triggers;
+- the rollback scripts for either migration deliberately remove protection or data;
+- `service_role` is not the owner and cannot disable triggers, but it bypasses RLS, so it can still delete families that have no history;
+- history is not signed or hash-chained, so tampering by an administrator would not be detectable.
 
 ## Tests
 
