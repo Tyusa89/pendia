@@ -179,11 +179,16 @@ create trigger dose_administration_guard before insert on public.dose_administra
   for each row execute function public.dose_administration_guard();
 
 -- append-only for EVERY role. The only exception is removal by the foreign-key cascade when the whole family is deleted
--- (the explicit family-data deletion path); a direct DELETE or any UPDATE fails.
+-- (the explicit family-data deletion path): the delete must come from a nested trigger AND the family row must already be gone.
+-- A direct DELETE, a DELETE issued from some other trigger while the family still exists, and any UPDATE all fail.
+-- SECURITY DEFINER only so that the family lookup is not hidden by row-level security from whoever is deleting.
 create or replace function public.dose_administration_append_only() returns trigger
-language plpgsql set search_path = public, pg_temp as $$
+language plpgsql security definer set search_path = public, pg_temp as $$
 begin
-  if tg_op = 'DELETE' and pg_trigger_depth() > 1 then return old; end if;
+  if tg_op = 'DELETE' and pg_trigger_depth() > 1
+     and not exists (select 1 from public.family f where f.id = old.family_id) then
+    return old;
+  end if;
   raise exception 'dose reports are append-only: % is not allowed', tg_op using errcode = '42501';
 end $$;
 create trigger dose_administration_append_only before update or delete on public.dose_administration
@@ -312,7 +317,9 @@ begin
   select * into prior from public.dose_administration where family_id = s.family_id and client_request_id = _client_request_id;
   if found then   -- a repeated submission returns the stored report; a different payload under the same id is refused
     if prior.entry_kind = 'report' and prior.schedule_id = _schedule_id and prior.local_date = _local_date
-       and prior.status = _status and prior.reported_by = me_id and prior.supersedes is not distinct from _expected_head then
+       and prior.status = _status and prior.reported_by = me_id and prior.supersedes is not distinct from _expected_head
+       and prior.not_given_reason is not distinct from _not_given_reason
+       and prior.change_reason is not distinct from _change_reason then
       return prior;
     end if;
     raise exception 'dose_idempotency_mismatch' using errcode = 'P0001';
@@ -371,9 +378,15 @@ begin
   end if;
   select m.id, m.name into me_id, me_name from public.member m where m.family_id = s.family_id and m.user_id = uid limit 1;
   if me_id is null then raise exception 'dose_not_found' using errcode = 'P0002'; end if;
+  -- the same occurrence checks as report_dose(), in the same order: a flag is only ever about a real, due occurrence
+  if _local_date < s.starts_on or (s.ends_on is not null and _local_date > s.ends_on)
+     or not (extract(isodow from _local_date)::smallint = any (s.days_of_week)) then
+    raise exception 'dose_no_such_occurrence' using errcode = 'P0001';
+  end if;
   select f.timezone into zone from public.family f where f.id = s.family_id;
   select * into occ from public.dose_scheduled_at(_local_date, s.local_time, zone);
-  if occ.scheduled_at is null then raise exception 'dose_time_skipped' using errcode = 'P0001'; end if;
+  if occ.time_state = 'skipped' then raise exception 'dose_time_skipped' using errcode = 'P0001'; end if;
+  if occ.scheduled_at > now() then raise exception 'dose_future_not_allowed' using errcode = 'P0001'; end if;
   select * into med from public.medication where id = s.medication_id;
 
   perform pg_advisory_xact_lock(hashtextextended(_schedule_id::text || ':' || _local_date::text, 0));
@@ -403,7 +416,7 @@ begin
     (family_id, schedule_id, local_date, entry_kind, status, disputes, scheduled_at, tz, medication_name, dose_text,
      reported_by, reporter_name, client_request_id)
   values
-    (s.family_id, _schedule_id, _local_date, 'disagreement', null, head.id, occ.scheduled_at, zone, med.name, med.dose,
+    (s.family_id, _schedule_id, _local_date, 'disagreement', null, head.id, head.scheduled_at, head.tz, head.medication_name, head.dose_text,
      me_id, me_name, _client_request_id)
   returning * into out_row;
   return out_row;

@@ -360,10 +360,15 @@ export function checkReport(ctx: RuleContext, r: ReportRequest): DoseErrorCode |
 
 /** The first rule a disagreement flag would break, or null. */
 export function checkDisagreement(
-  ctx: Pick<RuleContext, "actorId" | "actorCanSeeMeds" | "scheduledAtMs" | "head" | "expectedHead">,
+  ctx: Pick<
+    RuleContext,
+    "actorId" | "actorCanSeeMeds" | "scheduledAtMs" | "head" | "expectedHead"
+  > &
+    Partial<Pick<RuleContext, "nowMs">>,
 ): DoseErrorCode | null {
   if (!ctx.actorCanSeeMeds) return "dose_not_found";
   if (ctx.scheduledAtMs === null) return "dose_time_skipped";
+  if (ctx.nowMs !== undefined && ctx.scheduledAtMs > ctx.nowMs) return "dose_future_not_allowed";
   if (!ctx.head || ctx.head.status === "not_confirmed") return "dose_nothing_to_dispute";
   if (ctx.head.id !== ctx.expectedHead) return "dose_conflict";
   if (ctx.head.reportedBy === ctx.actorId) return "dose_use_correction_instead";

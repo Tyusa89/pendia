@@ -21,7 +21,7 @@ declare
   ur uuid := gen_random_uuid();   -- member A with meds visibility, removed later ("Rita")
   ub uuid := gen_random_uuid();   -- organizer B (another family)
   fa uuid; fb uuid; mo uuid; mm uuid; mn uuid; mr uuid; mb uuid;
-  medA uuid; medA2 uuid; medB uuid; sA uuid; sA2 uuid; sB uuid; sWed uuid; sChi uuid; medChi uuid; sFlag uuid; sRet uuid; sNC uuid;
+  medA uuid; medA2 uuid; medB uuid; sA uuid; sA2 uuid; sB uuid; sWed uuid; sChi uuid; medChi uuid; sFlag uuid; sRet uuid; sNC uuid; sLim uuid; sEnded uuid; sTz uuid; sIdem uuid; q2 uuid; ubo uuid := gen_random_uuid(); who uuid;
   lt date; d1 date; d2 date; dold date; dfut date;
   n int := 0; c int; r record; r2 record; hid uuid; head1 uuid; head2 uuid; q1 uuid; snapshot text; ok boolean;
   fchi uuid; uchi uuid; mchi uuid;
@@ -347,6 +347,96 @@ begin
   perform public.zz_expect_err(format($q$select flag_dose_disagreement(%L, %L, null, gen_random_uuid())$q$, sFlag, d1), 'dose_not_found'); n := n + 1;
   reset role;
 
+  ---------------------------------------------------------------- 6c. flag_dose_disagreement validates the occurrence exactly like report_dose
+  -- (a flag can only follow a report, and a report only exists for a valid occurrence; these prove the function does not rely on that alone)
+  insert into medication_schedule (family_id, medication_id, local_time, days_of_week, starts_on)
+    values (fa, medA2, '06:45', array[extract(isodow from d1)::smallint], lt - 30) returning id into sLim;     -- one weekday only
+  insert into medication_schedule (family_id, medication_id, local_time, days_of_week, starts_on, ends_on)
+    values (fa, medA2, '06:50', array[1,2,3,4,5,6,7]::smallint[], lt - 30, lt - 10) returning id into sEnded;  -- ended ten days ago
+  perform set_config('request.jwt.claims', json_build_object('sub', ur, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+  perform public.zz_expect_err(format($q$select flag_dose_disagreement(%L, %L, null, gen_random_uuid())$q$, sLim, d1 - 1), 'dose_no_such_occurrence'); n := n + 1;   -- not a scheduled weekday
+  perform public.zz_expect_err(format($q$select flag_dose_disagreement(%L, %L, null, gen_random_uuid())$q$, sLim, lt - 40), 'dose_no_such_occurrence'); n := n + 1;  -- before starts_on
+  perform public.zz_expect_err(format($q$select flag_dose_disagreement(%L, %L, null, gen_random_uuid())$q$, sEnded, lt - 5), 'dose_no_such_occurrence'); n := n + 1; -- after ends_on
+  perform public.zz_expect_err(format($q$select flag_dose_disagreement(%L, %L, null, gen_random_uuid())$q$, sFlag, dfut), 'dose_future_not_allowed'); n := n + 1;     -- not yet due
+  perform public.zz_expect_err(format($q$select flag_dose_disagreement(%L, %L, gen_random_uuid(), gen_random_uuid())$q$, sFlag, dfut), 'dose_future_not_allowed'); n := n + 1;
+  -- a valid occurrence with nothing reported still says there is nothing to dispute (unchanged behaviour)
+  perform public.zz_expect_err(format($q$select flag_dose_disagreement(%L, %L, null, gen_random_uuid())$q$, sLim, d1), 'dose_nothing_to_dispute'); n := n + 1;
+  reset role;
+  select count(*) into c from dose_administration where schedule_id in (sLim, sEnded);
+  if c <> 0 then raise exception 'FAIL: a refused flag wrote a row'; end if; n := n + 1;
+
+  -- the flag records the report's own instant and zone, even if the family's zone is changed afterwards
+  insert into medication_schedule (family_id, medication_id, local_time, days_of_week, starts_on)
+    values (fa, medA2, '07:45', array[1,2,3,4,5,6,7]::smallint[], lt - 30) returning id into sTz;
+  perform set_config('request.jwt.claims', json_build_object('sub', um, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+  select * into r from report_dose(sTz, d1, 'given', null, gen_random_uuid());
+  reset role;
+  update family set timezone = 'America/Los_Angeles' where id = fa;
+  perform set_config('request.jwt.claims', json_build_object('sub', ur, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+  select * into r2 from flag_dose_disagreement(sTz, d1, r.id, gen_random_uuid());
+  reset role;
+  update family set timezone = 'America/New_York' where id = fa;
+  if r2.scheduled_at is distinct from r.scheduled_at or r2.tz is distinct from r.tz then
+    raise exception 'FAIL: flag recorded %/% but the report it disputes is %/%', r2.scheduled_at, r2.tz, r.scheduled_at, r.tz; end if; n := n + 1;
+
+  ---------------------------------------------------------------- 6c2. idempotency covers the whole payload, including the reason fields
+  insert into medication_schedule (family_id, medication_id, local_time, days_of_week, starts_on)
+    values (fa, medA2, '07:55', array[1,2,3,4,5,6,7]::smallint[], lt - 30) returning id into sIdem;
+  perform set_config('request.jwt.claims', json_build_object('sub', um, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+  q1 := gen_random_uuid();
+  select * into r from report_dose(sIdem, d1, 'not_given', null, q1, 'refused');
+  select * into r2 from report_dose(sIdem, d1, 'not_given', null, q1, 'refused');        -- identical replay
+  if r2.id <> r.id then raise exception 'FAIL: identical replay did not return the stored report'; end if; n := n + 1;
+  perform public.zz_expect_err(format($q$select report_dose(%L, %L, 'not_given', null, %L, 'unwell')$q$, sIdem, d1, q1), 'dose_idempotency_mismatch'); n := n + 1;   -- different reason
+  perform public.zz_expect_err(format($q$select report_dose(%L, %L, 'not_given', null, %L)$q$, sIdem, d1, q1), 'dose_idempotency_mismatch'); n := n + 1;             -- reason dropped
+  perform public.zz_expect_err(format($q$select report_dose(%L, %L, 'not_given', null, %L, 'refused', 'other')$q$, sIdem, d1, q1), 'dose_idempotency_mismatch'); n := n + 1; -- change reason added
+  q2 := gen_random_uuid();
+  select * into r from report_dose(sIdem, d1, 'given', r.id, q2, null, 'reported_by_mistake');   -- a correction
+  select * into r2 from report_dose(sIdem, d1, 'given', r.supersedes, q2, null, 'reported_by_mistake');
+  if r2.id <> r.id then raise exception 'FAIL: identical correction replay did not return the stored correction'; end if; n := n + 1;
+  perform public.zz_expect_err(format($q$select report_dose(%L, %L, 'given', %L, %L, null, 'other')$q$, sIdem, d1, r.supersedes, q2), 'dose_idempotency_mismatch'); n := n + 1;
+  perform public.zz_expect_err(format($q$select report_dose(%L, %L, 'given', %L, %L, null, null)$q$, sIdem, d1, r.supersedes, q2), 'dose_idempotency_mismatch'); n := n + 1;
+  reset role;
+  select count(*) into c from dose_administration where schedule_id = sIdem;
+  if c <> 2 then raise exception 'FAIL: mismatched replays changed history (% rows)', c; end if; n := n + 1;
+
+  ---------------------------------------------------------------- 6d. another family can neither see nor touch this family's doses
+  -- Bea (organizer of B) and Bo (member of B with medication visibility) against A's schedule that has a report and a flag
+  insert into auth.users (id, aud, role, email) values (ubo, 'authenticated', 'authenticated', 'bo-' || ubo || '@test.invalid');
+  insert into member (family_id, user_id, name, role, can_see_meds) values (fb, ubo, 'Bo', 'member', true);
+  select d.id into head1 from dose_administration d
+   where d.schedule_id = sFlag and d.local_date = d1 and d.entry_kind = 'report'
+     and not exists (select 1 from dose_administration x where x.supersedes = d.id);
+  select count(*) into c from dose_administration where family_id = fa; snapshot := c::text;
+  foreach who in array array[ub, ubo] loop
+    perform set_config('request.jwt.claims', json_build_object('sub', who, 'role', 'authenticated')::text, true);
+    set local role authenticated;
+    select count(*) into c from dose_administration where family_id = fa;                       -- read history
+    if c <> 0 then raise exception 'FAIL: another family reads % dose rows', c; end if; n := n + 1;
+    select count(*) into c from medication_schedule where family_id = fa;                       -- read schedules
+    if c <> 0 then raise exception 'FAIL: another family reads % schedules', c; end if; n := n + 1;
+    select count(*) into c from dose_occurrences(fa, d1, d1);                                    -- read computed doses
+    if c <> 0 then raise exception 'FAIL: another family reads % occurrences', c; end if; n := n + 1;
+    perform public.zz_expect_err(format($q$select report_dose(%L, %L, 'given', %L, gen_random_uuid())$q$, sFlag, d1, head1), 'dose_not_found'); n := n + 1;                       -- report
+    perform public.zz_expect_err(format($q$select report_dose(%L, %L, 'not_given', %L, gen_random_uuid(), null, 'other')$q$, sFlag, d1, head1), 'dose_not_found'); n := n + 1;   -- correct
+    perform public.zz_expect_err(format($q$select report_dose(%L, %L, 'not_confirmed', %L, gen_random_uuid(), null, 'other')$q$, sFlag, d1, head1), 'dose_not_found'); n := n + 1; -- withdraw
+    perform public.zz_expect_err(format($q$select flag_dose_disagreement(%L, %L, %L, gen_random_uuid())$q$, sFlag, d1, head1), 'dose_not_found'); n := n + 1;                   -- flag
+    perform public.zz_expect_err(format($q$insert into medication_schedule (family_id, medication_id, local_time, days_of_week, starts_on) values (%L, %L, '11:11', array[1]::smallint[], %L)$q$, fa, medA, lt), 'new row violates row-level security policy for table "medication_schedule"'); n := n + 1;
+    reset role;
+  end loop;
+  -- and the other direction: A's organizer cannot touch B's schedule
+  perform set_config('request.jwt.claims', json_build_object('sub', uo, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+  perform public.zz_expect_err(format($q$select report_dose(%L, %L, 'given', null, gen_random_uuid())$q$, sB, d1), 'dose_not_found'); n := n + 1;
+  perform public.zz_expect_err(format($q$select flag_dose_disagreement(%L, %L, null, gen_random_uuid())$q$, sB, d1), 'dose_not_found'); n := n + 1;
+  reset role;
+  select count(*) into c from dose_administration where family_id = fa;
+  if c::text <> snapshot then raise exception 'FAIL: cross-family attempts changed history (% -> %)', snapshot, c; end if; n := n + 1;
+
   ---------------------------------------------------------------- 6b. direct reads follow medication visibility and family isolation
   foreach hid in array array[ub, un] loop
     perform set_config('request.jwt.claims', json_build_object('sub', hid, 'role', 'authenticated')::text, true);
@@ -387,6 +477,13 @@ begin
   perform public.zz_expect_err(format($q$delete from dose_administration where id = %L$q$, head1), 'dose reports are append-only: DELETE is not allowed'); n := n + 1;
   perform public.zz_expect_err($q$delete from dose_administration$q$, 'dose reports are append-only: DELETE is not allowed'); n := n + 1;
   perform public.zz_expect_err($q$truncate dose_administration$q$, 'dose reports are append-only: TRUNCATE is not allowed'); n := n + 1;
+  -- a DELETE issued from inside another trigger (nesting depth 2) is NOT the family-deletion path while the family still exists
+  create table public.zz_nested (id int);
+  create function public.zz_nested_fn() returns trigger language plpgsql as $f$ begin return new; end $f$;
+  execute format('create or replace function public.zz_nested_fn() returns trigger language plpgsql as $f$ begin delete from public.dose_administration where family_id = %L; return new; end $f$', fa);
+  create trigger zz_nested_trg after insert on public.zz_nested for each row execute function public.zz_nested_fn();
+  perform public.zz_expect_err($q$insert into public.zz_nested values (1)$q$, 'dose reports are append-only: DELETE is not allowed'); n := n + 1;
+  drop table public.zz_nested; drop function public.zz_nested_fn();
   perform public.zz_expect_err(format($q$insert into dose_administration (family_id, schedule_id, local_date, status, supersedes, scheduled_at, tz, medication_name, reported_by, reporter_name, client_request_id) values (%L, %L, %L, 'given', %L, now(), 'UTC', 'x', %L, 'x', gen_random_uuid())$q$, fa, sA2, dold, head1, mo), 'a correction must follow a report of the same occurrence'); n := n + 1;
   perform public.zz_expect_err(format($q$insert into dose_administration (family_id, schedule_id, local_date, status, scheduled_at, tz, medication_name, reported_by, reporter_name, client_request_id) values (%L, %L, %L, 'given', now(), 'UTC', 'x', %L, 'x', gen_random_uuid())$q$, fb, sA, d1, mb), 'cross-family reference: dose_administration.schedule_id'); n := n + 1;
   perform public.zz_expect_err(format($q$insert into dose_administration (family_id, schedule_id, local_date, status, scheduled_at, tz, medication_name, reported_by, reporter_name, client_request_id) values (%L, %L, %L, 'not_confirmed', now(), 'UTC', 'x', %L, 'x', gen_random_uuid())$q$, fa, sA, d2, mo), 'new row for relation "dose_administration" violates check constraint "dose_administration_retraction_supersedes"'); n := n + 1;

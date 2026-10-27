@@ -189,7 +189,7 @@ export function reduce(s: DemoState, a: Action): Outcome {
   };
   const error =
     a.type === "flag"
-      ? checkDisagreement(rule)
+      ? checkDisagreement({ ...rule, nowMs: DEMO_NOW_MS })
       : checkReport(
           { ...rule, actorIsOrganizer: actor.role === "organizer", nowMs: DEMO_NOW_MS },
           a,

@@ -371,6 +371,8 @@ describe("the reporting rules (mirror of report_dose)", () => {
     expect(d({ expectedHead: "old" })).toBe("dose_conflict");
     expect(d({ actorId: "carlos" })).toBe("dose_use_correction_instead");
     expect(d({ scheduledAtMs: null })).toBe("dose_time_skipped");
+    expect(d({ scheduledAtMs: NOW + H, nowMs: NOW })).toBe("dose_future_not_allowed");
+    expect(d({ scheduledAtMs: NOW - H, nowMs: NOW })).toBeNull();
   });
 });
 

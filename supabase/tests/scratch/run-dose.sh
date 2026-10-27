@@ -2,6 +2,7 @@
 # Feature C (dose administration): builds TWO scratch databases and runs the SQL suite on each:
 #   pendia_dose_live    = what the live database is believed to have (phase1 + grants + appointments) + the Feature C migration
 #   pendia_dose_future  = the same PLUS the two still-pending migrations (coverage, member access) + the Feature C migration
+#   pendia_dose_late    = Feature C applied BEFORE the two pending migrations, which are then applied on top
 # so the feature is proven compatible whether or not those approvals have happened. Local socket/loopback only.
 #   PENDIA_SCRATCH_DB=1 PGHOST=/path/to/socket PGPORT=5434 PGUSER=postgres bash supabase/tests/scratch/run-dose.sh
 set -eu
@@ -20,7 +21,10 @@ LIVE=(20261021000001_phase1_hardening 20261021000002_revoke_excess_grants 202610
 FUTURE=(20261021000001_phase1_hardening 20261021000002_revoke_excess_grants 20261021000004_visit_appointments 20261022000001_coverage_requirements 20261022000002_member_access_invites 20261027000001_dose_administration)
 build pendia_dose_live "${LIVE[@]}"
 build pendia_dose_future "${FUTURE[@]}"
-for db in pendia_dose_live pendia_dose_future; do
+# Feature C applied FIRST, the two pending migrations applied on top later
+LATE=(20261021000001_phase1_hardening 20261021000002_revoke_excess_grants 20261021000004_visit_appointments 20261027000001_dose_administration 20261022000001_coverage_requirements 20261022000002_member_access_invites)
+build pendia_dose_late "${LATE[@]}"
+for db in pendia_dose_live pendia_dose_future pendia_dose_late; do
   printf '%-22s %-26s' "$db" "dose-administration"
   psql -X -d "$db" -f "$REPO/supabase/tests/dose-administration.test.sql" 2>&1 | grep -Eo '(PASS|FAIL): .*' | head -1
   printf '%-22s %-26s' "$db" "concurrency"
