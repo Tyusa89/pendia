@@ -11,7 +11,7 @@ const h = vi.hoisted(() => {
       return builder;
     };
   }
-  builder.then = (res: (v: unknown) => unknown) => Promise.resolve(state.reply).then(res);
+  builder["then"] = (res: (v: unknown) => unknown) => Promise.resolve(state.reply).then(res);
   const rpc = vi.fn();
   const from = vi.fn((t: string) => {
     calls.push(["from", t]);
@@ -89,7 +89,7 @@ describe("reporting goes through the database functions only", () => {
       notGivenReason: "refused",
       changeReason: "other",
     });
-    expect((rpc.mock.calls[0]![1] as Record<string, unknown>)._not_given_reason).toBeNull();
+    expect((rpc.mock.calls[0]![1] as Record<string, unknown>)["_not_given_reason"]).toBeNull();
     await doseService.report({
       scheduleId: U(1),
       localDate: "2026-10-28",
@@ -98,7 +98,7 @@ describe("reporting goes through the database functions only", () => {
       requestId: "r2",
       notGivenReason: "refused",
     });
-    expect((rpc.mock.calls[1]![1] as Record<string, unknown>)._not_given_reason).toBe("refused");
+    expect((rpc.mock.calls[1]![1] as Record<string, unknown>)["_not_given_reason"]).toBe("refused");
   });
   it("a retry reuses the caller's request id unchanged", async () => {
     rpc.mockResolvedValue({ data: "x", error: null });
@@ -111,9 +111,9 @@ describe("reporting goes through the database functions only", () => {
     };
     await doseService.report(a);
     await doseService.report(a);
-    expect(rpc.mock.calls.map((c) => (c[1] as Record<string, unknown>)._client_request_id)).toEqual(
-      ["same", "same"],
-    );
+    expect(
+      rpc.mock.calls.map((c) => (c[1] as Record<string, unknown>)["_client_request_id"]),
+    ).toEqual(["same", "same"]);
   });
   it("flags a disagreement through its own function", async () => {
     rpc.mockResolvedValue({ data: "x", error: null });
