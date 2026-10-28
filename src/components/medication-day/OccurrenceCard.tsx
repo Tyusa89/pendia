@@ -27,6 +27,8 @@ export interface OccurrenceCardProps {
   onChange: () => void;
   onFlag: () => void;
   onHistory: () => void;
+  /** shown inside its medication's card: drops the repeated name and uses a quieter surface */
+  embedded?: boolean;
 }
 
 export function OccurrenceCard({
@@ -36,10 +38,11 @@ export function OccurrenceCard({
   onChange,
   onFlag,
   onHistory,
+  embedded = false,
 }: OccurrenceCardProps) {
   return (
     <Panel
-      className="space-y-3"
+      className={embedded ? "space-y-3 !bg-muted !p-3 !shadow-none" : "space-y-3"}
       aria-label={`${o.medication_name} at ${formatLocalTime(o.local_time)}`}
     >
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
@@ -47,7 +50,7 @@ export function OccurrenceCard({
           <p className="text-[0.8235rem] font-bold text-muted-foreground">
             {formatLocalTime(o.local_time)}
           </p>
-          <p className="break-words text-xl font-semibold">
+          <p className={embedded ? "sr-only" : "break-words text-xl font-semibold"}>
             {o.medication_name}{" "}
             {o.dose_text && (
               <span className="font-normal text-muted-foreground">{o.dose_text}</span>

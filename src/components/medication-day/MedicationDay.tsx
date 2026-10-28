@@ -1,7 +1,7 @@
 // Medication day: the computed dose times for one day, with reporting, correction, disagreement flags and history.
 // Data access goes through doseService only. If the database part is not switched on yet the section says so and the
 // rest of the Medications page keeps working.
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -17,12 +17,16 @@ export function MedicationDay({
   familyId,
   timeZone,
   me,
+  medications,
+  renderMedications,
 }: {
   familyId: string;
   timeZone: string;
   me: { id: string; role: string; can_see_meds: boolean };
   /** kept for callers; dose times are edited on each medication card */
   medications?: { id: string; name: string }[];
+  /** when given, each medication's doses for the day are placed inside that medication's own card (grouped by id) */
+  renderMedications?: (dosesFor: (medicationId: string) => ReactNode) => ReactNode;
 }) {
   const qc = useQueryClient();
   const isOrganizer = me.role === "organizer";
@@ -90,6 +94,45 @@ export function MedicationDay({
   const now = Date.now();
   const actor = { isOrganizer, canSeeMeds: me.can_see_meds || isOrganizer, memberId: me.id };
 
+  const card = (o: DoseOccurrence, embedded: boolean) => {
+    const actions = actionsFor(o, actor, now);
+    const open = (mode: DialogMode) => {
+      setDialogError(null);
+      setDialog({ o, mode });
+    };
+    return (
+      <OccurrenceCard
+        key={`${o.schedule_id}-${o.local_date}`}
+        occurrence={o}
+        actions={actions}
+        embedded={embedded}
+        onReport={() => open("report")}
+        onChange={() => open("change")}
+        onFlag={() => open("flag")}
+        onHistory={() =>
+          setHistoryFor(
+            historyFor?.schedule_id === o.schedule_id && historyFor.local_date === o.local_date
+              ? null
+              : o,
+          )
+        }
+      />
+    );
+  };
+  const renderGrid = (list: DoseOccurrence[]) => (
+    <div className="grid items-start gap-4 md:grid-cols-2">{list.map((o) => card(o, false))}</div>
+  );
+  const listed = new Set((medications ?? []).map((m) => m.id));
+  const ready = !unavailable && !occ.isLoading && !occ.error;
+  const dosesFor = (medicationId: string): ReactNode => {
+    if (!ready) return null;
+    const mine = (occ.data ?? []).filter((o) => o.medication_id === medicationId);
+    if (!mine.length) return <p className="text-muted-foreground">No doses scheduled on this day.</p>;
+    return <div className="space-y-3">{mine.map((o) => card(o, true))}</div>;
+  };
+  // doses whose medication isn't on the list stay visible on their own
+  const orphans = (occ.data ?? []).filter((o) => !listed.has(o.medication_id));
+
   return (
     <section className="mb-6 max-w-4xl space-y-4" aria-labelledby="med-day-title">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -119,36 +162,12 @@ export function MedicationDay({
         <Empty>Loading dose times…</Empty>
       ) : occ.error ? (
         <Empty>{(occ.error as Error).message}</Empty>
+      ) : renderMedications ? (
+        orphans.length > 0 ? renderGrid(orphans) : null
       ) : (occ.data ?? []).length === 0 ? (
         <Empty>No dose times on this day.{isOrganizer ? " Add dose times below." : ""}</Empty>
       ) : (
-        <div className="grid items-start gap-4 md:grid-cols-2">
-          {occ.data!.map((o) => {
-            const actions = actionsFor(o, actor, now);
-            const open = (mode: DialogMode) => {
-              setDialogError(null);
-              setDialog({ o, mode });
-            };
-            return (
-              <OccurrenceCard
-                key={`${o.schedule_id}-${o.local_date}`}
-                occurrence={o}
-                actions={actions}
-                onReport={() => open("report")}
-                onChange={() => open("change")}
-                onFlag={() => open("flag")}
-                onHistory={() =>
-                  setHistoryFor(
-                    historyFor?.schedule_id === o.schedule_id &&
-                      historyFor.local_date === o.local_date
-                      ? null
-                      : o,
-                  )
-                }
-              />
-            );
-          })}
-        </div>
+        renderGrid(occ.data!)
       )}
 
       {historyFor && (
