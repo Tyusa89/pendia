@@ -165,7 +165,7 @@ describe("Amendment A at QUERY time: handoff columns", () => {
     const { queries } = await load(ALL);
     const h = queries.find((q) => q.table === "handoff")!;
     expect(h.ops).toContainEqual(["order", "created_at", { ascending: false }]);
-    expect(h.ops).toContainEqual(["limit", 3]);
+    expect(h.ops).toContainEqual(["limit", 4]);
   });
 });
 
@@ -255,7 +255,7 @@ describe("the queries themselves follow the category gates", () => {
     const { queries } = await load(ALL);
     const m = queries.find((q) => q.table === "medication")!;
     expect(m.ops).toContainEqual(["eq", "status", "active"]);
-    expect(m.ops).toContainEqual(["limit", 12]);
+    expect(m.ops).toContainEqual(["limit", 13]);
   });
 });
 

@@ -68,7 +68,11 @@ const DOSE_SPECIFIC = re(
 );
 
 const TREAT_STANDALONE = re(
-  "what (helps|works|is good for|should (i|we) give)|what (should|do) (i|we) do|what to do (about|if|when)|how (do i|can i|to|do we|can we) (treat|ease|relieve|reduce|lower|stop|cure|soothe)|home remedy|remedy for|medicine for|something for (her|his|the)|que (ayuda|sirve|funciona|es bueno)|que (debo|debemos|hago|hacemos) hacer|que hacer (con|si|cuando)|que hago (si|con|cuando)|como (tratar|aliviar|reducir|bajar|curar|calmar)|remedio (casero|para)|algo para (su|el|la)",
+  "what (would|could|can|might) (help|ease|relieve|soothe|calm)|what (else )?(can|could|might|would) (we|i) (try|give|use|do)|(is there )?(anything|something) (we|i|that) (can|could|might|would|will)?\\s?(give|do|try|help|ease|relieve)|(anything|something) (to|for) (help|ease|relieve|calm|soothe)|make (her|him|them|mom|dad) (more )?(comfortable|feel better)|help (her|him|them|mom|dad) (feel better|sleep|with (the |her |his )?(pain|nausea|anxiety|sleep|cough|constipation))|alternatives? (to|for)|any (ideas|suggestions|tips) (for|on|to)|natural (way|remedy|remedies)|que (podria|podriamos|podemos|puedo|pueden) (ayudar|aliviar|calmar|probar|darle|hacer)|hay algo (que|para) (podamos|pueda|darle|hacer|ayudar|aliviar)|algo (para|que) (ayude|alivie|calme)|hacerl[ao] sentir mejor|mas comod[ao]|alternativas? (hay|existen|a|al|para)|alguna (idea|sugerencia) (para|sobre)|manera natural|what (helps|works|is good for|should (i|we) give)|what (should|do) (i|we) do|what to do (about|if|when)|how (do i|can i|to|do we|can we) (treat|ease|relieve|reduce|lower|stop|cure|soothe)|home remedy|remedy for|medicine for|something for (her|his|the)|que (ayuda|sirve|funciona|es bueno)|que (debo|debemos|hago|hacemos) hacer|que hacer (con|si|cuando)|que hago (si|con|cuando)|como (tratar|aliviar|reducir|bajar|curar|calmar)|remedio (casero|para)|algo para (su|el|la)",
+);
+/** Medication interactions and compatibility: general medical knowledge, never a record lookup. */
+const INTERACTION = re(
+  "interact\\w*|(grapefruit|alcohol|wine|beer|toronja|vino|cerveza).{0,40}\\b(bad|ok|okay|safe|fine|dangerous|risky|avoid|peligros\\w*|riesg\\w*|seguro|bien|evitar|mal)\\b|\\b(bad|ok|okay|safe|fine|dangerous|risky|avoid|peligros\\w*|riesg\\w*|seguro|bien|evitar|mal)\\b.{0,40}(grapefruit|alcohol|wine|beer|toronja|vino|cerveza)|contraindicat\\w*|(safe|ok|okay|fine|alright|compatible|bad|dangerous|risky) (together|to (mix|combine)|with (each other|alcohol|grapefruit|food|milk|other (meds|medications|medicines|drugs)))|(mix|mixing|combine|combining|take|taking|giving|give) .{1,40} (together|at the same time|with alcohol|with grapefruit)|\\bwith (alcohol|grapefruit)\\b|side effects? (of|from|with|when)\\b|(adverse|bad) (reaction|effect)s? (of|from|with|to)\\b|interaccion\\w*|contraindic\\w*|(seguro|segura|bien|compatible|peligroso|riesgoso)s? (juntos|juntas|mezclar|combinar|con (alcohol|toronja|otros? (medicamentos?|medicinas?|farmacos?)))|(mezclar|combinar|tomar|dar|darle) .{1,40} (juntos|juntas|al mismo tiempo|con alcohol|con toronja)|\\bcon (alcohol|toronja)\\b|efectos? (secundarios?|adversos?) (de|del|al|con|cuando)\\b|reaccion(es)? (adversa|adversas|a|al)\\b",
 );
 const TREAT_TERMS = re(
   "\\b(treat|treatment|remedy|cure|antibiotic|painkiller|supplement|therapy|exercise|diet|heating pad|ice pack|tratamiento|tratar|remedio|cura|antibiotico|suplemento|terapia|ejercicio|dieta)\\b",
@@ -104,6 +108,7 @@ export function prefilter(question: string): PrefilterHit | null {
   const cue = CUE.test(q);
   if (DOSE_SPECIFIC.test(q) || (cue && ACTION_VERB.test(q) && MED_WORD.test(q)))
     return { refusal: "medical_advice", category: "dose_change" };
+  if (INTERACTION.test(q)) return { refusal: "medical_advice", category: "treatment" };
   if (TREAT_STANDALONE.test(q) || (cue && TREAT_TERMS.test(q)))
     return { refusal: "medical_advice", category: "treatment" };
   if (DIAGNOSIS.test(q)) return { refusal: "medical_advice", category: "diagnosis" };

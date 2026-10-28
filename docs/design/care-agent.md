@@ -120,3 +120,30 @@ Run only after Pepper's PR audit passes and the offline payload preview is check
 fresh demo-only account allow-listed for the window; the question below is asked exactly once; any failure is a failed probe (no
 retry, no second question); afterwards `AGENT_LIVE_ENABLED` is turned back off. Question: *"What medication is listed in these
 records, and which source supports that?"*
+
+## 13. Audit remediation (Pepper's PR #54 audit, conditional GO)
+
+- **F1 dose statuses.** The "Not confirmed is never missed/skipped/not taken" guard is now evaluated **per sentence** and against
+  structured dose identity (medication + status), not per answer. A cited "Not given" dose no longer disables it for a different
+  "Not confirmed" dose. A misstatement sentence passes only if every dose it names is a caregiver-reported "Not given" dose; a medication that
+  has both statuses among the citations must be disambiguated by the dose's own date/time in the sentence; a sentence naming no
+  medication is rejected while any cited dose is Not confirmed.
+- **F2 `missing[]`.** Entries get the same numeric/date/time grounding (cited items, counts of cited items, and the pack's own window
+  numbers 48 / 7 / 3), the advisory screen, a dose-instruction screen and the per-sentence dose guard as `answer`.
+- **F3 number words.** English and Spanish spelled-out counts (zero–nineteen, tens, compounds such as "twenty-one" / "treinta y cinco",
+  "twice", "both"/"ambos", "dozen") become the same tokens as digits and are grounded the same way. Deliberately not parsed: bare "one",
+  "uno", "un", "una" (pronoun/article uses; English "one" counts only directly before a record noun), "once", thousands and
+  fractions. **Limitation:** a Spanish "una dosis" miscounted by the model is not caught by this rule.
+- **F4 qualitative grounding (limitation, unchanged).** The validator proves citation membership, numeric/date/time traceability, plain
+  text and the forbidden-language screens. It does **not** prove that every qualitative sentence is semantically supported by the
+  cited records. That remains the job of the system prompt, the pack design, the golden set and human review; do not describe the
+  agent as deterministically grounded.
+- **F5 pack completeness.** The standing note no longer says the listed records are the only ones that exist; it says they are the ones
+  *provided* and that others may exist. Capped sections are disclosed in the NOTES ("Limits were reached, so more records may exist than are
+  listed for: …") whenever a read limit (the source reads one extra row to detect this), a section cap (visit follow-ups/medication
+  changes 8, medications+doses 12, coordination 8, handoffs 3) or the size ceiling hid records.
+- **F6 coverage wording.** Shifts: those starting within the next 7 days. Tasks/watch items: open/active, non-visit-follow-up, **no date
+  window**; follow-ups only for the two listed visits.
+- **F7 advice screening.** Added EN/ES interaction, compatibility (alcohol, wine, grapefruit), side-effect and indirect-treatment
+  patterns ("what would help…", "anything we can give…", "make her more comfortable", alternatives); lookups such as "Were any side effects
+  reported in the latest handoff?" and "What dose is listed?" are still answered.

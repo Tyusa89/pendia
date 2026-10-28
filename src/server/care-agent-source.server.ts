@@ -173,7 +173,7 @@ export function createSupabasePackSource(supabase: Client, userId: string): Pack
             .eq("family_id", familyId)
             .eq("status", "active")
             .order("name")
-            .limit(AGENT_LIMITS.medicationSectionMax)
+            .limit(AGENT_LIMITS.medicationSectionMax + 1)
         : null;
       const from = ymd(
         new Date(now.getTime() - AGENT_LIMITS.doseWindowHours * 3_600_000),
@@ -194,7 +194,7 @@ export function createSupabasePackSource(supabase: Client, userId: string): Pack
             .select(access.meds ? HANDOFF_COLUMNS_FULL : HANDOFF_COLUMNS_METADATA)
             .eq("family_id", familyId)
             .order("created_at", { ascending: false })
-            .limit(AGENT_LIMITS.handoffsMax)
+            .limit(AGENT_LIMITS.handoffsMax + 1)
         : null;
       const shiftsQ = access.schedule
         ? db
@@ -204,7 +204,7 @@ export function createSupabasePackSource(supabase: Client, userId: string): Pack
             .gt("end", nowIso)
             .lt("start", horizon)
             .order("start", { ascending: true })
-            .limit(20)
+            .limit(21)
         : null;
       const tasksQ = access.schedule
         ? db
@@ -213,7 +213,7 @@ export function createSupabasePackSource(supabase: Client, userId: string): Pack
             .eq("family_id", familyId)
             .is("source_visit_id", null)
             .eq("status", "open")
-            .limit(10)
+            .limit(11)
         : null;
       const watchQ = access.schedule
         ? db
@@ -222,7 +222,7 @@ export function createSupabasePackSource(supabase: Client, userId: string): Pack
             .eq("family_id", familyId)
             .is("source_visit_id", null)
             .eq("status", "active")
-            .limit(10)
+            .limit(11)
         : null;
 
       const [r, m, mc, ft, fw, md, ds, nm, ho, sh, tk, wa] = (await Promise.all([
@@ -240,6 +240,19 @@ export function createSupabasePackSource(supabase: Client, userId: string): Pack
         watchQ,
       ])) as Array<Reply | null>;
       const rows = (x: Reply | null | undefined) => (x ? must<never>(x) : []);
+      // Each capped read asks for one row more than it uses; the extra row only proves that more records exist (it is dropped).
+      const capRows = <T>(
+        x: Reply | null | undefined,
+        max: number,
+      ): { rows: T[]; truncated: boolean } => {
+        const all = rows(x) as T[];
+        return { rows: all.slice(0, max), truncated: all.length > max };
+      };
+      const cMeds = capRows<MedicationRow>(md, AGENT_LIMITS.medicationSectionMax);
+      const cHand = capRows<HandoffMetaRow | HandoffFullRow>(ho, AGENT_LIMITS.handoffsMax);
+      const cShift = capRows<ShiftRow>(sh, 20);
+      const cTask = capRows<TaskRow>(tk, 10);
+      const cWatch = capRows<WatchRow>(wa, 10);
       return {
         recipient: (rows(r)[0] as RecipientRow | undefined) ?? null,
         members: rows(m) as MemberNameRow[],
@@ -247,12 +260,19 @@ export function createSupabasePackSource(supabase: Client, userId: string): Pack
         medChanges: rows(mc) as MedChangeRow[],
         followUpTasks: rows(ft) as TaskRow[],
         followUpWatch: rows(fw) as WatchRow[],
-        medications: rows(md) as MedicationRow[],
+        medications: cMeds.rows,
         doses: rows(ds) as DoseOccurrence[],
-        handoffs: rows(ho) as Array<HandoffMetaRow | HandoffFullRow>,
-        shifts: rows(sh) as ShiftRow[],
-        tasks: rows(tk) as TaskRow[],
-        watch: rows(wa) as WatchRow[],
+        handoffs: cHand.rows,
+        shifts: cShift.rows,
+        tasks: cTask.rows,
+        watch: cWatch.rows,
+        truncated: {
+          medications: cMeds.truncated,
+          handoffs: cHand.truncated,
+          shifts: cShift.truncated,
+          tasks: cTask.truncated,
+          watch: cWatch.truncated,
+        },
         medNames: access.meds ? null : (rows(nm) as Array<{ name: string }>).map((x) => x.name),
       };
     },

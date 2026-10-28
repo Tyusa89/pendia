@@ -32,6 +32,8 @@ export interface PackItem {
   body: string;
   /** True when something was withheld from this item for this member. */
   withheld: boolean;
+  /** Dose items only: structured identity and caregiver-reported status, for the validator's per-dose checks. */
+  dose?: { medication: string; status: "given" | "not_given" | "not_confirmed" };
 }
 
 // ---- rows as SELECTED (explicit column lists; see care-agent-source) -------------------------------------------------------------
@@ -122,6 +124,8 @@ export interface PackRows {
   watch: WatchRow[];
   /** Medication names for the Q1 screen. null/empty = could not be established. Never placed in the pack. */
   medNames: string[] | null;
+  /** Set by the source when a read hit its row limit (it reads one more than it uses). Optional: absent means not capped. */
+  truncated?: Partial<Record<"medications" | "handoffs" | "shifts" | "tasks" | "watch", boolean>>;
 }
 
 export interface ContextPack {
@@ -132,6 +136,8 @@ export interface ContextPack {
   notes: string[];
   items: PackItem[];
   omitted: { watch: boolean; tasks: boolean; doses: boolean };
+  /** Sections where a limit hid records that exist (source read limit, section cap or size ceiling). Disclosed in the NOTES. */
+  capped: string[];
   /** The text placed between the PACK fences. */
   rendered: string;
   byId: Map<string, PackItem>;
@@ -151,11 +157,12 @@ const NOTE_ORIGIN =
 const NOTE_DOSE_STATUS =
   "Dose status values are caregiver reports: Given, Not given (with a reason when recorded), or Not confirmed. Not confirmed means no one has reported the dose; it does NOT mean the dose was missed or skipped.";
 const NOTE_WINDOWS =
-  "Coverage of this pack: dose reports from the last 48 hours only; the 3 most recent handoffs only; shifts, tasks and watch items for the next 7 days only; only the next upcoming visit and the most recent completed visit. Do not generalize beyond these windows (no 'ever', 'always' or 'no history').";
+  "Coverage of this pack: dose reports from the last 48 hours only; the 3 most recent handoffs only; shifts that start within the next 7 days only; open tasks and active watch items that are not visit follow-ups, with no date window; follow-ups only for the two visits listed; only the next upcoming visit and the most recent completed visit. Do not generalize beyond these windows (no 'ever', 'always' or 'no history').";
 const NOTE_ABSENT =
-  "Only the records listed below exist for this question. Anything not listed is not in the records this assistant can access.";
+  "The records listed below are the ones provided to this assistant, within the windows and limits above. A record that is not listed may still exist; say it is not in the records provided, never that it does not exist or that nothing else is recorded.";
 const NOTE_GAPS =
   "Coverage gaps are not computed: no required-coverage hours are available. Shifts with no assigned person are marked 'unassigned'.";
+const NOTE_CAPPED_PREFIX = "Limits were reached, so more records may exist than are listed for: ";
 const NOTE_OMITTED =
   "Some lower-priority items (watch items, tasks or older dose reports) were omitted to fit; an item's absence below does not mean it does not exist.";
 export const NOT_VISIBLE_LINES = {
@@ -296,6 +303,7 @@ export function buildContextPack(input: {
     r.text ? `${label}: "${r.text}"` : r.withheld ? `${label}: [details withheld]` : "";
   const join = (parts: string[]) => parts.filter(Boolean).join("; ");
 
+  const capped = new Set<string>();
   const items: PackItem[] = [];
   const push = (it: PackItem) => {
     if (!PACK_ID_PATTERN.test(it.id)) return; // an id that does not match the typed pattern can never be cited
@@ -396,6 +404,8 @@ export function buildContextPack(input: {
       });
     }
   }
+  if (assoc.length > AGENT_LIMITS.visitAssociatedMax)
+    capped.add("visit follow-ups and medication changes");
   assoc.slice(0, AGENT_LIMITS.visitAssociatedMax).forEach(push);
 
   // ---- medications and dose reports (meds gate) — combined cap 12 ----
@@ -404,6 +414,8 @@ export function buildContextPack(input: {
       .filter((m) => m.status === "active")
       .sort((a, b) => a.name.localeCompare(b.name));
     let used = 0;
+    if (meds.length > AGENT_LIMITS.medicationSectionMax || rows.truncated?.medications)
+      capped.add("medications");
     for (const m of meds) {
       if (used >= AGENT_LIMITS.medicationSectionMax) break;
       push({
@@ -430,7 +442,10 @@ export function buildContextPack(input: {
       )
       .sort((a, b) => Date.parse(b.scheduled_at!) - Date.parse(a.scheduled_at!));
     for (const d of doses) {
-      if (used >= AGENT_LIMITS.medicationSectionMax) break;
+      if (used >= AGENT_LIMITS.medicationSectionMax) {
+        capped.add("dose reports");
+        break;
+      }
       const when = f.time(d.scheduled_at!);
       const status =
         d.status === "given"
@@ -448,6 +463,15 @@ export function buildContextPack(input: {
           d.reports_differ ? "reports differ" : "",
         ]),
         withheld: false,
+        dose: {
+          medication: cleanText(d.medication_name),
+          status:
+            d.status === "given"
+              ? "given"
+              : d.status === "not_given"
+                ? "not_given"
+                : "not_confirmed",
+        },
       });
       used++;
     }
@@ -455,6 +479,8 @@ export function buildContextPack(input: {
 
   // ---- handoffs (schedule gate; Amendment A tiers) ----
   if (access.schedule) {
+    if (rows.handoffs.length > AGENT_LIMITS.handoffsMax || rows.truncated?.handoffs)
+      capped.add("handoffs");
     const recent = [...rows.handoffs]
       .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
       .slice(0, AGENT_LIMITS.handoffsMax);
@@ -552,6 +578,11 @@ export function buildContextPack(input: {
         withheld: text.withheld,
       });
     }
+    for (const c of coord.slice(AGENT_LIMITS.coordinationMax))
+      capped.add(c.type === "shift" ? "shifts" : c.type === "task" ? "tasks" : "watch items");
+    if (rows.truncated?.shifts) capped.add("shifts");
+    if (rows.truncated?.tasks) capped.add("tasks");
+    if (rows.truncated?.watch) capped.add("watch items");
     coord.slice(0, AGENT_LIMITS.coordinationMax).forEach(push);
   }
 
@@ -563,6 +594,7 @@ export function buildContextPack(input: {
   if (access.schedule && !access.meds) notes.push(WITHHELD_HANDOFF_LINE);
   if (!access.meds && (anyFreeTextWithheld || !canScreen)) notes.push(WITHHELD_FREE_TEXT_LINE);
   if (access.schedule) notes.push(NOTE_GAPS);
+  if (capped.size > 0) notes.push(`${NOTE_CAPPED_PREFIX}${[...capped].join(", ")}.`);
   void visitCount;
 
   // ---- render and enforce the ceiling: omit watch items, then tasks, then older dose reports. Nothing else is cut. ----
@@ -606,6 +638,7 @@ export function buildContextPack(input: {
       notes,
       items,
       omitted,
+      capped: [...capped],
       rendered,
       byId: new Map(items.map((i) => [i.id, i])),
     },
