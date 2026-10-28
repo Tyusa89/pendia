@@ -375,12 +375,17 @@ describe("part 2: the real Handoffs route; only the server-function edge is fake
     expect(screen.queryByRole("button", { name: /^Transcribe/ })).not.toBeInTheDocument();
   });
 
-  it("when the status call itself fails (offline, signed out), the page degrades to the same text", async () => {
+  it("when the status call itself keeps failing, the page says so (not 'not connected') and offers no Transcribe button", async () => {
     fns.getTranscriptionStatus.mockRejectedValue(new Error("Unauthorized"));
     mount();
     await click("Record");
     await click("Stop");
-    expect(screen.getByText(/Transcription isn't connected yet/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Couldn't check whether transcription is available/i, undefined, {
+        timeout: 5000,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Transcription isn't connected yet/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Transcribe/ })).not.toBeInTheDocument();
   });
 

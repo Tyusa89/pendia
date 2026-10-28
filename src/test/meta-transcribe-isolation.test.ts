@@ -36,7 +36,12 @@ describe("server functions", () => {
   it("check family permission with the caller's own session, never a service key", () => {
     expect(src).toMatch(/context\.supabase/);
     expect(src).not.toMatch(/service_role|SERVICE_ROLE|client\.server|supabaseAdmin/);
-    expect(src.match(/role === "organizer"/g)).toHaveLength(2);
+    // one shared lookup, used by BOTH handlers; it throws on a lookup error instead of answering "no"
+    expect(src.match(/role === "organizer"/g)).toHaveLength(1);
+    expect(
+      src.match(/memberIsOrganizer\(context\.supabase, context\.userId, familyId\)/g),
+    ).toHaveLength(2);
+    expect(src).toMatch(/if \(error\) throw new Error\("member_lookup_failed"\)/);
   });
 });
 

@@ -6,6 +6,12 @@ import type { ComponentType } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { installRecorderEnv, type RecorderEnv } from "./recorder-fakes";
 
+// The availability check is a server function; this page test has no server, so say plainly that transcription is switched off.
+vi.mock("@/lib/meta-transcribe/transcribe.functions", () => ({
+  getTranscriptionStatus: async () => ({ available: false, reason: "disabled" }),
+  transcribeRecording: async () => ({ ok: false, code: "not_available" }),
+}));
+
 const create = vi.fn(async (h: unknown) => h);
 vi.mock("@/services", () => ({
   handoffService: {
@@ -128,7 +134,7 @@ describe("Handoffs page", () => {
     mount();
     await click("Record");
     await click("Stop");
-    expect(screen.getByText(/Transcription isn't connected yet/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Transcription isn't connected yet/i)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Transcribe/ })).not.toBeInTheDocument();
   });
 });

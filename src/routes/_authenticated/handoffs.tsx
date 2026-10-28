@@ -64,7 +64,7 @@ function Handoffs({ me }: { me: Member }) {
     queryFn: () => handoffService.activeWatchItems(fid),
   });
   const { data: members = [] } = useMembers(fid);
-  const transcriber = useMetaTranscriber(fid);
+  const meta = useMetaTranscriber(fid);
   const [ate, setAte] = useState<boolean | null>(null);
   const [meds, setMeds] = useState<boolean | null>(null);
   const [unusual, setUnusual] = useState("");
@@ -174,7 +174,10 @@ function Handoffs({ me }: { me: Member }) {
 
           <Panel aria-label="Voice note">
             <HandoffDictation
-              transcriber={transcriber}
+              transcriber={meta.transcriber}
+              transcriberState={meta.state}
+              onRetryAvailability={meta.retry}
+              onRecordingStopped={meta.recheck}
               onAccept={(text) =>
                 setUnusual((prev) => (prev.trim() ? `${prev.trimEnd()}\n${text}` : text))
               }
