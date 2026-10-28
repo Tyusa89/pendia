@@ -354,18 +354,38 @@ function Meds({
                           </p>
                         )}
                       </div>
-                      {isOrganizer && !schedules.isError && (
-                        <Button
-                          variant="outline"
-                          aria-expanded={editing === m.id}
-                          onClick={() => setEditing(editing === m.id ? null : m.id)}
-                        >
-                          {editing === m.id
-                            ? "Done"
-                            : mine.length
-                              ? "Edit dose times"
-                              : "Add dose times"}
-                        </Button>
+                      {isOrganizer && (
+                        <div className="flex flex-wrap gap-2">
+                          {!schedules.isError && (
+                            <Button
+                              variant="outline"
+                              aria-expanded={editing === m.id}
+                              onClick={() => setEditing(editing === m.id ? null : m.id)}
+                            >
+                              {editing === m.id
+                                ? "Done"
+                                : mine.length
+                                  ? "Edit dose times"
+                                  : "Add dose times"}
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            className="text-destructive"
+                            disabled={removeMed.isPending}
+                            aria-label={`Delete ${m.name}`}
+                            onClick={() => {
+                              if (
+                                window.confirm(
+                                  `Delete ${m.name}${m.dose ? ` ${m.dose}` : ""}? Its dose times will be removed too.`,
+                                )
+                              )
+                                removeMed.mutate(m.id);
+                            }}
+                          >
+                            Delete
+                          </Button>
+                        </div>
                       )}
                       {editing === m.id && (
                         <ScheduleEditor
