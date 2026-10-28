@@ -78,7 +78,7 @@ function Meds({
   const timeProblems = cleanTimes.length
     ? validateScheduleInput({
         medication_id: "x",
-        local_time: cleanTimes[0],
+        local_time: cleanTimes[0] ?? "",
         days_of_week: days,
         starts_on: starts,
         ends_on: null,
