@@ -1,16 +1,25 @@
 // Browser side of the Handoff transcription: asks the server whether transcription is available for this caregiver, and turns a
 // recording into a DRAFT with anonymous speaker labels and timestamps. The browser never sees the Meta key or calls Meta; it
 // only calls the two authenticated server functions. Nothing returned here is saved: the caller shows it for review first.
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DictationError, type DictationTranscriber } from "@/services/dictation";
 import { formatDraftText, type TranscriptTurn } from "@/lib/meta-transcribe/response";
+import {
+  STATUS_CONFIRMED_STALE_MS,
+  STATUS_RETRY_DELAYS_MS,
+  deriveTranscriberState,
+  type TranscriberState,
+  type TranscriptionStatus,
+} from "@/lib/meta-transcribe/status";
 import { getTranscriptionStatus, transcribeRecording } from "./transcribe.functions";
 
 /** What the caregiver reads for each fixed server code. Never provider text. */
 export const TRANSCRIBE_ERROR_MESSAGES: Record<string, string> = {
   not_available: "Transcription isn't available right now. Please type the note instead.",
   forbidden: "Only the family organizer can transcribe a recording. Please type the note instead.",
+  check_failed:
+    "We couldn't confirm your access just now. Your recording is still here; please try again in a moment or type the note.",
   rate_limited:
     "Too many transcriptions in a short time. Please wait a few minutes or type the note.",
   timeout:
@@ -85,14 +94,49 @@ export function createMetaTranscriber(
   };
 }
 
-/** Availability comes from the server (feature switched on, key present, caller is an organizer); until then, unavailable. */
-export function useMetaTranscriber(familyId: string): DictationTranscriber {
-  const status = useQuery({
+export interface MetaTranscriberHandle {
+  transcriber: DictationTranscriber;
+  state: TranscriberState;
+  /** Manual "Try again" after a temporary error. */
+  retry: () => void;
+  /** Re-check only if the last answer was not "available" (never for a confirmed yes). Safe to call repeatedly. */
+  recheck: () => void;
+}
+
+/**
+ * Availability comes from the server (feature switched on, key present, caller is an organizer). It sends no audio. States:
+ * loading, available, disabled and not_organizer (definite answers) and error (the check keeps failing, temporarily).
+ * A temporary failure retries a bounded number of times with short backoff and NEVER replaces an earlier confirmed answer;
+ * only a definite server answer can. A confirmed yes is trusted for 5 minutes; any other answer is re-checked on focus.
+ */
+export function useMetaTranscriber(familyId: string): MetaTranscriberHandle {
+  const status = useQuery<TranscriptionStatus>({
     queryKey: ["transcription-status", familyId],
-    queryFn: () => getTranscriptionStatus({ data: { familyId } }),
-    retry: false,
-    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const r = await getTranscriptionStatus({ data: { familyId } });
+      // "could not find out" is an error, not an answer: the query keeps its last confirmed data and retries.
+      if (!r.available && r.reason === "check_failed") throw new Error("status_check_failed");
+      return r;
+    },
+    retry: STATUS_RETRY_DELAYS_MS.length,
+    retryDelay: (attempt) =>
+      STATUS_RETRY_DELAYS_MS[Math.min(attempt, STATUS_RETRY_DELAYS_MS.length - 1)]!,
+    staleTime: (q) => (q.state.data?.available === true ? STATUS_CONFIRMED_STALE_MS : 0),
   });
-  const available = status.data?.available === true;
-  return useMemo(() => createMetaTranscriber(familyId, available), [familyId, available]);
+  const state = deriveTranscriberState({
+    data: status.data,
+    isFetching: status.isFetching,
+    isError: status.isError,
+  });
+  const available = state === "available";
+  const transcriber = useMemo(
+    () => createMetaTranscriber(familyId, available),
+    [familyId, available],
+  );
+  const { refetch } = status;
+  const retry = useCallback(() => void refetch(), [refetch]);
+  const recheck = useCallback(() => {
+    if (state !== "available" && state !== "loading") void refetch({ cancelRefetch: false });
+  }, [state, refetch]);
+  return { transcriber, state, retry, recheck };
 }

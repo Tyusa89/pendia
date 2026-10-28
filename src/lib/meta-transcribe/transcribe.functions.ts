@@ -4,21 +4,39 @@
 // Failures are returned as fixed codes, not thrown: a thrown error would reach the browser as the generic error page.
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 import { statusInputSchema, transcribeInputSchema } from "@/lib/meta-transcribe/input";
+
+/**
+ * True only for an organizer of that family, looked up with the caller's own session. A FAILED lookup throws: it must never be
+ * answered as "not an organizer" (that would turn a temporary database error into a confident no).
+ */
+export async function memberIsOrganizer(
+  supabase: Pick<SupabaseClient<Database>, "from">,
+  userId: string,
+  familyId: string,
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("member")
+    .select("role")
+    .eq("family_id", familyId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw new Error("member_lookup_failed");
+  return data?.role === "organizer";
+}
 
 export const getTranscriptionStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((data: unknown) => statusInputSchema.parse(data))
   .handler(async ({ data, context }) => {
-    const { metaTranscribeConfigured } = await import("@/server/meta-transcribe.server");
-    if (!metaTranscribeConfigured(process.env)) return { available: false };
-    const { data: row } = await context.supabase
-      .from("member")
-      .select("role")
-      .eq("family_id", data.familyId)
-      .eq("user_id", context.userId)
-      .maybeSingle();
-    return { available: row?.role === "organizer" };
+    const { transcriptionStatus } = await import("@/server/meta-transcribe.server");
+    return transcriptionStatus({
+      env: process.env,
+      familyId: data.familyId,
+      isOrganizer: (familyId) => memberIsOrganizer(context.supabase, context.userId, familyId),
+    });
   });
 
 export const transcribeRecording = createServerFn({ method: "POST" })
@@ -31,15 +49,7 @@ export const transcribeRecording = createServerFn({ method: "POST" })
       userId: context.userId,
       familyId: data.familyId,
       audioBase64: data.audioBase64,
-      isOrganizer: async (familyId) => {
-        const { data: row } = await context.supabase
-          .from("member")
-          .select("role")
-          .eq("family_id", familyId)
-          .eq("user_id", context.userId)
-          .maybeSingle();
-        return row?.role === "organizer";
-      },
+      isOrganizer: (familyId) => memberIsOrganizer(context.supabase, context.userId, familyId),
       fetchImpl: (url, init) => fetch(url, init),
     });
   });

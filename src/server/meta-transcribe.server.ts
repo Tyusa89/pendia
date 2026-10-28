@@ -18,6 +18,7 @@ import {
   validateWavForUpload,
 } from "@/lib/meta-transcribe/contract";
 import { parseTranscribeResponse, type TranscriptTurn } from "@/lib/meta-transcribe/response";
+import type { TranscriptionStatus } from "@/lib/meta-transcribe/status";
 
 export interface MetaTranscribeEnv {
   META_TRANSCRIBE_ENABLED?: string | undefined;
@@ -43,6 +44,25 @@ export function metaTranscribeConfigured(env: MetaTranscribeEnv): boolean {
   return env.META_TRANSCRIBE_ENABLED === "true" && (env.META_API_KEY ?? "").trim() !== "";
 }
 
+/**
+ * The availability answer for one family. `isOrganizer` must THROW when it cannot find out (a failed lookup); that is reported as
+ * `check_failed`, never as "not an organizer" and never as "disabled". Sends nothing to Meta and reads no audio.
+ */
+export async function transcriptionStatus(opts: {
+  env: MetaTranscribeEnv;
+  familyId: string;
+  isOrganizer: (familyId: string) => Promise<boolean>;
+}): Promise<TranscriptionStatus> {
+  if (!metaTranscribeConfigured(opts.env)) return { available: false, reason: "disabled" };
+  try {
+    return (await opts.isOrganizer(opts.familyId))
+      ? { available: true }
+      : { available: false, reason: "not_organizer" };
+  } catch {
+    return { available: false, reason: "check_failed" };
+  }
+}
+
 export interface TranscribeSuccess {
   ok: true;
   turns: TranscriptTurn[];
@@ -52,7 +72,7 @@ export interface TranscribeSuccess {
 }
 export interface TranscribeFailure {
   ok: false;
-  /** A fixed code such as not_available, forbidden, rate_limited, audio_too_long, timeout, http_401, no_speech. */
+  /** A fixed code such as not_available, forbidden, check_failed, rate_limited, audio_too_long, timeout, http_401, no_speech. */
   code: string;
 }
 export type TranscribeResult = TranscribeSuccess | TranscribeFailure;
@@ -106,18 +126,21 @@ export async function transcribeRecording(opts: {
   userId: string;
   familyId: string;
   audioBase64: string;
-  /** Injected by the server function: true only if this user is an organizer of that family (checked with the user's own session). */
+  /**
+   * Injected by the server function: true only if this user is an organizer of that family (checked with the user's own session).
+   * It must THROW if the lookup itself fails; that is answered `check_failed` (retryable), never `forbidden`.
+   */
   isOrganizer: (familyId: string) => Promise<boolean>;
   fetchImpl: FetchLike;
   timeoutMs?: number;
   now?: () => number;
 }): Promise<TranscribeResult> {
   if (!metaTranscribeConfigured(opts.env)) return fail("not_available");
-  let allowed = false;
+  let allowed: boolean;
   try {
     allowed = await opts.isOrganizer(opts.familyId);
   } catch {
-    allowed = false;
+    return fail("check_failed"); // we could not find out: not a "no"
   }
   if (!allowed) return fail("forbidden");
 

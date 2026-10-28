@@ -19,6 +19,7 @@ import {
 } from "@/hooks/use-audio-recorder";
 import { formatTimestamp } from "@/lib/format";
 import type { PcmProvider } from "@/lib/pcm-capture";
+import type { TranscriberState } from "@/lib/meta-transcribe/status";
 import {
   DictationError,
   dictationTranscriber,
@@ -46,6 +47,15 @@ interface Props {
   resetSignal?: number;
   /** Test/e2e seam for the PCM capture provider. */
   pcm?: PcmProvider;
+  /**
+   * Why transcription is or isn't offered, from the availability check (loading, disabled, not_organizer or a temporary error).
+   * Omitted: the old behaviour, where `transcriber.available` alone decides. The check sends no audio.
+   */
+  transcriberState?: TranscriberState;
+  /** "Try again" after a temporary availability error. */
+  onRetryAvailability?: () => void;
+  /** Called when a recording stops, so the page can re-check availability (only if it was not already available). */
+  onRecordingStopped?: () => void;
 }
 
 /**
@@ -61,6 +71,9 @@ export function HandoffDictation({
   onTakeChange,
   resetSignal,
   pcm,
+  transcriberState,
+  onRetryAvailability,
+  onRecordingStopped,
 }: Props) {
   const rec = useAudioRecorder(pcm ? { pcm } : {});
   const onTakeChangeRef = useRef(onTakeChange);
@@ -78,6 +91,13 @@ export function HandoffDictation({
         : null,
     );
   }, [audio]);
+  const onStoppedRef = useRef(onRecordingStopped);
+  onStoppedRef.current = onRecordingStopped;
+  const stoppedTake = rec.status === "stopped" && rec.audio ? rec.audio.url : null;
+  useEffect(() => {
+    // Once per finished recording. Only asks the page to re-check; the recording and any draft are untouched.
+    if (stoppedTake) onStoppedRef.current?.();
+  }, [stoppedTake]);
   const lastReset = useRef(resetSignal);
   const { discard: discardRec } = rec;
   useEffect(() => {
@@ -384,6 +404,30 @@ export function HandoffDictation({
                 </Button>
               </>
             )
+          ) : transcriberState === "loading" ? (
+            <p role="status" className="text-[0.9412rem] text-muted-foreground">
+              Checking whether transcription is available… You can type the note below meanwhile.
+            </p>
+          ) : transcriberState === "not_organizer" ? (
+            <p className="text-[0.9412rem] text-muted-foreground">
+              Only the family organizer can transcribe a recording. You can play your recording
+              back, but please type the note below.
+            </p>
+          ) : transcriberState === "error" ? (
+            <div className="space-y-2">
+              <p role="alert" className="rounded-2xl bg-warning p-3.5 text-warning-foreground">
+                Couldn't check whether transcription is available. Your recording is still here; you
+                can try again or type the note below.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={onRetryAvailability}
+              >
+                <RotateCcw /> Try again
+              </Button>
+            </div>
           ) : (
             <p className="text-[0.9412rem] text-muted-foreground">
               Transcription isn't connected yet. You can play your recording back, but please type

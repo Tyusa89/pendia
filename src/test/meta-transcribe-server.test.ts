@@ -261,11 +261,11 @@ describe("server module with a mocked Meta", () => {
       });
       expect(fetchMock).not.toHaveBeenCalled();
     });
-    it("a failing permission check is treated as forbidden, never as allowed", async () => {
+    it("a FAILED permission lookup is check_failed (retryable), never forbidden and never allowed", async () => {
       const isOrganizer = async () => {
         throw new Error("db down");
       };
-      expect(await run({ isOrganizer })).toEqual({ ok: false, code: "forbidden" });
+      expect(await run({ isOrganizer })).toEqual({ ok: false, code: "check_failed" });
       expect(fetchMock).not.toHaveBeenCalled();
     });
     it("the permission check receives the requested family id", async () => {
