@@ -46,7 +46,7 @@ describe("OccurrenceCard", () => {
   it("an unreported dose is Not confirmed and offers a report", () => {
     card(occ(), { ...none, report: true });
     expect(screen.getByText("Not confirmed")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Report this dose" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Report dose" })).toBeTruthy();
     expect(screen.queryByText(/does not check/)).toBeNull();
   });
   it("a reported dose names the reporter as a report and carries the footnote", () => {
