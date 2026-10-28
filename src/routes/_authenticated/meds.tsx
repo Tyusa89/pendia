@@ -128,7 +128,8 @@ function Meds({
       await refetchAll();
       // confirm from freshly read data before saying it worked
       const meds = qc.getQueryData<{ id: string }[]>(["meds", familyId]) ?? [];
-      if (!meds.some((m) => m.id === med.id)) throw new Error("The medication could not be confirmed.");
+      if (!meds.some((m) => m.id === med.id))
+        throw new Error("The medication could not be confirmed.");
       return { med, timesSaved: true };
     },
     onSuccess: ({ med, timesSaved }) => {
@@ -220,7 +221,9 @@ function Meds({
                     id={`new-time-${idx}`}
                     type="time"
                     value={t}
-                    onChange={(e) => setTimes(times.map((x, j) => (j === idx ? e.target.value : x)))}
+                    onChange={(e) =>
+                      setTimes(times.map((x, j) => (j === idx ? e.target.value : x)))
+                    }
                   />
                 </div>
                 <Button
@@ -296,75 +299,103 @@ function Meds({
           )}
         </Panel>
       )}
-      <MedicationDay familyId={familyId} timeZone={timeZone} me={me} />
-      {data.length === 0 ? (
-        <Empty>No medications listed.</Empty>
-      ) : (
-        <div className="grid items-start gap-4 md:grid-cols-2 min-[1800px]:grid-cols-3">
-          {data.map((m) => {
-            const mine = activeSchedules(m.id);
-            return (
-              <Panel key={m.id} className="space-y-4">
-                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-                  <div className="min-w-0">
-                    <p className="break-words text-xl font-semibold">
-                      {m.name} <span className="font-normal text-muted-foreground">{m.dose}</span>
-                    </p>
-                  </div>
-                  <span
-                    className={`shrink-0 rounded-full px-3 py-1 text-[0.8235rem] font-bold capitalize ${statusStyle[m.status]}`}
-                  >
-                    {m.status}
-                  </span>
-                </div>
-                <div className="border-t border-border pt-3">
-                  <p className="font-semibold">Dose times</p>
-                  {mine.length ? (
-                    <ul className="mt-1 space-y-1 text-muted-foreground">
-                      {mine.map((s) => (
-                        <li key={s.id}>
-                          {describeSchedule(s)}
-                          {s.ends_on ? ` · ends ${s.ends_on}` : ""}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-1 text-muted-foreground">No dose times set</p>
-                  )}
-                  {m.schedule && (
-                    <p className="mt-2 text-muted-foreground">
-                      <span className="font-semibold text-foreground">Instructions:</span>{" "}
-                      {m.schedule}
-                    </p>
-                  )}
-                </div>
-                {isOrganizer && !schedules.isError && (
-                  <Button
-                    variant="outline"
-                    aria-expanded={editing === m.id}
-                    onClick={() => setEditing(editing === m.id ? null : m.id)}
-                  >
-                    {editing === m.id ? "Done" : mine.length ? "Edit dose times" : "Add dose times"}
-                  </Button>
-                )}
-                {editing === m.id && (
-                  <ScheduleEditor
-                    fixedMedicationId={m.id}
-                    medications={[{ id: m.id, name: m.name }]}
-                    schedules={(schedules.data ?? []).filter((s) => s.medication_id === m.id)}
-                    today={today}
-                    busy={schedMutation.isPending}
-                    error={schedMutation.error ? (schedMutation.error as Error).message : null}
-                    onAdd={(i) => schedMutation.mutate(() => doseService.addSchedule(familyId, i))}
-                    onEnd={(id) => schedMutation.mutate(() => doseService.endSchedule(id, today))}
-                    onDelete={(id) => schedMutation.mutate(() => doseService.deleteSchedule(id))}
-                  />
-                )}
-              </Panel>
-            );
-          })}
-        </div>
-      )}
+      <MedicationDay
+        familyId={familyId}
+        timeZone={timeZone}
+        me={me}
+        medications={data.map((m) => ({ id: m.id, name: m.name }))}
+        renderMedications={(dosesFor) => (
+          <>
+            {data.length === 0 ? (
+              <Empty>No medications listed.</Empty>
+            ) : (
+              <div className="grid items-start gap-4 md:grid-cols-2 min-[1800px]:grid-cols-3">
+                {data.map((m) => {
+                  const mine = activeSchedules(m.id);
+                  return (
+                    <Panel key={m.id} className="space-y-4">
+                      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+                        <div className="min-w-0">
+                          <p className="break-words text-xl font-semibold">
+                            {m.name}{" "}
+                            <span className="font-normal text-muted-foreground">{m.dose}</span>
+                          </p>
+                        </div>
+                        <span
+                          className={`shrink-0 rounded-full px-3 py-1 text-[0.8235rem] font-bold capitalize ${statusStyle[m.status]}`}
+                        >
+                          {m.status}
+                        </span>
+                      </div>
+                      {dosesFor(m.id) && (
+                        <div className="space-y-2 border-t border-border pt-3">
+                          <p className="font-semibold">Doses on this day</p>
+                          {dosesFor(m.id)}
+                        </div>
+                      )}
+                      <div className="border-t border-border pt-3">
+                        <p className="font-semibold">Repeating schedule</p>
+                        {mine.length ? (
+                          <ul className="mt-1 space-y-1 text-muted-foreground">
+                            {mine.map((s) => (
+                              <li key={s.id}>
+                                {describeSchedule(s)}
+                                {s.ends_on ? ` · ends ${s.ends_on}` : ""}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="mt-1 text-muted-foreground">No dose times set</p>
+                        )}
+                        {m.schedule && (
+                          <p className="mt-2 text-muted-foreground">
+                            <span className="font-semibold text-foreground">Instructions:</span>{" "}
+                            {m.schedule}
+                          </p>
+                        )}
+                      </div>
+                      {isOrganizer && !schedules.isError && (
+                        <Button
+                          variant="outline"
+                          aria-expanded={editing === m.id}
+                          onClick={() => setEditing(editing === m.id ? null : m.id)}
+                        >
+                          {editing === m.id
+                            ? "Done"
+                            : mine.length
+                              ? "Edit dose times"
+                              : "Add dose times"}
+                        </Button>
+                      )}
+                      {editing === m.id && (
+                        <ScheduleEditor
+                          fixedMedicationId={m.id}
+                          medications={[{ id: m.id, name: m.name }]}
+                          schedules={(schedules.data ?? []).filter((s) => s.medication_id === m.id)}
+                          today={today}
+                          busy={schedMutation.isPending}
+                          error={
+                            schedMutation.error ? (schedMutation.error as Error).message : null
+                          }
+                          onAdd={(i) =>
+                            schedMutation.mutate(() => doseService.addSchedule(familyId, i))
+                          }
+                          onEnd={(id) =>
+                            schedMutation.mutate(() => doseService.endSchedule(id, today))
+                          }
+                          onDelete={(id) =>
+                            schedMutation.mutate(() => doseService.deleteSchedule(id))
+                          }
+                        />
+                      )}
+                    </Panel>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+      />
     </>
   );
 }

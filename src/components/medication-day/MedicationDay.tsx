@@ -127,14 +127,18 @@ export function MedicationDay({
   const dosesFor = (medicationId: string): ReactNode => {
     if (!ready) return null;
     const mine = (occ.data ?? []).filter((o) => o.medication_id === medicationId);
-    if (!mine.length) return <p className="text-muted-foreground">No doses scheduled on this day.</p>;
+    if (!mine.length)
+      return <p className="text-muted-foreground">No doses scheduled on this day.</p>;
     return <div className="space-y-3">{mine.map((o) => card(o, true))}</div>;
   };
   // doses whose medication isn't on the list stay visible on their own
   const orphans = (occ.data ?? []).filter((o) => !listed.has(o.medication_id));
 
   return (
-    <section className="mb-6 max-w-4xl space-y-4" aria-labelledby="med-day-title">
+    <section
+      className={`mb-6 space-y-4 ${renderMedications ? "" : "max-w-4xl"}`}
+      aria-labelledby="med-day-title"
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 id="med-day-title" className="text-2xl font-semibold">
           Medication day
@@ -163,12 +167,16 @@ export function MedicationDay({
       ) : occ.error ? (
         <Empty>{(occ.error as Error).message}</Empty>
       ) : renderMedications ? (
-        orphans.length > 0 ? renderGrid(orphans) : null
+        orphans.length > 0 ? (
+          renderGrid(orphans)
+        ) : null
       ) : (occ.data ?? []).length === 0 ? (
         <Empty>No dose times on this day.{isOrganizer ? " Add dose times below." : ""}</Empty>
       ) : (
         renderGrid(occ.data!)
       )}
+
+      {renderMedications?.(dosesFor)}
 
       {historyFor && (
         <Panel className="space-y-2" aria-label="History">
@@ -195,7 +203,6 @@ export function MedicationDay({
           onClose={() => setDialog(null)}
         />
       )}
-
     </section>
   );
 }
