@@ -153,7 +153,7 @@ describe("screen", () => {
     render(<MedDayDemo />);
     expect(screen.getByText(/Nothing is saved or sent/)).toBeTruthy();
     fireEvent.change(screen.getByLabelText("You are"), { target: { value: "lucia" } });
-    fireEvent.click(screen.getAllByRole("button", { name: "Report this dose" })[0]!);
+    fireEvent.click(screen.getAllByRole("button", { name: "Report dose" })[0]!);
     fireEvent.click(screen.getByRole("button", { name: "Save report" }));
     expect(screen.getAllByText(/Reported given by Lucía/).length).toBe(1);
   });
