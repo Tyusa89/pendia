@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, Check } from "lucide-react";
 import { PageTitle, Panel } from "@/components/AppShell";
+import { MedicalIntegrationsPanel } from "@/components/MedicalIntegrationsPanel";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { usePreferences } from "@/components/PreferencesProvider";
@@ -66,6 +67,7 @@ function PreferencesPage() {
         <Setting title="Daily digest" description="Not connected" disabled />
         <Setting title="Visit reminders" description="Not connected" disabled />
       </Panel>
+      <MedicalIntegrationsPanel />
       <Panel aria-label="Privacy & recordings">
         <h2 className="mb-3 font-sans text-sm font-bold uppercase tracking-wide text-muted-foreground">Privacy & recordings</h2>
         <p className="text-muted-foreground">Manage each saved recording from its visit or handoff.</p>

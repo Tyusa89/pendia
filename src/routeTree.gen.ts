@@ -20,6 +20,7 @@ import { Route as AuthenticatedDevSparkRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedDigestRouteImport } from './routes/_authenticated/digest'
 import { Route as AuthenticatedFamilyRouteImport } from './routes/_authenticated/family'
 import { Route as AuthenticatedHandoffsRouteImport } from './routes/_authenticated/handoffs'
+import { Route as AuthenticatedMedicalIntegrationsRouteImport } from './routes/_authenticated/medical-integrations'
 import { Route as AuthenticatedMedsRouteImport } from './routes/_authenticated/meds'
 import { Route as AuthenticatedPreferencesRouteImport } from './routes/_authenticated/preferences'
 import { Route as AuthenticatedVisitsIndexRouteImport } from './routes/_authenticated/visits.index'
@@ -82,6 +83,12 @@ const AuthenticatedHandoffsRoute = AuthenticatedHandoffsRouteImport.update({
   path: '/handoffs',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedMedicalIntegrationsRoute =
+  AuthenticatedMedicalIntegrationsRouteImport.update({
+    id: '/medical-integrations',
+    path: '/medical-integrations',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedMedsRoute = AuthenticatedMedsRouteImport.update({
   id: '/meds',
   path: '/meds',
@@ -132,6 +139,7 @@ export interface FileRoutesByFullPath {
   '/digest': typeof AuthenticatedDigestRoute
   '/family': typeof AuthenticatedFamilyRoute
   '/handoffs': typeof AuthenticatedHandoffsRoute
+  '/medical-integrations': typeof AuthenticatedMedicalIntegrationsRoute
   '/meds': typeof AuthenticatedMedsRoute
   '/preferences': typeof AuthenticatedPreferencesRoute
   '/visits/$id': typeof AuthenticatedVisitsIdRoute
@@ -151,6 +159,7 @@ export interface FileRoutesByTo {
   '/digest': typeof AuthenticatedDigestRoute
   '/family': typeof AuthenticatedFamilyRoute
   '/handoffs': typeof AuthenticatedHandoffsRoute
+  '/medical-integrations': typeof AuthenticatedMedicalIntegrationsRoute
   '/meds': typeof AuthenticatedMedsRoute
   '/preferences': typeof AuthenticatedPreferencesRoute
   '/visits/$id': typeof AuthenticatedVisitsIdRoute
@@ -172,6 +181,7 @@ export interface FileRoutesById {
   '/_authenticated/digest': typeof AuthenticatedDigestRoute
   '/_authenticated/family': typeof AuthenticatedFamilyRoute
   '/_authenticated/handoffs': typeof AuthenticatedHandoffsRoute
+  '/_authenticated/medical-integrations': typeof AuthenticatedMedicalIntegrationsRoute
   '/_authenticated/meds': typeof AuthenticatedMedsRoute
   '/_authenticated/preferences': typeof AuthenticatedPreferencesRoute
   '/_authenticated/visits/$id': typeof AuthenticatedVisitsIdRoute
@@ -193,6 +203,7 @@ export interface FileRouteTypes {
     | '/digest'
     | '/family'
     | '/handoffs'
+    | '/medical-integrations'
     | '/meds'
     | '/preferences'
     | '/visits/$id'
@@ -212,6 +223,7 @@ export interface FileRouteTypes {
     | '/digest'
     | '/family'
     | '/handoffs'
+    | '/medical-integrations'
     | '/meds'
     | '/preferences'
     | '/visits/$id'
@@ -232,6 +244,7 @@ export interface FileRouteTypes {
     | '/_authenticated/digest'
     | '/_authenticated/family'
     | '/_authenticated/handoffs'
+    | '/_authenticated/medical-integrations'
     | '/_authenticated/meds'
     | '/_authenticated/preferences'
     | '/_authenticated/visits/$id'
@@ -328,6 +341,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHandoffsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/medical-integrations': {
+      id: '/_authenticated/medical-integrations'
+      path: '/medical-integrations'
+      fullPath: '/medical-integrations'
+      preLoaderRoute: typeof AuthenticatedMedicalIntegrationsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/meds': {
       id: '/_authenticated/meds'
       path: '/meds'
@@ -387,6 +407,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDigestRoute: typeof AuthenticatedDigestRoute
   AuthenticatedFamilyRoute: typeof AuthenticatedFamilyRoute
   AuthenticatedHandoffsRoute: typeof AuthenticatedHandoffsRoute
+  AuthenticatedMedicalIntegrationsRoute: typeof AuthenticatedMedicalIntegrationsRoute
   AuthenticatedMedsRoute: typeof AuthenticatedMedsRoute
   AuthenticatedPreferencesRoute: typeof AuthenticatedPreferencesRoute
   AuthenticatedVisitsIdRoute: typeof AuthenticatedVisitsIdRoute
@@ -403,6 +424,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDigestRoute: AuthenticatedDigestRoute,
   AuthenticatedFamilyRoute: AuthenticatedFamilyRoute,
   AuthenticatedHandoffsRoute: AuthenticatedHandoffsRoute,
+  AuthenticatedMedicalIntegrationsRoute: AuthenticatedMedicalIntegrationsRoute,
   AuthenticatedMedsRoute: AuthenticatedMedsRoute,
   AuthenticatedPreferencesRoute: AuthenticatedPreferencesRoute,
   AuthenticatedVisitsIdRoute: AuthenticatedVisitsIdRoute,
