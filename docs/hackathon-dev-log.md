@@ -38,3 +38,12 @@ period is `main` @ `b0ad286` (merge of PR #44, October 26, 2026).
   at `/demo-meds`. Feature A verification stays independent.
 - **Restrictions in force:** the migration `20261027000001_dose_administration.sql` is committed but **not applied**; no merges,
   deployments, publishing, credential changes or live Meta calls without separate approval.
+
+### 2026-10-28: Care Agent MVP implemented (draft PR; not enabled)
+
+- **Feature:** read-only, stateless, record-grounded Care Agent ("Ask Pendia") for demo families only, using Muse Spark 1.3 Standard.
+- **Authorization:** the founder's Oct 28 approval under Pepper's complete GO review (Rev 3 specification: `docs/design/care-agent.md`).
+- **Baseline:** `main` @ `35ccecafd7b21fe26a86f699eb9c5130045fed23`; branch `feature/care-agent-mvp`.
+- **State:** built and tested offline only. `AGENT_LIVE_ENABLED` is off, `features.assistant` is `false`, no secret was touched and no Meta
+  call was made. It is enabled only on the server, for the demo family, during the controlled test window.
+- **Restrictions in force:** no merge, deployment, enablement or live probe without separate approval; stops for Pepper's code audit.

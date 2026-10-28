@@ -166,7 +166,10 @@ lavender; Fraunces + Figtree), so this is a layout and touch-target pass, not a 
 - **Optional AI assistant:** `src/lib/features.ts` has `assistant: false`. The shell reserves its place (a button in the top bar
   and the sidebar) and renders nothing while it is off. There is no AI call, integration or route behind it; the app is complete
   without it.
-- Not built from the design (new features, awaiting approval): Preferences, Ask Pendia, "Questions to ask", "Today's meds /
+- **Care Agent (Ask Pendia):** built but **disabled by default** (`docs/design/care-agent.md`). It is read-only and stateless, answers only
+  from a demo family's Pendia records with cited sources, refuses medical advice, and is switched on only on the server
+  (`AGENT_LIVE_ENABLED`) for an allow-listed demo account during a controlled test window. Until then `/ask` shows the placeholder.
+- Not built from the design (new features, awaiting approval): Preferences, "Ask Pendia" as a general assistant, "Questions to ask", "Today's meds /
   Mark given", "I'll cover it / Ask the family" requests, "I'll take her", and the drafted-from-voice handoff text (all marked
   "Proposed" in the design).
 
