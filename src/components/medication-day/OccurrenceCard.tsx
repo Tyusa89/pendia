@@ -95,7 +95,7 @@ export function OccurrenceCard({
       {o.reported_at && <p className="text-[0.8235rem] text-muted-foreground">{REPORT_FOOTNOTE}</p>}
 
       <div className="flex flex-wrap gap-2">
-        {actions.report && <Button onClick={onReport}>Report this dose</Button>}
+        {actions.report && <Button onClick={onReport}>Report dose</Button>}
         {actions.change && (
           <Button variant="outline" onClick={onChange}>
             Change report
