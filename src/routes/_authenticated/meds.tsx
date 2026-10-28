@@ -151,6 +151,18 @@ function Meds({
     onError: (e) => toast.error((e as Error).message),
   });
 
+  const removeMed = useMutation({
+    mutationFn: (id: string) => medicationService.remove(id),
+    onSuccess: async () => {
+      await refetchAll();
+      toast.success("Medication deleted.");
+    },
+    onError: () =>
+      toast.error(
+        "This medication couldn't be deleted. If doses were already reported for it, its history must be kept.",
+      ),
+  });
+
   const activeSchedules = (medId: string) =>
     (schedules.data ?? [])
       .filter((s) => s.medication_id === medId && (!s.ends_on || s.ends_on >= today))
@@ -354,18 +366,38 @@ function Meds({
                           </p>
                         )}
                       </div>
-                      {isOrganizer && !schedules.isError && (
-                        <Button
-                          variant="outline"
-                          aria-expanded={editing === m.id}
-                          onClick={() => setEditing(editing === m.id ? null : m.id)}
-                        >
-                          {editing === m.id
-                            ? "Done"
-                            : mine.length
-                              ? "Edit dose times"
-                              : "Add dose times"}
-                        </Button>
+                      {isOrganizer && (
+                        <div className="flex flex-wrap gap-2">
+                          {!schedules.isError && (
+                            <Button
+                              variant="outline"
+                              aria-expanded={editing === m.id}
+                              onClick={() => setEditing(editing === m.id ? null : m.id)}
+                            >
+                              {editing === m.id
+                                ? "Done"
+                                : mine.length
+                                  ? "Edit dose times"
+                                  : "Add dose times"}
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            className="text-destructive"
+                            disabled={removeMed.isPending}
+                            aria-label={`Delete ${m.name}`}
+                            onClick={() => {
+                              if (
+                                window.confirm(
+                                  `Delete ${m.name}${m.dose ? ` ${m.dose}` : ""}? Its dose times will be removed too.`,
+                                )
+                              )
+                                removeMed.mutate(m.id);
+                            }}
+                          >
+                            Delete
+                          </Button>
+                        </div>
                       )}
                       {editing === m.id && (
                         <ScheduleEditor

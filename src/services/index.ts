@@ -163,6 +163,11 @@ export const medicationService = {
   async add(m: TablesInsert<"medication">) {
     return ok(await supabase.from("medication").insert(m).select().single());
   },
+  /** Organizer-only by the database's rules. Dose times go with it; the database refuses if doses were already reported. */
+  async remove(id: string) {
+    const rows = ok(await supabase.from("medication").delete().eq("id", id).select("id"));
+    if (!rows.length) throw new Error("This medication couldn't be deleted.");
+  },
 };
 
 // ---------- Coverage ----------
