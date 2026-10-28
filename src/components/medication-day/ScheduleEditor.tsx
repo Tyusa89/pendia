@@ -29,6 +29,7 @@ export function ScheduleEditor({
   onAdd,
   onEnd,
   onDelete,
+  fixedMedicationId,
 }: {
   medications: { id: string; name: string }[];
   schedules: ScheduleItem[];
@@ -38,8 +39,10 @@ export function ScheduleEditor({
   onAdd: (i: ScheduleInput) => void;
   onEnd: (id: string) => void;
   onDelete: (id: string) => void;
+  /** when editing one medication's card: preselects it and hides the medication picker */
+  fixedMedicationId?: string;
 }) {
-  const [medId, setMedId] = useState("");
+  const [medId, setMedId] = useState(fixedMedicationId ?? "");
   const [time, setTime] = useState("08:00");
   const [days, setDays] = useState<number[]>([1, 2, 3, 4, 5, 6, 7]);
   const [starts, setStarts] = useState(today);
@@ -87,7 +90,7 @@ export function ScheduleEditor({
         </ul>
       )}
       <div className="space-y-3 border-t border-border pt-3">
-        <div className="space-y-1">
+        <div className={fixedMedicationId ? "hidden" : "space-y-1"}>
           <Label htmlFor="sched-med">Medication</Label>
           <select
             id="sched-med"
