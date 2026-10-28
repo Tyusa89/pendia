@@ -151,6 +151,18 @@ function Meds({
     onError: (e) => toast.error((e as Error).message),
   });
 
+  const removeMed = useMutation({
+    mutationFn: (id: string) => medicationService.remove(id),
+    onSuccess: async () => {
+      await refetchAll();
+      toast.success("Medication deleted.");
+    },
+    onError: () =>
+      toast.error(
+        "This medication couldn't be deleted. If doses were already reported for it, its history must be kept.",
+      ),
+  });
+
   const activeSchedules = (medId: string) =>
     (schedules.data ?? [])
       .filter((s) => s.medication_id === medId && (!s.ends_on || s.ends_on >= today))
