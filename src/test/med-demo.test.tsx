@@ -186,13 +186,15 @@ describe("isolation", () => {
       expect(readFileSync(f, "utf8"), f).not.toMatch(/\bfetch\(|XMLHttpRequest|mediaDevices/);
     }
   });
-  it("the real medication-day container is the only one that touches the service", () => {
+  it("only the real (signed-in) medication containers touch the service", () => {
     const users = walk("src").filter(
       (f) => /dose-service|doseService/.test(readFileSync(f, "utf8")) && !f.startsWith("src/test/"),
     );
     expect(users.sort()).toEqual(
       [
         "src/components/medication-day/MedicationDay.tsx",
+        // the signed-in Medications page saves and edits dose times on each medication card
+        "src/routes/_authenticated/meds.tsx",
         "src/services/dose-service.ts",
         "src/services/index.ts",
       ].sort(),
