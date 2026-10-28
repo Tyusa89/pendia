@@ -17,12 +17,12 @@ export function MedicationDay({
   familyId,
   timeZone,
   me,
-  medications,
 }: {
   familyId: string;
   timeZone: string;
   me: { id: string; role: string; can_see_meds: boolean };
-  medications: { id: string; name: string }[];
+  /** kept for callers; dose times are edited on each medication card */
+  medications?: { id: string; name: string }[];
 }) {
   const qc = useQueryClient();
   const isOrganizer = me.role === "organizer";

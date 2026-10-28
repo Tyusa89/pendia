@@ -43,7 +43,6 @@ describe("saving medication dose times", () => {
     const inputs = buildInputs(MED, ["08:00", "20:00"], [1, 2, 3, 4, 5, 6, 7], "2026-10-28");
     await expect(saveSchedules(inputs, db.deps)).rejects.toThrow();
     expect(db.rows).toHaveLength(1);
-    db.deps.add = fakeDb().deps.add.bind(null) as never; // replaced below
     const ok = fakeDb();
     ok.rows.push(...db.rows);
     await saveSchedules(inputs, ok.deps);
