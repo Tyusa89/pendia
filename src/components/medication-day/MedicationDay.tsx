@@ -12,18 +12,17 @@ import { doseService } from "@/services";
 import { OccurrenceCard } from "./OccurrenceCard";
 import { ReportDialog, type DialogMode, type Submission } from "./ReportDialog";
 import { HistoryList } from "./HistoryList";
-import { ScheduleEditor } from "./ScheduleEditor";
 
 export function MedicationDay({
   familyId,
   timeZone,
   me,
-  medications,
 }: {
   familyId: string;
   timeZone: string;
   me: { id: string; role: string; can_see_meds: boolean };
-  medications: { id: string; name: string }[];
+  /** kept for callers; dose times are edited on each medication card */
+  medications?: { id: string; name: string }[];
 }) {
   const qc = useQueryClient();
   const isOrganizer = me.role === "organizer";
@@ -32,20 +31,12 @@ export function MedicationDay({
   const [dialog, setDialog] = useState<{ o: DoseOccurrence; mode: DialogMode } | null>(null);
   const [dialogError, setDialogError] = useState<string | null>(null);
   const [historyFor, setHistoryFor] = useState<DoseOccurrence | null>(null);
-  const [showSchedules, setShowSchedules] = useState(false);
 
   const occKey = ["dose-occurrences", familyId, day] as const;
   const occ = useQuery({
     queryKey: occKey,
     queryFn: () => doseService.occurrences(familyId, day, day),
     enabled: me.can_see_meds || isOrganizer,
-    retry: false,
-  });
-  const schedKey = ["dose-schedules", familyId] as const;
-  const schedules = useQuery({
-    queryKey: schedKey,
-    queryFn: () => doseService.listSchedules(familyId),
-    enabled: showSchedules && isOrganizer,
     retry: false,
   });
   const history = useQuery({
@@ -94,16 +85,6 @@ export function MedicationDay({
       if (err.code === "dose_conflict" || err.code === "dose_window_closed") refresh();
     },
   });
-
-  const schedMutation = useMutation({
-    mutationFn: (fn: () => Promise<unknown>) => fn(),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schedKey });
-      refresh();
-    },
-    onError: (e) => toast.error((e as Error).message),
-  });
-  const schedError = schedMutation.error ? (schedMutation.error as Error).message : null;
 
   const unavailable = occ.error instanceof DoseError && occ.error.code === "dose_unavailable";
   const now = Date.now();
@@ -196,25 +177,6 @@ export function MedicationDay({
         />
       )}
 
-      {isOrganizer && !unavailable && (
-        <>
-          <Button variant="outline" onClick={() => setShowSchedules(!showSchedules)}>
-            {showSchedules ? "Hide dose times" : "Set dose times"}
-          </Button>
-          {showSchedules && (
-            <ScheduleEditor
-              medications={medications}
-              schedules={schedules.data ?? []}
-              today={today}
-              busy={schedMutation.isPending}
-              error={schedError}
-              onAdd={(i) => schedMutation.mutate(() => doseService.addSchedule(familyId, i))}
-              onEnd={(id) => schedMutation.mutate(() => doseService.endSchedule(id, today))}
-              onDelete={(id) => schedMutation.mutate(() => doseService.deleteSchedule(id))}
-            />
-          )}
-        </>
-      )}
     </section>
   );
 }
