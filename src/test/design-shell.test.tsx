@@ -115,11 +115,11 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("app shell", () => {
-  it("keeps all six desktop destinations reachable when navigation collapses and expands", () => {
+  it("keeps all seven desktop destinations reachable when navigation collapses and expands", () => {
     render(wrap(<AppShell>page</AppShell>));
     const desktop = screen.getByRole("navigation", { name: "Desktop main" });
     expect(within(desktop).getAllByRole("link").map((link) => link.getAttribute("href"))).toEqual([
-      "/family", "/visits", "/meds", "/coverage", "/handoffs", "/digest",
+      "/family", "/members", "/visits", "/meds", "/coverage", "/handoffs", "/digest",
     ]);
     fireEvent.click(screen.getByRole("button", { name: "Collapse navigation" }));
     expect(screen.getByRole("button", { name: "Expand navigation" })).toHaveAttribute("aria-expanded", "false");
