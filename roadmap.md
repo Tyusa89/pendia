@@ -1,5 +1,6 @@
 # Pendia layout repair
-- [ ] Add one-click hackathon demo entry, protect shared fictional records, and verify navigation and normal sign-in; do not publish or touch Document Upload.
+- [x] Add one-click hackathon demo entry, protect shared fictional records, and verify navigation and normal sign-in; do not publish or touch Document Upload.
+  Verification: 32 relevant tests passed; phone/laptop entry, all completed care pages, reload and sign-out checked. Three simultaneous guest entries passed. Guest RLS reads returned zero live families/medications; demo delete blocked without a database write. Dedicated zero-membership account and private server-side demo sign-in secret configured. Fictional display snapshot only; no family data, schema, AI flags or Document Upload changes. Publishing remains approval-gated.
 - [x] Present hourly Coverage timeline redesign for approval.
 - [ ] Implement approved hourly timeline and verify scheduling regressions across phone, tablet and desktop; blocked until a dedicated feature branch is selected in Project settings → Git. Draft-PR creation is unavailable in this session.
 - [x] Apply the supplied layout references to shared navigation and existing Family, Visits, Meds, Coverage, and Handoffs views.
