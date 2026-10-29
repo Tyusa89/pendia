@@ -1,4 +1,5 @@
 # Pendia layout repair
+- [ ] Add one-click hackathon demo entry, protect shared fictional records, and verify navigation and normal sign-in; do not publish or touch Document Upload.
 - [x] Present hourly Coverage timeline redesign for approval.
 - [ ] Implement approved hourly timeline and verify scheduling regressions across phone, tablet and desktop; blocked until a dedicated feature branch is selected in Project settings → Git. Draft-PR creation is unavailable in this session.
 - [x] Apply the supplied layout references to shared navigation and existing Family, Visits, Meds, Coverage, and Handoffs views.
