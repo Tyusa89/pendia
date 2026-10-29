@@ -105,14 +105,14 @@ function FamilyView({
   timeZone: string;
   me: Member;
 }) {
-  const { data: members = [] } = useMembers(familyId);
+  const { data: members = [], isLoading: membersLoading } = useMembers(familyId);
   return (
     <>
       <PageTitle title={`${greeting(new Date())}, ${me.name.split(" ")[0]}`} subtitle={formatFamilyDate(timeZone)} />
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(15rem,0.8fr)_minmax(0,1.7fr)]">
         <div className="min-w-0 space-y-5">
           <Recipient familyId={familyId} editable={false} />
-          <MembersSummary members={members} familyName={familyName} />
+          <MembersSummary members={members} familyName={familyName} loading={membersLoading} />
         </div>
         <div className="min-w-0 space-y-5">
           <FamilyOverview me={me} timeZone={timeZone} />
@@ -122,12 +122,12 @@ function FamilyView({
   );
 }
 
-function MembersSummary({ members, familyName }: { members: Member[]; familyName: string }) {
+function MembersSummary({ members, familyName, loading }: { members: Member[]; familyName: string; loading: boolean }) {
   const shown = members.slice(0, 3);
   return (
     <Panel aria-label="Family members summary">
       <h2 className="flex items-center gap-2 text-xl font-semibold"><Users className="size-5 text-primary" aria-hidden /> Family members</h2>
-      <p className="mt-1 text-muted-foreground">{members.length} {members.length === 1 ? "member" : "members"} in {familyName}</p>
+      <p className="mt-1 text-muted-foreground">{loading ? "Loading members…" : <>{members.length} {members.length === 1 ? "member" : "members"} in {familyName}</>}</p>
       <div className="mt-4 flex items-center justify-between gap-3">
         <div className="flex -space-x-2" aria-hidden>
           {shown.map((m) => <span key={m.id} title={m.name} className={`grid size-11 place-items-center rounded-full border-2 border-card font-bold ${m.role === "organizer" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}>{initials(m.name)}</span>)}
