@@ -14,6 +14,7 @@ export const makeRow = (patch: Partial<Appointment> = {}): Appointment => ({
   family_id: FAMILY,
   date: "2026-11-20",
   doctor: patch.provider_name === undefined ? "Dr. Example" : patch.provider_name,
+  document_path: null,
   provider_name: "Dr. Example",
   office_name: null,
   office_address: "1 Example Rd",

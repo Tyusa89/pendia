@@ -47,8 +47,10 @@ describe("secrets and the live client exist only on the server", () => {
       .sort();
     // meta-transcribe.server.ts is the Handoff voice-transcription server module (see meta-transcribe-isolation.test.ts).
     // care-agent.server.ts is the Care Agent server module (see care-agent-isolation.test.ts).
+    // doc-extract.server.ts is the Document Upload extraction module (see doc-upload-isolation.test.ts).
     expect(offenders).toEqual([
       "src/server/care-agent.server.ts",
+      "src/server/doc-extract.server.ts",
       "src/server/meta-transcribe.server.ts",
       "src/server/spark-synthetic.server.ts",
     ]);
@@ -67,6 +69,7 @@ describe("secrets and the live client exist only on the server", () => {
     expect(users).toEqual([
       "src/lib/spark/spark-http.ts",
       "src/server/care-agent.server.ts",
+      "src/server/doc-extract.server.ts",
       "src/server/spark-live.server.ts",
     ]);
   });
@@ -106,6 +109,8 @@ describe("Demo Mode cannot reach any of it", () => {
     // care-agent.functions.ts is the Care Agent wrapper (it imports server modules only inside handlers).
     expect(importers).toEqual([
       "src/lib/care-agent/care-agent.functions.ts",
+      "src/lib/doc-upload/doc-extract.functions.ts", // Document Upload wrapper (server modules imported inside handlers only)
+      "src/lib/doc-upload/prompt.ts", // Document Upload request builder (pure; reuses Spark wire primitives)
       "src/lib/meta-transcribe/transcribe.functions.ts",
       "src/routes/_authenticated/dev-spark.tsx",
     ]);

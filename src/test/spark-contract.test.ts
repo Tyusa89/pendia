@@ -558,6 +558,7 @@ describe("the demo is untouched: the contract is isolated and unreachable from t
       .sort();
     // the HTTP builder (pure, src/lib/spark), the server-only client and the gated server handler: added with the live-provider PR
     expect(importers).toEqual([
+      "src/lib/doc-upload/prompt.ts", // Document Upload request builder reuses only SPARK_MODEL_ID
       "src/lib/spark/spark-http.ts",
       "src/server/care-agent.server.ts", // the Care Agent reuses only SPARK_MODEL_ID (see care-agent-isolation.test.ts)
       "src/server/spark-live.server.ts",

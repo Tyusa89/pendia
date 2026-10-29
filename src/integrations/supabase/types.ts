@@ -637,6 +637,7 @@ export type Database = {
           created_at: string
           date: string
           doctor: string | null
+          document_path: string | null
           duration_seconds: number | null
           family_id: string
           id: string
@@ -667,6 +668,7 @@ export type Database = {
           created_at?: string
           date: string
           doctor?: string | null
+          document_path?: string | null
           duration_seconds?: number | null
           family_id: string
           id?: string
@@ -697,6 +699,7 @@ export type Database = {
           created_at?: string
           date?: string
           doctor?: string | null
+          document_path?: string | null
           duration_seconds?: number | null
           family_id?: string
           id?: string

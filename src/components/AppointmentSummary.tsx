@@ -11,6 +11,7 @@ import {
   Phone,
 } from "lucide-react";
 import { toast } from "sonner";
+import { AppointmentDocumentLink } from "@/components/AppointmentDocumentLink";
 import { AppointmentFlags } from "@/components/AppointmentFlags";
 import {
   AlertDialog,
@@ -112,6 +113,11 @@ export function AppointmentSummary({
         {isBlank(visit.provider_name) ? <NotSet /> : visit.provider_name}
       </Row>
       {!isBlank(visit.office_name) && <Row label="Office">{visit.office_name}</Row>}
+      {visit.document_path && (
+        <Row label="Document">
+          <AppointmentDocumentLink path={visit.document_path} />
+        </Row>
+      )}
       <Row label="Address">
         {isBlank(visit.office_address) ? (
           <NotSet />

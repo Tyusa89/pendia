@@ -13,6 +13,28 @@ import {
 } from "@/lib/appointments";
 import { formatInZone, fromZonedInputValue, toZonedInputValue } from "@/lib/zoned-time";
 
+export type HintState = "extracted" | "unclear" | "missing";
+export interface FormPrefill {
+  provider_name?: string | null;
+  office_address?: string | null;
+  notes?: string | null;
+  /** ISO instant; shown in the family's time zone. */
+  scheduled_start?: string | null;
+}
+const HINT_TEXT: Record<HintState, string> = {
+  extracted: "Read from your document. Please check it.",
+  unclear: "Hard to read in the document. Please check it carefully.",
+  missing: "Not found in the document. Fill it in if you know it.",
+};
+function Hint({ state }: { state: HintState | undefined }) {
+  if (!state) return null;
+  return (
+    <p className="text-sm font-semibold text-muted-foreground" data-testid={`hint-${state}`}>
+      {HINT_TEXT[state]}
+    </p>
+  );
+}
+
 interface Props {
   /** Present when editing. */
   initial?: Appointment | undefined;
@@ -22,6 +44,10 @@ interface Props {
   busy?: boolean;
   error?: string | null;
   submitLabel: string;
+  /** Suggested values from a document. Only a starting point: the caregiver edits and must press the submit button. */
+  prefill?: FormPrefill | undefined;
+  /** Where each prefilled value came from (extracted / unclear / missing). */
+  hints?: Partial<Record<"start" | "provider" | "address" | "notes", HintState>> | undefined;
   onSubmit: (input: AppointmentInput) => void;
   onCancel: () => void;
 }
@@ -39,17 +65,21 @@ export function AppointmentForm({
   busy = false,
   error,
   submitLabel,
+  prefill,
+  hints,
   onSubmit,
   onCancel,
 }: Props) {
-  const [provider, setProvider] = useState(initial?.provider_name ?? "");
+  const [provider, setProvider] = useState(initial?.provider_name ?? prefill?.provider_name ?? "");
   const [officeName, setOfficeName] = useState(initial?.office_name ?? "");
-  const [address, setAddress] = useState(initial?.office_address ?? "");
+  const [address, setAddress] = useState(initial?.office_address ?? prefill?.office_address ?? "");
   const [phone, setPhone] = useState(initial?.office_phone ?? "");
-  const [start, setStart] = useState(toZonedInputValue(initial?.scheduled_start, timeZone));
+  const [start, setStart] = useState(
+    toZonedInputValue(initial?.scheduled_start ?? prefill?.scheduled_start, timeZone),
+  );
   const [end, setEnd] = useState(toZonedInputValue(initial?.scheduled_end, timeZone));
   const [reason, setReason] = useState(initial?.reason ?? "");
-  const [notes, setNotes] = useState(initial?.notes ?? "");
+  const [notes, setNotes] = useState(initial?.notes ?? prefill?.notes ?? "");
   const [confirmed, setConfirmed] = useState(initial?.confirmation_status === "confirmed");
   const [problem, setProblem] = useState<string | null>(null);
 
@@ -90,7 +120,11 @@ export function AppointmentForm({
   const field = "space-y-2";
 
   return (
-    <form onSubmit={submit} className="space-y-5 lg:grid lg:grid-cols-2 lg:gap-5 lg:space-y-0" noValidate>
+    <form
+      onSubmit={submit}
+      className="space-y-5 lg:grid lg:grid-cols-2 lg:gap-5 lg:space-y-0"
+      noValidate
+    >
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:col-span-2">
         <div className={field}>
           <Label htmlFor="appt-start" className="text-base">
@@ -107,6 +141,7 @@ export function AppointmentForm({
           <p className="text-sm text-muted-foreground">
             Times are in your family's timezone ({timeZone.replace(/_/g, " ")}).
           </p>
+          <Hint state={hints?.start} />
         </div>
         <div className={field}>
           <Label htmlFor="appt-end" className="text-base">
@@ -134,6 +169,7 @@ export function AppointmentForm({
           autoComplete="off"
         />
         {hint(isBlank(provider))}
+        <Hint state={hints?.provider} />
       </div>
       <div className={field}>
         <Label htmlFor="appt-office" className="text-base">
@@ -158,6 +194,7 @@ export function AppointmentForm({
           onChange={(e) => setAddress(e.target.value)}
         />
         {hint(isBlank(address))}
+        <Hint state={hints?.address} />
       </div>
       <div className={field}>
         <Label htmlFor="appt-phone" className="text-base">
@@ -195,6 +232,7 @@ export function AppointmentForm({
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
         />
+        <Hint state={hints?.notes} />
       </div>
 
       <label className="flex items-start gap-3 rounded-xl border p-3 lg:col-span-2">

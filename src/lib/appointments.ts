@@ -129,6 +129,8 @@ export interface AppointmentInput {
   reason: string | null;
   notes: string | null;
   confirmation_status: "unconfirmed" | "confirmed";
+  /** Path of the uploaded letter this appointment was created from (private bucket). Omitted when there is none. */
+  document_path?: string | null;
 }
 
 /** Trim text; blank becomes null (so "not provided" is stored as absent, never as an empty string or a made-up value). */
