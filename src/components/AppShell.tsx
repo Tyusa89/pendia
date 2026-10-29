@@ -1,6 +1,7 @@
+import { FamilySwitcher } from "@/components/FamilySwitcher";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState, type ReactNode } from "react";
+import { Fragment, useState, type ReactNode } from "react";
 import {
   CalendarDays,
   ClipboardCheck,
@@ -127,9 +128,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
           <div className="flex min-w-0 items-center gap-1">
             {data?.family && (
-              <span className="hidden max-w-[10rem] truncate text-sm text-muted-foreground md:inline">
-                {data.family.name}
-              </span>
+<FamilySwitcher activeId={data.family.id} activeName={data.family.name} />
             )}
             {/* Ask and Preferences live in the sidebar from 1024px up; below that the sidebar is hidden. */}
             <div className="flex items-center gap-1 lg:hidden">
@@ -144,7 +143,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </header>
         <main id="care-content" tabIndex={-1} className="care-content mx-auto w-full max-w-[48rem] flex-1 px-4 pb-[calc(var(--nav-h)+2rem+env(safe-area-inset-bottom))] pt-5 md:px-7 md:pt-8 lg:max-w-[1440px] lg:px-8 lg:pb-12">
-          {children}
+          <Fragment key={data?.family.id ?? "none"}>{children}</Fragment>
           <p className="mt-10 text-center text-[0.9412rem] text-muted-foreground">
             Not medical advice. Check with your doctor or pharmacist.
           </p>
