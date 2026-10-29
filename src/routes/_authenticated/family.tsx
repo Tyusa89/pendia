@@ -1,17 +1,16 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { ArrowLeft, Users, UserRoundPlus } from "lucide-react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { ChevronRight, Users } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
-import { Empty, LoadingCard, PageTitle, Panel } from "@/components/AppShell";
+import { LoadingCard, PageTitle, Panel } from "@/components/AppShell";
 import { FamilyOverview, greeting } from "@/components/FamilyOverview";
-import { FamilyTimeZone } from "@/components/FamilyTimeZone";
+import { Recipient, initials } from "@/components/FamilyMembers";
 import { familyKey, useFamily, useMembers } from "@/hooks/use-family";
+import { Panel } from "@/components/AppShell";
 import { familyService, type Member } from "@/services";
 
 export const Route = createFileRoute("/_authenticated/family")({
@@ -107,31 +106,37 @@ function FamilyView({
   timeZone: string;
   me: Member;
 }) {
-  const isOrganizer = me.role === "organizer";
-  const [teamOpen, setTeamOpen] = useState(false);
   const { data: members = [] } = useMembers(familyId);
   return (
     <>
-      {teamOpen && <Button variant="ghost" className="mb-3 -ml-3 text-primary" onClick={() => setTeamOpen(false)}><ArrowLeft /> Family</Button>}
-      <PageTitle title={teamOpen ? familyName : `${greeting(new Date())}, ${me.name.split(" ")[0]}`} subtitle={teamOpen ? (isOrganizer ? "You're the organizer" : "You're a member") : formatFamilyDate(timeZone)} />
-      <div className={teamOpen ? "space-y-5" : "grid items-start gap-5 lg:grid-cols-[minmax(15rem,0.8fr)_minmax(0,1.7fr)]"}>
-        <Recipient familyId={familyId} editable={isOrganizer && teamOpen} />
-        {!teamOpen && <div className="min-w-0 space-y-5">
+      <PageTitle title={`${greeting(new Date())}, ${me.name.split(" ")[0]}`} subtitle={formatFamilyDate(timeZone)} />
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(15rem,0.8fr)_minmax(0,1.7fr)]">
+        <div className="min-w-0 space-y-5">
+          <Recipient familyId={familyId} editable={false} />
+          <MembersSummary members={members} familyName={familyName} />
+        </div>
+        <div className="min-w-0 space-y-5">
           <FamilyOverview me={me} timeZone={timeZone} />
-          <Button variant="outline" className="w-full" onClick={() => setTeamOpen(true)}><Users /> Care team · {members.length}</Button>
-        </div>}
-        {teamOpen && <section aria-label="Care team" className="min-w-0">
-          <h2 className="mb-3 text-xl font-semibold">Care team · {members.length}</h2>
-          <div className="grid items-start gap-3 md:grid-cols-2">
-            {members.map((m) => (
-              <MemberRow key={m.id} m={m} editable={isOrganizer} />
-            ))}
-          </div>
-          {isOrganizer && <Invite familyId={familyId} />}
-          <FamilyTimeZone familyId={familyId} timeZone={timeZone} editable={isOrganizer} />
-        </section>}
+        </div>
       </div>
     </>
+  );
+}
+
+function MembersSummary({ members, familyName }: { members: Member[]; familyName: string }) {
+  const shown = members.slice(0, 3);
+  return (
+    <Panel aria-label="Family members summary">
+      <h2 className="flex items-center gap-2 text-xl font-semibold"><Users className="size-5 text-primary" aria-hidden /> Family members</h2>
+      <p className="mt-1 text-muted-foreground">{members.length} {members.length === 1 ? "member" : "members"} in {familyName}</p>
+      <div className="mt-4 flex items-center justify-between gap-3">
+        <div className="flex -space-x-2" aria-hidden>
+          {shown.map((m) => <span key={m.id} title={m.name} className={`grid size-11 place-items-center rounded-full border-2 border-card font-bold ${m.role === "organizer" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}>{initials(m.name)}</span>)}
+          {members.length > 3 && <span className="grid size-11 place-items-center rounded-full border-2 border-card bg-muted text-sm font-bold text-muted-foreground">+{members.length - 3}</span>}
+        </div>
+        <Link to="/members" className="inline-flex min-h-11 items-center gap-1 rounded-lg px-2 font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">View All Members <ChevronRight className="size-4" aria-hidden /></Link>
+      </div>
+    </Panel>
   );
 }
 
