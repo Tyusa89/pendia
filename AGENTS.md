@@ -30,3 +30,4 @@ Rules:
 - `20261022000002` must **not** be applied before the member-directory application compatibility changes (I-2: reading names through `family_directory()` instead of the `member` table) are ready. After that migration, non-organizers can only read their own `member` row, so the current app would show other people's assigned coverage shifts as **open** (with a claim action), task owners as "Unassigned", and handoff authors as "Someone".
 - Each migration has tests and (for `...0002`) a rollback script under `supabase/tests/` and `supabase/rollback/`; use scratch databases only until a dry-run is approved.
 
+- The active family is a browser-local choice per user (`familyService.setActiveFamily`), validated against the user's memberships and falling back to the oldest; switching resets the whole query cache and remounts page content so no previous-family data or state shows.
