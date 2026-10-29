@@ -12,6 +12,12 @@ import type { Json, Tables, TablesInsert, TablesUpdate } from "@/integrations/su
 import type { AppointmentInput } from "@/lib/appointments";
 import { overlapsForMember, validateShiftTimes, ShiftValidationError, type ShiftInput } from "@/lib/shifts";
 import { normalizePhone } from "@/lib/format";
+import { setJudgeDemo } from "@/lib/judge-demo";
+import { judgeDemoData } from "@/lib/judge-demo-data";
+import { withJudgeDemo } from "./judge-demo-service";
+import { startJudgeDemo } from "@/lib/judge-demo.functions";
+import { doseService as liveDoseService } from "./dose-service";
+import { recordingService as liveRecordingService } from "./recordings";
 
 export type Family = Tables<"family">;
 export type Member = Tables<"member">;
@@ -42,14 +48,20 @@ function withPhone<T extends { phone?: string | null }>(m: T): T {
 
 // ---------- Auth ----------
 export const authService = {
+  async startDemo() {
+    const tokens = await startJudgeDemo();
+    const { error } = await supabase.auth.setSession(tokens);
+    if (error) throw new Error("The demo could not start. Please try again.");
+    setJudgeDemo(true);
+  },
   async currentUserId() {
     const { data } = await supabase.auth.getUser();
     return data.user?.id ?? null;
   },
-  signIn: (email: string, password: string) => supabase.auth.signInWithPassword({ email, password }),
+  signIn: (email: string, password: string) => { setJudgeDemo(false); return supabase.auth.signInWithPassword({ email, password }); },
   signUp: (email: string, password: string) =>
     supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin } }),
-  signOut: () => supabase.auth.signOut(),
+  signOut: () => { setJudgeDemo(false); return supabase.auth.signOut(); },
 };
 
 // ---------- Family ----------
@@ -58,7 +70,7 @@ function readActiveFamilyId(uid: string): string | null {
   try { return typeof window === "undefined" ? null : window.localStorage.getItem(ACTIVE_FAMILY_PREFIX + uid); } catch { return null; }
 }
 
-export const familyService = {
+const liveFamilyService = {
   /** Every family the signed-in user has a membership in (RLS-scoped), oldest membership first. */
   async listMyFamilies(): Promise<{ id: string; name: string }[]> {
     const uid = await authService.currentUserId();
@@ -130,7 +142,7 @@ export const familyService = {
 };
 
 // ---------- Visits ----------
-export const visitService = {
+const liveVisitService = {
   async list(familyId: string) {
     return ok(await supabase.from("visit").select("*").eq("family_id", familyId).order("date", { ascending: false }));
   },
@@ -173,11 +185,11 @@ export const visitService = {
 };
 
 // ---------- Dose administration reports (Feature C): implemented in ./dose-service ----------
-export { doseService } from "./dose-service";
+export const doseService = withJudgeDemo(liveDoseService, { listSchedules: () => [], occurrences: () => [], history: () => [] });
 export type { ScheduleRow, ReportArgs } from "./dose-service";
 
 // ---------- Medications ----------
-export const medicationService = {
+const liveMedicationService = {
   async list(familyId: string) {
     return ok(await supabase.from("medication").select("*").eq("family_id", familyId).order("name"));
   },
@@ -192,7 +204,7 @@ export const medicationService = {
 };
 
 // ---------- Coverage ----------
-export const shiftService = {
+const liveShiftService = {
   async listRange(familyId: string, fromIso: string, toIso: string) {
     return ok(
       await supabase.from("shift").select("*").eq("family_id", familyId).lt("start", toIso).gt("end", fromIso).order("start"),
@@ -314,7 +326,7 @@ export const shiftService = {
 };
 
 // ---------- Handoffs ----------
-export const handoffService = {
+const liveHandoffService = {
   async list(familyId: string) {
     return ok(await supabase.from("handoff").select("*").eq("family_id", familyId).order("created_at", { ascending: false }));
   },
@@ -330,13 +342,14 @@ export const handoffService = {
 };
 
 // ---------- Digest ----------
-export const digestService = {
+const liveDigestService = {
   async latest(familyId: string) {
     return ok(await supabase.from("digest").select("*").eq("family_id", familyId).order("week", { ascending: false }).limit(10));
   },
 };
 
 export * from "./recordings";
+export const recordingService = withJudgeDemo(liveRecordingService, {});
 
 // ---------- Required coverage (Phase 4A-1) ----------
 // Organizer-only writes (row-level security enforces it; this layer validates first so bad input never reaches the
@@ -351,7 +364,7 @@ const hhmm = (t: string) => t.slice(0, 5);
 const pending = supabase as any;
 type Row = { weekday: string; start_time: string; end_time: string; day: string; id: string; override_id: string };
 
-export const coverageRequirementService = {
+const liveCoverageRequirementService = {
   async get(familyId: string): Promise<{ weekly: WeeklyRequirement[]; overrides: DateOverride[] }> {
     const [weekly, overrides, windows] = await Promise.all([
       pending.from("coverage_requirement").select("*").eq("family_id", familyId).order("weekday").order("start_time"),
@@ -392,3 +405,21 @@ export const coverageRequirementService = {
     if (!res.data?.length) throw new Error(`No date override to remove for ${d}, or ${ORGANIZER_ONLY.toLowerCase()}`);
   },
 };
+
+export const familyService = withJudgeDemo(liveFamilyService, {
+  getMyFamily: () => { const { family, me } = judgeDemoData(); return { family, me }; },
+  listMyFamilies: () => { const { family } = judgeDemoData(); return [{ id: family.id, name: family.name }]; },
+  listMembers: (fid: string) => { const d = judgeDemoData(); return fid === d.family.id ? d.members : []; },
+  getRecipient: (fid: string) => { const d = judgeDemoData(); return fid === d.family.id ? d.recipient : null; },
+});
+export const medicationService = withJudgeDemo(liveMedicationService, { list: (fid: string) => { const d = judgeDemoData(); return fid === d.family.id ? d.medications : []; } });
+export const visitService = withJudgeDemo(liveVisitService, {
+  list: (fid: string) => { const d = judgeDemoData(); return fid === d.family.id ? d.visits : []; },
+  get: (id: string) => { const visit = judgeDemoData().visits.find(v => v.id === id); if (!visit) throw new Error("Appointment not found."); return { visit, changes: [], tasks: [], watch: [] }; },
+});
+export const shiftService = withJudgeDemo(liveShiftService, {
+  listRange: (fid: string, from: string, to: string) => { const d = judgeDemoData(); return fid === d.family.id ? d.shifts.filter(s => s.start < to && s.end > from) : []; },
+});
+export const handoffService = withJudgeDemo(liveHandoffService, { list: (fid: string) => { const d = judgeDemoData(); return fid === d.family.id ? d.handoffs : []; }, activeWatchItems: () => [] });
+export const digestService = withJudgeDemo(liveDigestService, { latest: (fid: string) => { const d = judgeDemoData(); return fid === d.family.id ? d.digests : []; } });
+export const coverageRequirementService = withJudgeDemo(liveCoverageRequirementService, { get: () => ({ weekly: [], overrides: [] }) });

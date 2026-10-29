@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
+import { TryPendiaDemo } from "@/components/TryPendiaDemo";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -23,9 +24,11 @@ function Index() {
           Doctor visits, medication changes, who's with her tonight, and how the day went — in one calm place, in English or Spanish.
         </p>
         <div className="mt-10 flex flex-col gap-3 sm:flex-row">
-          <Button asChild size="lg"><Link to="/auth">Get started</Link></Button>
+          <TryPendiaDemo />
+          <Button asChild size="lg" variant="outline"><Link to="/auth">Get started</Link></Button>
           <Button asChild size="lg" variant="outline"><Link to="/family">I already have an account</Link></Button>
         </div>
+        <p className="mt-3 text-sm text-muted-foreground">Fictional hackathon demo · Read-only</p>
       </div>
     </div>
   );

@@ -17,6 +17,7 @@ import { authService } from "@/services";
 import { useFamily } from "@/hooks/use-family";
 import { Button } from "@/components/ui/button";
 import { DesktopNavigation } from "@/components/DesktopNavigation";
+import { isJudgeDemo } from "@/lib/judge-demo";
 
 const nav = [
   { to: "/family", label: "Family", icon: Home },
@@ -143,6 +144,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </header>
         <main id="care-content" tabIndex={-1} className="care-content mx-auto w-full max-w-[48rem] flex-1 px-4 pb-[calc(var(--nav-h)+2rem+env(safe-area-inset-bottom))] pt-5 md:px-7 md:pt-8 lg:max-w-[1440px] lg:px-8 lg:pb-12">
+          {isJudgeDemo() && <p role="note" className="mb-5 rounded-lg bg-secondary px-4 py-3 text-sm font-semibold text-secondary-foreground">Fictional hackathon demo · Read-only · No real patient information</p>}
           <Fragment key={data?.family.id ?? "none"}>{children}</Fragment>
           <p className="mt-10 text-center text-[0.9412rem] text-muted-foreground">
             Not medical advice. Check with your doctor or pharmacist.
