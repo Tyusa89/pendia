@@ -10,7 +10,6 @@ import { LoadingCard, PageTitle, Panel } from "@/components/AppShell";
 import { FamilyOverview, greeting } from "@/components/FamilyOverview";
 import { Recipient, initials } from "@/components/FamilyMembers";
 import { familyKey, useFamily, useMembers } from "@/hooks/use-family";
-import { Panel } from "@/components/AppShell";
 import { familyService, type Member } from "@/services";
 
 export const Route = createFileRoute("/_authenticated/family")({

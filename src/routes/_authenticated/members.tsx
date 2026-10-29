@@ -22,7 +22,7 @@ export const Route = createFileRoute("/_authenticated/members")({
 
 function MembersPage() {
   const { data, isLoading } = useFamily();
-  const { data: members = [], isLoading: loadingMembers } = useMembers(data?.family.id ?? "");
+  const { data: members = [], isLoading: loadingMembers } = useMembers(data?.family.id);
   if (isLoading) return <LoadingCard />;
   if (!data) return <Empty>Join or create a family first.</Empty>;
   const isOrganizer = data.me.role === "organizer";
