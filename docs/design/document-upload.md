@@ -36,12 +36,12 @@ on a **fictional** letter succeeds, vision must be treated as not working. If th
 
 ## 5. Migration (not applied) — `supabase/migrations/20261029000001_appointment_documents.sql`
 - private bucket `appointment-docs` (10 MB; `application/pdf`, `image/jpeg`, `image/png`)
-- `appt_doc_path_family / appt_doc_can_read / appt_doc_can_write` helpers; 4 storage.objects policies (read: `member_can_see(family,'visits')`; insert/update/delete: organizer)
+- `appt_doc_path_family / appt_doc_is_attached / appt_doc_can_read(path, owner_id) / appt_doc_can_write` helpers; 4 storage.objects policies (read: uploader-only while pending, `member_can_see(family,'visits')` once attached; insert/update/delete: organizer)
 - `visit.document_path text null` + check constraint that the path lies in the visit's own family folder
-- test: `supabase/tests/appointment-docs.test.sql` (run after applying)
+- test: `supabase/tests/appointment-docs.test.sql` (29 assertions covering pending AND attached states). Verified on a throwaway local Postgres 16 built from `supabase/tests/scratch/base.sql` + the repo migrations + a **minimal stand-in for Supabase's `storage` schema**: migration applies cleanly and twice (idempotent), test PASSES, and the old "visits-visible members read pending files" policy makes it FAIL. Not yet run against the real Supabase project.
 Until applied: uploading fails with a clear message and manual entry (`/visits/new`) is unaffected. `src/integrations/supabase/types.ts` was edited by hand to add `document_path`.
 
 ## 6. Known limits
-- A pending (unattached) upload is readable by members who can see visits until it is confirmed, cancelled or swept (no table tracks pending state).
+- A document is **pending** until a visit in the same family references it (saving the appointment is the confirmation). Pending: readable only by the organizer who uploaded it (`storage.objects.owner_id`). Attached: readable by members who can see visits. Deleting the visit returns the file to pending.
 - Abandoned uploads (closed tab) are swept by an organizer's next visit to the upload page after 24 hours.
 - One document per appointment; no OCR fallback; PDFs are limited to 3 pages.

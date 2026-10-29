@@ -96,6 +96,13 @@ describe("migration and protected areas", () => {
     expect(sql).toMatch(/'appointment-docs', 'appointment-docs', false, 10485760/);
     expect(sql).toMatch(/array\['application\/pdf', 'image\/jpeg', 'image\/png'\]/);
     expect(sql).toMatch(/member_can_see\(public\.appt_doc_path_family\(p\), 'visits'\)/);
+    // pending (unreferenced) documents are readable only by the uploading organizer; attached ones follow visits visibility
+    expect(sql).toMatch(/appt_doc_is_attached\(p text\)/);
+    expect(sql).toMatch(/appt_doc_can_read\(name, owner_id\)/);
+    expect(sql).toMatch(/uploader = auth\.uid\(\)::text/);
+    expect(sql).toMatch(
+      /is_family_organizer\(public\.appt_doc_path_family\(p\)\)\s+and uploader is not null/,
+    );
     expect(sql).toMatch(/is_family_organizer\(public\.appt_doc_path_family\(p\)\)/);
     expect(sql.match(/create policy/g)).toHaveLength(4);
     expect(sql).toMatch(/document_path text;/);
