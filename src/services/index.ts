@@ -12,7 +12,7 @@ import type { Json, Tables, TablesInsert, TablesUpdate } from "@/integrations/su
 import type { AppointmentInput } from "@/lib/appointments";
 import { overlapsForMember, validateShiftTimes, ShiftValidationError, type ShiftInput } from "@/lib/shifts";
 import { normalizePhone } from "@/lib/format";
-import { isJudgeDemo, setJudgeDemo } from "@/lib/judge-demo";
+import { setJudgeDemo } from "@/lib/judge-demo";
 import { judgeDemoData } from "@/lib/judge-demo-data";
 import { withJudgeDemo } from "./judge-demo-service";
 import { startJudgeDemo } from "@/lib/judge-demo.functions";
