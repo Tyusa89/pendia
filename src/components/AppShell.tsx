@@ -143,7 +143,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </header>
         <main id="care-content" tabIndex={-1} className="care-content mx-auto w-full max-w-[48rem] flex-1 px-4 pb-[calc(var(--nav-h)+2rem+env(safe-area-inset-bottom))] pt-5 md:px-7 md:pt-8 lg:max-w-[1440px] lg:px-8 lg:pb-12">
-          <div key={data?.family.id ?? "none"} className="contents">{children}</div>
+          <Fragment key={data?.family.id ?? "none"}>{children}</Fragment>
           <p className="mt-10 text-center text-[0.9412rem] text-muted-foreground">
             Not medical advice. Check with your doctor or pharmacist.
           </p>
