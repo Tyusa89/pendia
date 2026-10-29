@@ -53,15 +53,36 @@ export const authService = {
 };
 
 // ---------- Family ----------
+const ACTIVE_FAMILY_PREFIX = "pendia.activeFamily.";
+function readActiveFamilyId(uid: string): string | null {
+  try { return typeof window === "undefined" ? null : window.localStorage.getItem(ACTIVE_FAMILY_PREFIX + uid); } catch { return null; }
+}
+
 export const familyService = {
+  /** Every family the signed-in user has a membership in (RLS-scoped), oldest membership first. */
+  async listMyFamilies(): Promise<{ id: string; name: string }[]> {
+    const uid = await authService.currentUserId();
+    if (!uid) return [];
+    const rows = ok(
+      await supabase.from("member").select("family_id, family(id, name)").eq("user_id", uid).order("created_at"),
+    ) as { family_id: string; family: { id: string; name: string } | null }[];
+    return rows.flatMap((r) => (r.family ? [{ id: r.family.id, name: r.family.name }] : []));
+  },
+  /** Remembers the chosen family in this browser only; getMyFamily falls back to the first membership. */
+  async setActiveFamily(familyId: string) {
+    const uid = await authService.currentUserId();
+    if (!uid) return;
+    window.localStorage.setItem(ACTIVE_FAMILY_PREFIX + uid, familyId);
+  },
   /** The user's family (first membership), or null. */
   async getMyFamily(): Promise<{ family: Family; me: Member } | null> {
     const uid = await authService.currentUserId();
     if (!uid) return null;
     const rows = ok(
-      await supabase.from("member").select("*, family(*)").eq("user_id", uid).order("created_at").limit(1),
-    );
-    const row = rows[0] as (Member & { family: Family }) | undefined;
+      await supabase.from("member").select("*, family(*)").eq("user_id", uid).order("created_at"),
+    ) as (Member & { family: Family })[];
+    const chosen = readActiveFamilyId(uid);
+    const row = rows.find((r) => r.family_id === chosen && r.family) ?? rows.find((r) => r.family);
     if (!row) return null;
     const { family, ...me } = row;
     return { family, me };
