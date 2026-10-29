@@ -15,7 +15,7 @@ export function FamilySwitcher({ activeId, activeName }: { activeId: string; act
     await familyService.setActiveFamily(id);
     // Drop every cached family-scoped result so nothing from the previous family can render.
     await qc.cancelQueries();
-    qc.clear();
+    await qc.resetQueries();
   }
 
   return (
