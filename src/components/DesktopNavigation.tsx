@@ -1,10 +1,11 @@
 import { Link } from "@tanstack/react-router";
-import { CalendarDays, ClipboardCheck, Home, Mail, MessageCircle, PanelLeftClose, PanelLeftOpen, Pill, SlidersHorizontal, Stethoscope } from "lucide-react";
+import { CalendarDays, ClipboardCheck, Home, Mail, MessageCircle, PanelLeftClose, PanelLeftOpen, Pill, SlidersHorizontal, Stethoscope, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const destinations = [
   { to: "/family", label: "Dashboard", icon: Home },
+  { to: "/members", label: "Family Members", icon: Users },
   { to: "/visits", label: "Visits", icon: Stethoscope },
   { to: "/meds", label: "Meds", icon: Pill },
   { to: "/coverage", label: "Coverage", icon: CalendarDays },
