@@ -107,7 +107,7 @@ describe("migration and protected areas", () => {
     expect(sql.match(/create policy/g)).toHaveLength(4);
     expect(sql).toMatch(/document_path text;/);
     expect(sql).toMatch(
-      /check \(document_path is null or public\.appt_doc_path_family\(document_path\) = family_id\)/,
+      /check \(document_path is null or \(public\.appt_doc_path_family\(document_path\) = family_id\) is true\)/,
     );
     expect(sql).not.toMatch(/drop table|drop column|alter column .* not null/i);
   });

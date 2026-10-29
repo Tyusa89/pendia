@@ -100,12 +100,42 @@ begin
   exception when insufficient_privilege then n := n + 1; end;
   if public.appt_doc_can_write(p_pend) then raise exception 'FAIL: B satisfies write rule for A'; end if; n := n + 1;
 
-  -------------------------------------------------------------- B cannot make a visit adopt A's document (and so cannot "attach" to read it)
+  -------------------------------------------------------------- visit.document_path constraint (reset role = table owner)
   reset role;
+  -- 1. NULL is accepted
+  insert into visit (family_id, date, scheduled_start, document_path) values (fa, current_date, now(), null); n := n + 1;
+  -- 2. a valid same-family path is accepted
+  insert into visit (family_id, date, scheduled_start, document_path) values (fa, current_date, now(), fa || '/doc/' || gen_random_uuid() || '/letter.pdf'); n := n + 1;
+  -- 3. a valid CROSS-family path is rejected (both directions; B cannot adopt A's document)
   begin insert into visit (family_id, date, scheduled_start, document_path) values (fb, current_date, now(), p_pend);
     raise exception 'FAIL: visit accepted another family''s document path';
   exception when check_violation then n := n + 1; end;
-  insert into visit (family_id, date, scheduled_start) values (fa, current_date, now()); n := n + 1; -- null path stays valid
+  begin insert into visit (family_id, date, scheduled_start, document_path) values (fa, current_date, now(), p_b);
+    raise exception 'FAIL: visit accepted family B''s document path';
+  exception when check_violation then n := n + 1; end;
+  -- 4. malformed NON-NULL paths are rejected (appt_doc_path_family() is NULL for these; the check must not pass on NULL)
+  declare bad text; begin
+    foreach bad in array array[
+      'loose.pdf', '', ' ', 'not-a-path',
+      fa || '/doc/' || gen_random_uuid() || '/../x.pdf',
+      fa || '/doc/' || gen_random_uuid() || '/letter.exe',
+      fa || '/handoff/' || gen_random_uuid() || '/letter.pdf',
+      fa || '/doc/not-a-uuid/letter.pdf',
+      '/' || fa || '/doc/' || gen_random_uuid() || '/letter.pdf',
+      'x' || fa || '/doc/' || gen_random_uuid() || '/letter.pdf'
+    ] loop
+      begin insert into visit (family_id, date, scheduled_start, document_path) values (fa, current_date, now(), bad);
+        raise exception 'FAIL: malformed document_path accepted: %', bad;
+      exception when check_violation then n := n + 1; end;
+    end loop;
+  end;
+  -- the same rule applies on UPDATE
+  begin update visit set document_path = 'loose.pdf' where id = va;
+    raise exception 'FAIL: UPDATE to a malformed document_path accepted';
+  exception when check_violation then n := n + 1; end;
+  begin update visit set document_path = p_b where id = va;
+    raise exception 'FAIL: UPDATE to another family''s document_path accepted';
+  exception when check_violation then n := n + 1; end;
 
   -------------------------------------------------------------- detaching returns the document to PENDING
   delete from visit where id = va;

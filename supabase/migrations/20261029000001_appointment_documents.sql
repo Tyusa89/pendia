@@ -81,8 +81,10 @@ create policy "appointment docs delete" on storage.objects for delete to authent
 
 
 -- A visit can only point at a document inside its OWN family's folder (needs appt_doc_path_family, created above).
+-- `is true` matters: a CHECK passes on NULL, and appt_doc_path_family() is NULL for a malformed path, so without it a malformed
+-- non-null path would be accepted.
 alter table public.visit drop constraint if exists visit_document_path_family_check;
 alter table public.visit add constraint visit_document_path_family_check
-  check (document_path is null or public.appt_doc_path_family(document_path) = family_id);
+  check (document_path is null or (public.appt_doc_path_family(document_path) = family_id) is true);
 
 commit;
