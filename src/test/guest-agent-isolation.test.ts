@@ -112,6 +112,7 @@ describe("the audited member path and protected modules are not edited by this w
     const DOC_UPLOAD_FILES = new Set([
       "supabase/migrations/20261029000001_appointment_documents.sql",
       "supabase/tests/appointment-docs.test.sql",
+      "supabase/tests/scratch/validate-document-upload-isolated.sh",
     ]);
     const added = git("diff", "origin/main...HEAD", "--", "package.json")
       .filter((l) => l.startsWith("+") && !l.startsWith("+++"))
