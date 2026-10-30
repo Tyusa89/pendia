@@ -81,8 +81,28 @@ export const DOC_PATH_RE = new RegExp(
 );
 export const docPathFamily = (p: string): string | null =>
   p.includes("..") ? null : (DOC_PATH_RE.exec(p)?.[1]?.toLowerCase() ?? null);
-export const docPath = (familyId: string, docId: string, kind: DocKind) =>
-  `${familyId}/doc/${docId}/appointment-letter.${EXT[kind]}`;
+/**
+ * Keeps the caregiver's own file name (made safe) so the document stays recognisable after its appointment is saved. The result always
+ * satisfies the database's path rule (<= 80 characters, [A-Za-z0-9_.-], no "..", canonical extension); anything unusable falls back
+ * to "appointment-letter".
+ */
+export function safeFileBase(originalName: string | undefined): string {
+  const base = (originalName ?? "")
+    .replace(/\.[A-Za-z0-9]{1,5}$/, "") // drop the extension; the real type decides it
+    .replace(/[^A-Za-z0-9_.-]+/g, "_")
+    .replace(/\.{2,}/g, ".")
+    .replace(/^[^A-Za-z0-9_-]+/, "")
+    .replace(/[._-]+$/, "")
+    .slice(0, 60)
+    .replace(/[._-]+$/, "");
+  return base === "" ? "appointment-letter" : base;
+}
+export const docPath = (familyId: string, docId: string, kind: DocKind, originalName?: string) => {
+  const path = `${familyId}/doc/${docId}/${safeFileBase(originalName)}.${EXT[kind]}`;
+  return DOC_PATH_RE.test(path) ? path : `${familyId}/doc/${docId}/appointment-letter.${EXT[kind]}`;
+};
+/** The file name shown to people: the last segment of a stored path. */
+export const docFileName = (path: string): string => path.split("/").pop() ?? path;
 
 // ---- extraction answer --------------------------------------------------------------------------------------------------------------
 export const CONFIDENCE = ["clear", "unclear"] as const;

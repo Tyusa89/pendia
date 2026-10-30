@@ -2,6 +2,9 @@
 import { describe, expect, it } from "vitest";
 import {
   DOC_MAX_BYTES,
+  DOC_PATH_RE,
+  docFileName,
+  safeFileBase,
   docPath,
   docPathFamily,
   parseExtraction,
@@ -162,5 +165,41 @@ describe("draft: extracted facts are distinguished from missing and uncertain fi
   });
   it("simulated output carries the simulated source", () => {
     expect(toDraft(SIMULATED_EXTRACTION, "simulated", "America/Chicago").source).toBe("simulated");
+  });
+});
+
+describe("the caregiver's file name is kept (made safe) so the document is recognisable after the appointment is saved", () => {
+  const SQL_RULE = /^[A-Za-z0-9_-][A-Za-z0-9_.-]{0,78}\.(pdf|jpe?g|png)$/i; // the database's file-name rule
+  it("keeps an ordinary name and the real type's extension", () => {
+    const p = docPath(FAM_A, DOC_ID, "pdf", "Dr Reyes appointment letter.pdf");
+    expect(docFileName(p)).toBe("Dr_Reyes_appointment_letter.pdf");
+    expect(docPathFamily(p)).toBe(FAM_A);
+    expect(docFileName(docPath(FAM_A, DOC_ID, "jpeg", "scan.JPEG"))).toBe("scan.jpg");
+    expect(docFileName(docPath(FAM_A, DOC_ID, "png", "photo.png"))).toBe("photo.png");
+  });
+  it("hostile, odd or empty names always yield a path the database rule accepts, in this family's folder", () => {
+    for (const name of [
+      "../../etc/passwd.pdf",
+      ".hidden.pdf",
+      "a..b.png",
+      "   .pdf",
+      "",
+      undefined,
+      "名前.pdf",
+      "x".repeat(300) + ".pdf",
+      "con<script>.pdf",
+      "name with %00 and \\ slashes.pdf",
+    ]) {
+      const p = docPath(FAM_A, DOC_ID, "pdf", name);
+      expect(DOC_PATH_RE.test(p), String(name)).toBe(true);
+      expect(docPathFamily(p), String(name)).toBe(FAM_A);
+      expect(docFileName(p), String(name)).toMatch(SQL_RULE);
+      expect(p).not.toContain("..");
+    }
+  });
+  it("falls back to appointment-letter when nothing usable is left", () => {
+    expect(safeFileBase("名前")).toBe("appointment-letter");
+    expect(safeFileBase(undefined)).toBe("appointment-letter");
+    expect(docFileName(docPath(FAM_A, DOC_ID, "pdf"))).toBe("appointment-letter.pdf");
   });
 });

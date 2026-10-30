@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { Link } from "@tanstack/react-router";
+import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronRight, FileUp, Plus } from "lucide-react";
 import { AppointmentFlags } from "@/components/AppointmentFlags";
@@ -13,6 +14,7 @@ import {
   sortUpcoming,
   type Appointment,
 } from "@/lib/appointments";
+import { JUDGE_DEMO_READ_ONLY_MESSAGE, isJudgeDemo } from "@/lib/judge-demo";
 import { formatInZone } from "@/lib/zoned-time";
 import { visitService } from "@/services";
 
@@ -50,12 +52,22 @@ function Card({
         params={{ id: a.id }}
         className="block h-full rounded-[1.25rem] bg-card p-[1.125rem] shadow-card focus-visible:outline-2 focus-visible:outline-ring"
       >
-        <div className={`grid items-start gap-3 ${compact ? "grid-cols-[minmax(0,1fr)_auto]" : "grid-cols-[auto_minmax(0,1fr)_auto]"}`}>
+        <div
+          className={`grid items-start gap-3 ${compact ? "grid-cols-[minmax(0,1fr)_auto]" : "grid-cols-[auto_minmax(0,1fr)_auto]"}`}
+        >
           {!compact && (
-          <span aria-hidden className="flex size-14 shrink-0 flex-col items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <span className="text-[0.7059rem] font-bold uppercase">{new Date(`${a.date}T12:00:00Z`).toLocaleDateString(undefined, { weekday: "short", timeZone: "UTC" })}</span>
-            <span className="font-display text-2xl font-semibold">{Number(a.date.slice(8))}</span>
-          </span>
+            <span
+              aria-hidden
+              className="flex size-14 shrink-0 flex-col items-center justify-center rounded-xl bg-primary/10 text-primary"
+            >
+              <span className="text-[0.7059rem] font-bold uppercase">
+                {new Date(`${a.date}T12:00:00Z`).toLocaleDateString(undefined, {
+                  weekday: "short",
+                  timeZone: "UTC",
+                })}
+              </span>
+              <span className="font-display text-2xl font-semibold">{Number(a.date.slice(8))}</span>
+            </span>
           )}
           <div className="min-w-0">
             <p className="text-sm font-semibold uppercase tracking-wide text-primary">
@@ -149,6 +161,28 @@ export function AppointmentList({
             <FileUp /> From a document
           </Link>
         </Button>
+      )}
+      {/* Anonymous Judge Demo visitors see the actions but they only explain that the demo is read-only: no navigation, no upload,
+          no appointment. (Real accounts above are unaffected.) */}
+      {!canWrite && isJudgeDemo() && (
+        <>
+          <Button
+            type="button"
+            variant="outline"
+            className={`mb-5 ${compact ? "w-full" : ""}`}
+            onClick={() => toast.info(JUDGE_DEMO_READ_ONLY_MESSAGE)}
+          >
+            <Plus /> New appointment
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className={`mb-5 sm:ml-2 ${compact ? "w-full" : ""}`}
+            onClick={() => toast.info(JUDGE_DEMO_READ_ONLY_MESSAGE)}
+          >
+            <FileUp /> From a document
+          </Button>
+        </>
       )}
       <Tabs defaultValue="upcoming">
         <TabsList className="mb-4 grid h-auto w-full grid-cols-3">

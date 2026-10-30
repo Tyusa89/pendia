@@ -138,6 +138,23 @@ describe("caregiver confirmation", () => {
     expect(d.save).not.toHaveBeenCalled();
     expect(d.documents.remove).not.toHaveBeenCalled();
   });
+  it("shows the uploaded filename, type, size and an open action as soon as the document is stored", async () => {
+    const d = deps();
+    mount(d);
+    await pick(pdfFile());
+    expect(await screen.findByTestId("uploaded-document-name")).toHaveTextContent("letter.pdf");
+    expect(screen.getByTestId("uploaded-document")).toHaveTextContent(/PDF/);
+    expect(screen.getByTestId("uploaded-document")).toHaveTextContent(/stored privately/);
+    expect(screen.getByRole("button", { name: /View uploaded document/ })).toBeInTheDocument();
+    expect(d.save).not.toHaveBeenCalled();
+  });
+  it("keeps the uploaded document visible when reading fails or is switched off (manual entry)", async () => {
+    const d = deps({ status: vi.fn(async () => ({ mode: "off" as const, state: "not_enabled" })) });
+    mount(d);
+    await pick(pdfFile());
+    expect(await screen.findByTestId("uploaded-document-name")).toHaveTextContent("letter.pdf");
+    expect(screen.getByRole("button", { name: /View uploaded document/ })).toBeInTheDocument();
+  });
   it("saves only on explicit confirmation, with the edited values and the document attached", async () => {
     const d = deps();
     const { onDone } = mount(d);
