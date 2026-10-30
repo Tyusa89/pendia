@@ -28,6 +28,7 @@ import { Route as AuthenticatedVisitsIndexRouteImport } from './routes/_authenti
 import { Route as AuthenticatedVisitsIdRouteImport } from './routes/_authenticated/visits.$id'
 import { Route as AuthenticatedVisitsDemoRouteImport } from './routes/_authenticated/visits.demo'
 import { Route as AuthenticatedVisitsNewRouteImport } from './routes/_authenticated/visits.new'
+import { Route as ApiPublicJudgeIpDiagnosticRouteImport } from './routes/api/public/judge-ip-diagnostic'
 import { Route as AuthenticatedVisitsEditIdRouteImport } from './routes/_authenticated/visits.edit.$id'
 
 const IndexRoute = IndexRouteImport.update({
@@ -127,6 +128,12 @@ const AuthenticatedVisitsNewRoute = AuthenticatedVisitsNewRouteImport.update({
   path: '/visits/new',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicJudgeIpDiagnosticRoute =
+  ApiPublicJudgeIpDiagnosticRouteImport.update({
+    id: '/api/public/judge-ip-diagnostic',
+    path: '/api/public/judge-ip-diagnostic',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedVisitsEditIdRoute =
   AuthenticatedVisitsEditIdRouteImport.update({
     id: '/visits/edit/$id',
@@ -152,6 +159,7 @@ export interface FileRoutesByFullPath {
   '/visits/$id': typeof AuthenticatedVisitsIdRoute
   '/visits/demo': typeof AuthenticatedVisitsDemoRoute
   '/visits/new': typeof AuthenticatedVisitsNewRoute
+  '/api/public/judge-ip-diagnostic': typeof ApiPublicJudgeIpDiagnosticRoute
   '/visits/': typeof AuthenticatedVisitsIndexRoute
   '/visits/edit/$id': typeof AuthenticatedVisitsEditIdRoute
 }
@@ -173,6 +181,7 @@ export interface FileRoutesByTo {
   '/visits/$id': typeof AuthenticatedVisitsIdRoute
   '/visits/demo': typeof AuthenticatedVisitsDemoRoute
   '/visits/new': typeof AuthenticatedVisitsNewRoute
+  '/api/public/judge-ip-diagnostic': typeof ApiPublicJudgeIpDiagnosticRoute
   '/visits': typeof AuthenticatedVisitsIndexRoute
   '/visits/edit/$id': typeof AuthenticatedVisitsEditIdRoute
 }
@@ -196,6 +205,7 @@ export interface FileRoutesById {
   '/_authenticated/visits/$id': typeof AuthenticatedVisitsIdRoute
   '/_authenticated/visits/demo': typeof AuthenticatedVisitsDemoRoute
   '/_authenticated/visits/new': typeof AuthenticatedVisitsNewRoute
+  '/api/public/judge-ip-diagnostic': typeof ApiPublicJudgeIpDiagnosticRoute
   '/_authenticated/visits/': typeof AuthenticatedVisitsIndexRoute
   '/_authenticated/visits/edit/$id': typeof AuthenticatedVisitsEditIdRoute
 }
@@ -219,6 +229,7 @@ export interface FileRouteTypes {
     | '/visits/$id'
     | '/visits/demo'
     | '/visits/new'
+    | '/api/public/judge-ip-diagnostic'
     | '/visits/'
     | '/visits/edit/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -240,6 +251,7 @@ export interface FileRouteTypes {
     | '/visits/$id'
     | '/visits/demo'
     | '/visits/new'
+    | '/api/public/judge-ip-diagnostic'
     | '/visits'
     | '/visits/edit/$id'
   id:
@@ -262,6 +274,7 @@ export interface FileRouteTypes {
     | '/_authenticated/visits/$id'
     | '/_authenticated/visits/demo'
     | '/_authenticated/visits/new'
+    | '/api/public/judge-ip-diagnostic'
     | '/_authenticated/visits/'
     | '/_authenticated/visits/edit/$id'
   fileRoutesById: FileRoutesById
@@ -272,6 +285,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   DemoRoute: typeof DemoRoute
   DemoMedsRoute: typeof DemoMedsRoute
+  ApiPublicJudgeIpDiagnosticRoute: typeof ApiPublicJudgeIpDiagnosticRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -409,6 +423,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedVisitsNewRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/judge-ip-diagnostic': {
+      id: '/api/public/judge-ip-diagnostic'
+      path: '/api/public/judge-ip-diagnostic'
+      fullPath: '/api/public/judge-ip-diagnostic'
+      preLoaderRoute: typeof ApiPublicJudgeIpDiagnosticRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/visits/edit/$id': {
       id: '/_authenticated/visits/edit/$id'
       path: '/visits/edit/$id'
@@ -464,6 +485,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   DemoRoute: DemoRoute,
   DemoMedsRoute: DemoMedsRoute,
+  ApiPublicJudgeIpDiagnosticRoute: ApiPublicJudgeIpDiagnosticRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
