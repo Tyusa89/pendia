@@ -1,4 +1,5 @@
 # Pendia layout repair
+- [ ] Verify hosted Judge Demo trusted IP with a temporary boolean-only diagnostic, remove it, and run exactly one authorized fictional Meta test only if trust is verified; never publish.
 - [x] Implement judge Ask Pendia through the existing Care Agent with fictional-only evidence and durable ad-hoc usage limits. 513 tests passed; build OK; real one-click guest entry and disabled Ask screen verified without page errors. No Meta calls, secret changes, schema changes or publication.
 - [ ] Activate and live-test judge Ask after separate authorization; blocked on Redis REST configuration, trusted edge-IP verification and live-test approval. See docs/judge-agent-activation.md.
 - [x] Add one-click hackathon demo entry, protect shared fictional records, and verify navigation and normal sign-in; do not publish or touch Document Upload.
