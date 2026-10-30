@@ -155,7 +155,7 @@ export async function careAgentStatus(opts: {
   userId: string;
   familyId: string;
   source: PackSource;
-  judgeSessionId?: string;
+  judgeSessionId?: string | undefined;
 }): Promise<CareAgentStatus> {
   if (opts.userId === JUDGE_DEMO_USER_ID)
     return { state: judgeAgentEligible(opts.env, opts.userId, opts.familyId, opts.judgeSessionId) ? "available" : "not_enabled" };
@@ -332,7 +332,7 @@ export async function askCareAgent(opts: {
   fetchImpl: FetchLike;
   now?: () => number;
   timeoutMs?: number;
-  judgeSessionId?: string;
+  judgeSessionId?: string | undefined;
   takeJudgeSlot?: () => Promise<boolean>;
 }): Promise<AskResult> {
   const { env, userId, input } = opts;

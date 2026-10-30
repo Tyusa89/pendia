@@ -1,9 +1,9 @@
 // Durable, atomic ad-hoc counters. No question, answer, family record or raw IP is stored.
 export const JUDGE_AGENT_RATE = { sessionHourly: 10, ipHourly: 30, globalDaily: 100, cooldownSeconds: 20 } as const;
 export interface JudgeAgentEnv {
-  JUDGE_AGENT_LIVE_ENABLED?: string;
-  JUDGE_AGENT_REDIS_URL?: string;
-  JUDGE_AGENT_REDIS_TOKEN?: string;
+  JUDGE_AGENT_LIVE_ENABLED?: string | undefined;
+  JUDGE_AGENT_REDIS_URL?: string | undefined;
+  JUDGE_AGENT_REDIS_TOKEN?: string | undefined;
 }
 export function judgeLimitsConfigured(env: JudgeAgentEnv) {
   try { return new URL(env.JUDGE_AGENT_REDIS_URL ?? "").protocol === "https:" && !!env.JUDGE_AGENT_REDIS_TOKEN?.trim(); }
