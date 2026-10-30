@@ -1,4 +1,5 @@
 # Pendia layout repair
+- [ ] Connect judge Ask Pendia to the existing Care Agent with fictional-only evidence, durable ad-hoc usage limits, disabled live gates, and mocked verification; no Meta calls or publication.
 - [x] Add one-click hackathon demo entry, protect shared fictional records, and verify navigation and normal sign-in; do not publish or touch Document Upload.
   Verification: 32 relevant tests passed; phone/laptop entry, all completed care pages, reload and sign-out checked. Three simultaneous guest entries passed. Guest RLS reads returned zero live families/medications; demo delete blocked without a database write. Dedicated zero-membership account and private server-side demo sign-in secret configured. Fictional display snapshot only; no family data, schema, AI flags or Document Upload changes. Publishing remains approval-gated.
 - [x] Present hourly Coverage timeline redesign for approval.
