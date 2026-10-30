@@ -7,7 +7,7 @@ import { isVerifiedJudgeSession } from "@/server/guest-session.server";
 
 const state = vi.hoisted(() => ({
   authorization: "",
-  jwks: { keys: [] as Record<string, unknown>[] },
+  jwks: { keys: [] as Array<{ kty: string; key_ops: string[]; kid: string; alg: string }> },
   ask: vi.fn().mockResolvedValue({ ok: true }),
 }));
 vi.mock("@tanstack/react-start/server", () => ({
@@ -59,7 +59,7 @@ const sign = (payload: Record<string, unknown>, foreign = false) => new SignJWT(
 
 beforeEach(() => {
   state.ask.mockClear(); state.authorization = "";
-  state.jwks.keys = [{ ...jwk, kid: "test-judge", alg: "ES256" }];
+  state.jwks.keys = [{ ...jwk, kty: "EC", key_ops: ["verify"], kid: "test-judge", alg: "ES256" }];
   vi.stubEnv("SUPABASE_URL", url);
   vi.stubEnv("SUPABASE_PUBLISHABLE_KEY", "sb_publishable_test");
   vi.stubGlobal("fetch", vi.fn(() => { throw new Error("Unexpected network request"); }));

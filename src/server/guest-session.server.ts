@@ -8,12 +8,12 @@ export function isVerifiedJudgeSession(
   authUrl: string | undefined,
   now = Date.now(),
 ): boolean {
-  if (!authUrl || userId !== JUDGE_DEMO_USER_ID || claims.sub !== JUDGE_DEMO_USER_ID) return false;
+  if (!authUrl || userId !== JUDGE_DEMO_USER_ID || claims["sub"] !== JUDGE_DEMO_USER_ID) return false;
   const seconds = Math.floor(now / 1000);
   const { iat, exp, session_id: sessionId } = claims;
   return (
-    claims.iss === `${authUrl.replace(/\/$/, "")}/auth/v1` &&
-    claims.aud === "authenticated" && claims.role === "authenticated" &&
+    claims["iss"] === `${authUrl.replace(/\/$/, "")}/auth/v1` &&
+    claims["aud"] === "authenticated" && claims["role"] === "authenticated" &&
     typeof sessionId === "string" &&
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sessionId) &&
     typeof iat === "number" && Number.isInteger(iat) && iat <= seconds &&
