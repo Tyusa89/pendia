@@ -35,8 +35,11 @@ import { buildContextPack, type PackAccess, type PackRows } from "@/lib/care-age
 import { prefilter } from "@/lib/care-agent/prefilter";
 import { CARE_AGENT_SYSTEM_PROMPT, buildUserText, type RecentTurn } from "@/lib/care-agent/prompt";
 import { validateAgentAnswer } from "@/lib/care-agent/validate";
+import { JUDGE_DEMO_USER_ID, JUDGE_DEMO_FAMILY_ID } from "@/lib/judge-demo";
+import { createJudgePackSource } from "./judge-agent-source.server";
+import { judgeLimitsConfigured, type JudgeAgentEnv } from "./judge-agent-limits.server";
 
-export interface CareAgentEnv {
+export interface CareAgentEnv extends JudgeAgentEnv {
   AGENT_LIVE_ENABLED?: string | undefined;
   AGENT_LIVE_USER_IDS?: string | undefined;
   META_API_KEY?: string | undefined;
@@ -85,11 +88,18 @@ export function careAgentConfigured(env: CareAgentEnv): boolean {
 
 /** A missing or empty list means nobody. */
 export function careAgentAllowlisted(env: CareAgentEnv, userId: string): boolean {
+  if (userId === JUDGE_DEMO_USER_ID) return false; // guest never gets the ordinary database-backed path
   const ids = (env.AGENT_LIVE_USER_IDS ?? "")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
   return ids.length > 0 && ids.includes(userId);
+}
+
+export function judgeAgentEligible(env: CareAgentEnv, userId: string, familyId: string, sessionId?: string): boolean {
+  return careAgentConfigured(env) && env.JUDGE_AGENT_LIVE_ENABLED === "true" && judgeLimitsConfigured(env)
+    && userId === JUDGE_DEMO_USER_ID && familyId === JUDGE_DEMO_FAMILY_ID
+    && typeof sessionId === "string" && /^[0-9a-f-]{36}$/i.test(sessionId);
 }
 
 // ---- rate limits (in memory: per server instance, reset on restart; an accident guard, not a spending limit) ---------------------
@@ -145,7 +155,10 @@ export async function careAgentStatus(opts: {
   userId: string;
   familyId: string;
   source: PackSource;
+  judgeSessionId?: string;
 }): Promise<CareAgentStatus> {
+  if (opts.userId === JUDGE_DEMO_USER_ID)
+    return { state: judgeAgentEligible(opts.env, opts.userId, opts.familyId, opts.judgeSessionId) ? "available" : "not_enabled" };
   if (!careAgentConfigured(opts.env)) return { state: "not_enabled" };
   if (!careAgentAllowlisted(opts.env, opts.userId)) return { state: "not_enabled" }; // reveals nothing about the allowlist
   const e = await eligibility(opts.source, opts.familyId);
@@ -319,10 +332,14 @@ export async function askCareAgent(opts: {
   fetchImpl: FetchLike;
   now?: () => number;
   timeoutMs?: number;
+  judgeSessionId?: string;
+  takeJudgeSlot?: () => Promise<boolean>;
 }): Promise<AskResult> {
-  const { env, userId, input, source } = opts;
+  const { env, userId, input } = opts;
+  const judge = userId === JUDGE_DEMO_USER_ID;
+  const source = judge ? createJudgePackSource() : opts.source;
   // 2-3: configuration and allowlist (the status result is never trusted: every ask re-checks).
-  if (!careAgentConfigured(env) || !careAgentAllowlisted(env, userId))
+  if (judge ? !judgeAgentEligible(env, userId, input.familyId, opts.judgeSessionId) : (!careAgentConfigured(env) || !careAgentAllowlisted(env, userId)))
     return fail("not_enabled", "en");
   // 4: membership and demo-family eligibility, caller session, BEFORE any record content is read.
   const elig = await eligibility(source, input.familyId);
@@ -357,7 +374,12 @@ export async function askCareAgent(opts: {
 
   // 7: rate limit.
   const clock = (opts.now ?? Date.now)();
-  if (!takeRateSlot(userId, clock)) return fail("rate_limited", language);
+  if (judge) {
+    try {
+      if (!opts.takeJudgeSlot) return fail("not_enabled", language);
+      if (!await opts.takeJudgeSlot()) return fail("rate_limited", language);
+    } catch { return fail("provider_error", language, "usage_guard_unavailable"); }
+  } else if (!takeRateSlot(userId, clock)) return fail("rate_limited", language);
 
   // 8: pack assembly under the caller's RLS session. ANY failed read fails the whole question (never a partial pack).
   const access = effectiveAccess(member);
