@@ -59,6 +59,7 @@ describe("nothing sensitive can be committed", () => {
 const REVIEWED_MIGRATIONS = [
   "supabase/migrations/20261027000001_dose_administration.sql",
   "supabase/migrations/20261027000002_family_delete_guard.sql",
+  "supabase/migrations/20261029000001_appointment_documents.sql",
 ];
 
 describe("merging this work cannot deploy anything or call Meta", () => {

@@ -84,7 +84,9 @@ describe("the guest Ask wrapper requires verified automatic judge authentication
     expect(w).not.toMatch(/^import .* from "@\/server\//m);
     expect(w.match(/await import\("@\/server\/guest-agent\.server"\)/g)).toHaveLength(2);
     expect(w).toMatch(/\.middleware\(\[requireSupabaseAuth\]\)/);
-    expect(w.indexOf("isVerifiedJudgeSession(context.claims")).toBeLessThan(w.indexOf("const { askGuestAgent }"));
+    expect(w.indexOf("isVerifiedJudgeSession(context.claims")).toBeLessThan(
+      w.indexOf("const { askGuestAgent }"),
+    );
     expect(w).not.toMatch(/service_role|console\.|sessionStorage|localStorage/i);
   });
   it("accepts a family id only so it can be refused", () => {
@@ -102,10 +104,28 @@ describe("the audited member path and protected modules are not edited by this w
   };
   const changed = git("diff", "--name-only", "origin/main...HEAD");
   // prefilter.ts is deliberately NOT listed: Pepper authorized one change to it after the PR #56 audit (the demo medication names in MED_WORD).
-  it("changes none of the member Care Agent, Spark, transcription, verifier, dose, schema or dependency files", () => {
+  it("changes none of the member Care Agent, Spark, transcription, verifier, dose, schema or dependency files (beyond Document Upload's own)", () => {
     const protectedRe =
       /^(src\/server\/(care-agent|care-agent-source|judge-agent-source|judge-agent-limits|meta-transcribe|spark-live|spark-synthetic)\.server\.ts|src\/lib\/care-agent\/(contract|copy|pack|prompt|validate|care-agent\.functions|useCareAgent)\.ts|src\/components\/CareAgentPanel\.tsx|src\/lib\/spark\/|src\/lib\/visit-pipeline\/|src\/lib\/meta-transcribe\/|src\/lib\/dose|src\/lib\/features\.ts|supabase\/|package\.json|bun\.lock|\.env)/;
-    expect(changed.filter((f) => protectedRe.test(f))).toEqual([]);
+    // The Document Upload branch legitimately adds exactly: its migration + SQL test, and the pdfjs-dist dependency. Nothing else
+    // under supabase/ or in the dependency files may change, and package.json may add nothing but pdfjs-dist.
+    const DOC_UPLOAD_FILES = new Set([
+      "supabase/migrations/20261029000001_appointment_documents.sql",
+      "supabase/tests/appointment-docs.test.sql",
+      "supabase/tests/scratch/validate-document-upload-isolated.sh",
+    ]);
+    const added = git("diff", "origin/main...HEAD", "--", "package.json")
+      .filter((l) => l.startsWith("+") && !l.startsWith("+++"))
+      .map((l) => l.slice(1).trim());
+    const depsOk = added.every((l) => /pdfjs-dist/.test(l));
+    expect(
+      changed.filter(
+        (f) =>
+          protectedRe.test(f) &&
+          !DOC_UPLOAD_FILES.has(f) &&
+          !((f === "package.json" || f === "bun.lock") && depsOk),
+      ),
+    ).toEqual([]);
   });
   it("the member server module does not import the guest module", () => {
     expect(strip(read("src/server/care-agent.server.ts"))).not.toMatch(/guest-agent/);

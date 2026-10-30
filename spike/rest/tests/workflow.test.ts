@@ -87,9 +87,11 @@ describe("no accidental invocation", () => {
     // behind SPARK_LIVE_ENABLED and an allow-list. Nothing else in src may mention the key.
     // meta-transcribe.server.ts is the Handoff voice-transcription module: server-only, behind META_TRANSCRIBE_ENABLED, organizer-only.
     // care-agent.server.ts is the Care Agent server module: server-only, behind AGENT_LIVE_ENABLED and an allow-list.
+    // doc-extract.server.ts is the Document Upload extraction module: server-only, behind DOC_EXTRACT_ENABLED, an allow-list and demo families.
     // guest-agent.server.ts is the guest (judge) Ask module: server-only, behind JUDGE_AGENT_LIVE_ENABLED and a hard global cap.
     expect(found).toEqual([
       "src/server/care-agent.server.ts",
+      "src/server/doc-extract.server.ts",
       "src/server/guest-agent.server.ts",
       "src/server/meta-transcribe.server.ts",
       "src/server/spark-synthetic.server.ts",

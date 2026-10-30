@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronRight, Plus } from "lucide-react";
+import { ChevronRight, FileUp, Plus } from "lucide-react";
 import { AppointmentFlags } from "@/components/AppointmentFlags";
 import { Empty } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
@@ -140,6 +140,13 @@ export function AppointmentList({
         <Button asChild variant="outline" className={`mb-5 ${compact ? "w-full" : ""}`}>
           <Link to="/visits/new">
             <Plus /> New appointment
+          </Link>
+        </Button>
+      )}
+      {canWrite && (
+        <Button asChild variant="outline" className={`mb-5 sm:ml-2 ${compact ? "w-full" : ""}`}>
+          <Link to="/visits/upload">
+            <FileUp /> From a document
           </Link>
         </Button>
       )}
