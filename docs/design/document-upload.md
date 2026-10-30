@@ -45,3 +45,11 @@ Until applied: uploading fails with a clear message and manual entry (`/visits/n
 - A document is **pending** until a visit in the same family references it (saving the appointment is the confirmation). Pending: readable only by the organizer who uploaded it (`storage.objects.owner_id`). Attached: readable by members who can see visits. Deleting the visit returns the file to pending.
 - Abandoned uploads (closed tab) are swept by an organizer's next visit to the upload page after 24 hours.
 - One document per appointment; no OCR fallback; PDFs are limited to 3 pages.
+
+## 7. Isolated migration validation (pendia-hackathon-test)
+Never validate on production. `supabase/tests/scratch/validate-document-upload-isolated.sh` is guarded: it needs `PENDIA_TEST_DB_URL`,
+`PENDIA_TEST_PROJECT_NAME=pendia-hackathon-test` and an exact confirmation phrase, refuses any connection string containing this repo's production
+project ref, checks the test project already has the app schema (`family`, `member`, `visit`, `member_can_see`, `is_family_organizer`,
+`storage.objects.owner_id`), applies the migration twice (must be clean the second time) and runs `appointment-docs.test.sql` (expects `PASS`).
+Run it from your own machine; the connection string is never written or printed. Proven here only on a local stand-in Postgres (PASS, 43 assertions)
+and on its refusal paths; **not yet run against the Supabase test project** (no access from the build environment).
