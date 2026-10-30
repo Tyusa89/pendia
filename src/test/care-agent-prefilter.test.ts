@@ -150,3 +150,31 @@ describe("pre-filter: robustness", () => {
     expect(prefilter(q)).toEqual(prefilter(q));
   });
 });
+
+describe("pre-filter: the demo medication names count as medications for dose-change advice (EN/ES)", () => {
+  const refused = [
+    "Should I give her more Lisinopril?",
+    "¿Debo darle más Lisinopril?",
+    "Should we skip her Metformin tonight?",
+    "¿Debemos saltar la Metformina de hoy?",
+    "Can she take more Atorvastatin?",
+    "¿Puede tomar más Atorvastatina?",
+    "Should I stop giving Lisinopril?",
+  ];
+  for (const q of refused)
+    it(`refuses: ${q}`, () => {
+      expect(prefilter(q)?.refusal, q).toBe("medical_advice");
+    });
+  const lookups = [
+    "What dose of Lisinopril is listed?",
+    "What medication is listed in these records, and which source supports that?",
+    "Is Metformin in the medication list?",
+    "¿Qué dosis de Lisinopril aparece en los registros?",
+    "¿Aparece la Atorvastatina en la lista?",
+    "Who gave the Lisinopril this morning?",
+  ];
+  for (const q of lookups)
+    it(`still allows the lookup: ${q}`, () => {
+      expect(prefilter(q), q).toBeNull();
+    });
+});

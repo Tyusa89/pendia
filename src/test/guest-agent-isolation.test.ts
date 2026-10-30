@@ -100,9 +100,10 @@ describe("the audited member path and protected modules are not edited by this w
     }
   };
   const changed = git("diff", "--name-only", "origin/main...HEAD");
+  // prefilter.ts is deliberately NOT listed: Pepper authorized one change to it after the PR #56 audit (the demo medication names in MED_WORD).
   it("changes none of the member Care Agent, Spark, transcription, verifier, dose, schema or dependency files", () => {
     const protectedRe =
-      /^(src\/server\/(care-agent|care-agent-source|judge-agent-source|judge-agent-limits|meta-transcribe|spark-live|spark-synthetic)\.server\.ts|src\/lib\/care-agent\/(contract|copy|pack|prefilter|prompt|validate|care-agent\.functions|useCareAgent)\.ts|src\/components\/CareAgentPanel\.tsx|src\/lib\/spark\/|src\/lib\/visit-pipeline\/|src\/lib\/meta-transcribe\/|src\/lib\/dose|src\/lib\/features\.ts|supabase\/|package\.json|bun\.lock|\.env)/;
+      /^(src\/server\/(care-agent|care-agent-source|judge-agent-source|judge-agent-limits|meta-transcribe|spark-live|spark-synthetic)\.server\.ts|src\/lib\/care-agent\/(contract|copy|pack|prompt|validate|care-agent\.functions|useCareAgent)\.ts|src\/components\/CareAgentPanel\.tsx|src\/lib\/spark\/|src\/lib\/visit-pipeline\/|src\/lib\/meta-transcribe\/|src\/lib\/dose|src\/lib\/features\.ts|supabase\/|package\.json|bun\.lock|\.env)/;
     expect(changed.filter((f) => protectedRe.test(f))).toEqual([]);
   });
   it("the member server module does not import the guest module", () => {

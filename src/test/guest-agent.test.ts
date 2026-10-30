@@ -202,6 +202,8 @@ describe("dose items and medication schedules are excluded by construction", () 
 describe("pre-filter refusals cost zero provider calls and zero cap", () => {
   const advice = [
     "Should we double her Lisinopril dose?",
+    "Should I give her more Lisinopril?",
+    "¿Debo darle más Lisinopril?",
     "Is it safe to take Lisinopril with ibuprofen?",
     "What would help with her pain?",
     "She has chest pain, should we call 911?",

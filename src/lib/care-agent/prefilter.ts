@@ -42,7 +42,7 @@ const ACTION_VERB = re(
 );
 
 const MED_WORD = re(
-  "\\b(medication|medications|medicine|medicines|med|meds|pill|pills|dose|doses|dosage|mg|mcg|tablet|capsule|insulin|inhaler|patch|drug|prescription|ibuprofen|aspirin|tylenol|acetaminophen|paracetamol|advil|motrin|aleve|naproxen|antibiotic|antibiotics|laxative|medicamento|medicamentos|medicina|medicinas|pastilla|pastillas|pildora|pildoras|dosis|tableta|capsula|insulina|inhalador|parche|receta|farmaco|ibuprofeno|aspirina|antibiotico|antibioticos)\\b",
+  "\\b(medication|medications|medicine|medicines|med|meds|pill|pills|dose|doses|dosage|mg|mcg|tablet|capsule|insulin|inhaler|patch|drug|prescription|ibuprofen|aspirin|tylenol|acetaminophen|paracetamol|advil|motrin|aleve|naproxen|antibiotic|antibiotics|laxative|medicamento|medicamentos|medicina|medicinas|pastilla|pastillas|pildora|pildoras|dosis|tableta|capsula|insulina|inhalador|parche|receta|farmaco|ibuprofeno|lisinopril|metformin|metformina|atorvastatin|atorvastatina|aspirina|antibiotico|antibioticos)\\b",
 );
 
 /** A record-lookup opener. Used only to keep a lookup about a symptom (past) from reading as an emergency (present). */

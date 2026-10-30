@@ -40,8 +40,7 @@ Server: `src/server/guest-agent.server.ts` (+ `guest-agent-limits.server.ts`). M
    supabase-admin sign-in in `judge-demo.functions.ts`. So the member path on `main` is not byte-identical to audited PR #54. This PR does **not**
    edit any of it; it routes judges away from it (`ask.tsx`) and removes one legacy UI test for it. Recommendation: the audit decides whether to
    delete those branches; as long as they remain, they could serve a judge session if the member flags were also enabled.
-3. **Pre-filter gap (shared, unchanged):** `"¿Debo darle más Lisinopril?"` is not refused (no generic Spanish medication word; specific drug names are not in
-   the pattern). It falls through to the model, then to validation (which rejects advisory wording). A member-path issue; not fixed here to keep the audited module unchanged.
+3. **Pre-filter gap — FIXED after the audit** (Pepper-authorized, shared by member and guest): `Lisinopril`, `Metformin`, `Atorvastatin` (and the Spanish `-a` forms) are now in the pre-filter's medication words, so `Should I give her more Lisinopril?` and `¿Debo darle más Lisinopril?` are refused before any record read or Meta call. Plain lookups are unaffected (tests).
 4. Fixed-window buckets: at an hour/day boundary up to 2× the window cap can pass across the boundary (≤ 120 in two minutes, ≤ 600 over a midnight).
 5. Existing guard allow-lists were widened by exactly the new files (`spark-live-isolation`, `workflow` (spike), `care-agent-isolation`).
 
