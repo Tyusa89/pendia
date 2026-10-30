@@ -11,6 +11,7 @@
 
 ## Architecture rules
 - Judge demo entry authenticates only a dedicated zero-membership guest identity; screens receive a fictional read-only snapshot through service wrappers. Never grant it database membership or ordinary AI allowlist access. Judge Ask uses the same Care Agent with a server-owned fictional PackSource, a separate default-off flag, verified auth session ID, and durable atomic Redis session/IP/global counters that fail closed; this prevents live-family access and cross-worker limit resets.
+- PR #56 guest Ask reuses the automatically installed signed auth token, verifies it through existing auth middleware, then restricts verified claims to the dedicated judge identity, issuer, audience, session ID and at-most-one-hour lifetime before entering the fictional-only pipeline; its unchanged global Redis caps remain separate from the older judge path.
 - All Lovable Cloud data access goes through `src/services/index.ts`; routes/components never call the client directly (keeps features incremental).
 - Every app table carries `family_id`; RLS uses `is_family_member()` / `is_family_organizer()` security-definer helpers.
 - Demo family is seeded in the migration; users join it via the `join_demo_family()` RPC.

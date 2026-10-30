@@ -1,8 +1,9 @@
-// Server functions for the guest (judge) Ask path. INTENTIONALLY unauthenticated: the published Judge Demo has no real user. They
-// grant nothing by themselves: the server module serves only the fictional in-code snapshot, behind a default-off flag and a hard
-// global cap. The server module is imported inside the handlers only. Failures are fixed codes, never thrown.
+// PR #56 guest Ask reuses the short-lived signed token installed automatically by Try Pendia Demo.
+// Authentication verifies the signature/expiry first; the dedicated judge-session guard runs before
+// importing the fictional evidence pipeline, spending Redis allowance or calling Meta.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const guestAskInput = z
   .object({
@@ -22,8 +23,13 @@ export const getGuestAgentStatus = createServerFn({ method: "POST" }).handler(as
 });
 
 export const askGuestAgentFn = createServerFn({ method: "POST" })
-  .validator((data: unknown) => guestAskInput.parse(data))
-  .handler(async ({ data }) => {
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => guestAskInput.parse(data))
+  .handler(async ({ data, context }) => {
+    const { isVerifiedJudgeSession } = await import("@/server/guest-session.server");
+    if (!isVerifiedJudgeSession(context.claims, context.userId, process.env["SUPABASE_URL"])) {
+      return { ok: false as const, code: "not_enabled" as const, language: "en" as const };
+    }
     const { askGuestAgent } = await import("@/server/guest-agent.server");
     return askGuestAgent({
       env: process.env,
