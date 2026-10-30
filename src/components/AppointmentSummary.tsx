@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { isBlank, type Appointment } from "@/lib/appointments";
+import { docFileName } from "@/lib/doc-upload/contract";
 import { formatInZone } from "@/lib/zoned-time";
 import { visitService } from "@/services";
 
@@ -115,7 +116,13 @@ export function AppointmentSummary({
       {!isBlank(visit.office_name) && <Row label="Office">{visit.office_name}</Row>}
       {visit.document_path && (
         <Row label="Document">
-          <AppointmentDocumentLink path={visit.document_path} label={`View ${/\.pdf$/i.test(visit.document_path) ? "PDF" : "image"} document`} />
+          <p className="mb-2 break-all font-semibold" data-testid="document-name">
+            {docFileName(visit.document_path)}
+          </p>
+          <AppointmentDocumentLink
+            path={visit.document_path}
+            label={`View ${/\.pdf$/i.test(visit.document_path) ? "PDF" : "image"} document`}
+          />
         </Row>
       )}
       <Row label="Address">

@@ -516,6 +516,7 @@ describe("appointment details: cancel and archive", () => {
     renderWithClient(summary(makeRow({ document_path: path })));
     expect(screen.getByText("Document")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /View PDF document/ })).toBeInTheDocument();
+    expect(screen.getByTestId("document-name")).toHaveTextContent("appointment-letter.pdf");
     cleanup();
     renderWithClient(summary(makeRow({ document_path: null })));
     expect(screen.queryByText("Document")).toBeNull();

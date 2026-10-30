@@ -59,8 +59,10 @@ export const authService = {
     return data.user?.id ?? null;
   },
   signIn: (email: string, password: string) => { setJudgeDemo(false); return supabase.auth.signInWithPassword({ email, password }); },
-  signUp: (email: string, password: string) =>
-    supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin } }),
+  signUp: (email: string, password: string) => {
+    setJudgeDemo(false);
+    return supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin } });
+  },
   signOut: () => { setJudgeDemo(false); return supabase.auth.signOut(); },
 };
 

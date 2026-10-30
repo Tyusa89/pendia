@@ -2,6 +2,7 @@
 // abandoned uploads. Who may read or write is enforced by storage RLS in the database (supabase/migrations/*_appointment_documents.sql);
 // this layer never trusts the UI for the family id in a path. A document is "pending" until a visit references it.
 import { supabase } from "@/integrations/supabase/client";
+import { assertDemoWritable } from "@/lib/judge-demo";
 import {
   ABANDONED_AFTER_MS,
   DOC_BUCKET,
@@ -58,7 +59,8 @@ export function createDocumentService(
   return {
     /** Uploads one validated file under a fresh id in the family's folder. Returns the stored path. */
     async uploadPending(familyId: string, file: Blob, kind: DocKind): Promise<string> {
-      const path = docPath(familyId, newId(), kind);
+      assertDemoWritable(); // the read-only Judge Demo can never upload (storage rules also deny a zero-membership guest)
+      const path = docPath(familyId, newId(), kind, (file as { name?: string }).name);
       const { error } = await storage.upload(path, file, {
         contentType: DOC_MIME[kind],
         upsert: false,
