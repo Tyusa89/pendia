@@ -78,13 +78,14 @@ describe("no database, no service role, no client-controlled identity", () => {
   });
 });
 
-describe("the wrapper is intentionally unauthenticated but grants nothing", () => {
+describe("the guest Ask wrapper requires verified automatic judge authentication", () => {
   const w = strip(read("src/lib/care-agent/guest.functions.ts"));
-  it("imports the server module inside handlers only; hands over process.env only; no database or auth middleware", () => {
+  it("imports the evidence module inside handlers only and validates the judge session before invoking it", () => {
     expect(w).not.toMatch(/^import .* from "@\/server\//m);
     expect(w.match(/await import\("@\/server\/guest-agent\.server"\)/g)).toHaveLength(2);
-    expect(w.match(/process\.env/g)).toHaveLength(2);
-    expect(w).not.toMatch(/supabase|requireSupabaseAuth|service_role|console\./i);
+    expect(w).toMatch(/\.middleware\(\[requireSupabaseAuth\]\)/);
+    expect(w.indexOf("isVerifiedJudgeSession(context.claims")).toBeLessThan(w.indexOf("const { askGuestAgent }"));
+    expect(w).not.toMatch(/service_role|console\.|sessionStorage|localStorage/i);
   });
   it("accepts a family id only so it can be refused", () => {
     expect(w).toMatch(/familyId: z\.string\(\)\.max\(100\)\.optional\(\)/);
