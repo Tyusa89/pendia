@@ -115,7 +115,7 @@ export function AppointmentSummary({
       {!isBlank(visit.office_name) && <Row label="Office">{visit.office_name}</Row>}
       {visit.document_path && (
         <Row label="Document">
-          <AppointmentDocumentLink path={visit.document_path} />
+          <AppointmentDocumentLink path={visit.document_path} label={`View ${/\.pdf$/i.test(visit.document_path) ? "PDF" : "image"} document`} />
         </Row>
       )}
       <Row label="Address">

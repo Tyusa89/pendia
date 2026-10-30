@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Info } from "lucide-react";
+import { AppointmentDocumentLink } from "@/components/AppointmentDocumentLink";
 import { AppointmentForm, type FormPrefill, type HintState } from "@/components/AppointmentForm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,12 +50,19 @@ const REASON: Record<string, string> = {
   render_failed: "The pages couldn't be prepared for reading.",
 };
 
+const formatSize = (bytes: number): string =>
+  bytes >= 1024 * 1024
+    ? `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+    : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+
 type Step =
   | { s: "choose"; error?: string | undefined }
   | { s: "working"; label: string }
   | {
       s: "review";
       path: string;
+      /** The file the caregiver chose, shown so the stored upload is visible and openable. */
+      file: { name: string; size: number; kind: DocKind };
       draft: Draft | null;
       notice: string;
       timeZone: string;
@@ -121,6 +129,7 @@ export function DocumentUploadFlow({
     const check = validateFile({ size: file.size, claimedMime: file.type, head });
     if (!check.ok) return setStep({ s: "choose", error: FILE_ERROR_COPY[check.code] });
 
+    const stored = { name: file.name, size: file.size, kind: check.kind };
     setStep({ s: "working", label: "Storing your document privately…" });
     let path: string;
     try {
@@ -147,6 +156,7 @@ export function DocumentUploadFlow({
       return setStep({
         s: "review",
         path,
+        file: stored,
         draft: null,
         timeZone,
         notice: `${REASON["not_enabled"]} Your document is saved; enter the details below.`,
@@ -160,6 +170,7 @@ export function DocumentUploadFlow({
       return setStep({
         s: "review",
         path,
+        file: stored,
         draft: null,
         timeZone,
         notice: `${REASON["render_failed"]} Your document is saved; enter the details below.`,
@@ -175,6 +186,7 @@ export function DocumentUploadFlow({
       return setStep({
         s: "review",
         path,
+        file: stored,
         draft: null,
         timeZone,
         notice: `${REASON[out.code] ?? "We couldn't read that document."} Your document is saved; enter the details below.`,
@@ -183,6 +195,7 @@ export function DocumentUploadFlow({
     setStep({
       s: "review",
       path,
+      file: stored,
       draft,
       timeZone: out.timeZone,
       notice:
@@ -230,6 +243,28 @@ export function DocumentUploadFlow({
       : undefined;
     return (
       <div className="space-y-4">
+        <section
+          aria-label="Uploaded document"
+          className="space-y-2 rounded-2xl border bg-card p-4 shadow-card"
+          data-testid="uploaded-document"
+        >
+          <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Uploaded document
+          </p>
+          <p className="break-all text-lg font-semibold" data-testid="uploaded-document-name">
+            {step.file.name}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {step.file.kind === "pdf"
+              ? "PDF"
+              : step.file.kind === "jpeg"
+                ? "JPG image"
+                : "PNG image"}{" "}
+            · {formatSize(step.file.size)} · stored privately. It is attached to the appointment
+            when you press "Add appointment" below, and removed if you cancel.
+          </p>
+          <AppointmentDocumentLink path={step.path} label="View uploaded document" />
+        </section>
         <p role="status" className="flex gap-3 rounded-xl bg-muted p-4" data-testid="doc-notice">
           <Info className="mt-0.5 size-5 shrink-0" aria-hidden /> <span>{step.notice}</span>
         </p>

@@ -511,6 +511,16 @@ describe("appointment details: cancel and archive", () => {
     );
   });
 
+  it("lists the attached document with an open action; no Document row when there is none", async () => {
+    const path = `${FAMILY}/doc/44444444-4444-4444-8444-444444444444/appointment-letter.pdf`;
+    renderWithClient(summary(makeRow({ document_path: path })));
+    expect(screen.getByText("Document")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /View PDF document/ })).toBeInTheDocument();
+    cleanup();
+    renderWithClient(summary(makeRow({ document_path: null })));
+    expect(screen.queryByText("Document")).toBeNull();
+  });
+
   it("links the office phone so it can be tapped to call", async () => {
     renderWithClient(summary(makeRow({ office_phone: "(212) 555-0100" })));
     expect(screen.getByRole("link", { name: /\(212\) 555-0100/ })).toHaveAttribute(
