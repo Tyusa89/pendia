@@ -47,6 +47,6 @@ Server: `src/server/guest-agent.server.ts` (+ `guest-agent-limits.server.ts`). M
 
 ## Tests (offline; fake fetch also plays the Redis store)
 
-`src/test/guest-agent.test.ts` (42), `guest-agent-isolation.test.ts` (9), `guest-agent-ui.test.tsx` (3): guest eligibility (snapshot only), dose-item
+`src/test/guest-agent.test.ts` (42), `guest-agent-isolation.test.ts` (10), `guest-agent-ui.test.tsx` (3): guest eligibility (snapshot only), dose-item
 exclusion by construction, global-cap enforcement (61st/301st, shared store alone, fail-closed store), pre-filter zero-call refusals (EN/ES),
 flag-absent/malformed fail-closed, cross-family identifier rejection, one-call/no-retry, canned fallback, no secrets or IPs in keys.
