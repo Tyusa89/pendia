@@ -5,7 +5,6 @@ import { useCallback, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AGENT_LIMITS, type AskResult, type CareAgentStatus } from "./contract";
 import { askCareAgentFn, getCareAgentStatus } from "./care-agent.functions";
-import { isJudgeDemo } from "@/lib/judge-demo";
 
 const STATUS_RETRY_DELAYS_MS = [1000, 3000];
 
@@ -14,13 +13,12 @@ export function useCareAgentStatus(familyId: string | undefined) {
     queryKey: ["care-agent-status", familyId],
     enabled: !!familyId,
     queryFn: async () => {
-      if (isJudgeDemo()) return { state: "not_enabled" };
       if (!familyId) return { state: "not_member" };
       return (await getCareAgentStatus({ data: { familyId } })) as CareAgentStatus;
     },
     retry: STATUS_RETRY_DELAYS_MS.length,
     retryDelay: (attempt) =>
-      STATUS_RETRY_DELAYS_MS[Math.min(attempt, STATUS_RETRY_DELAYS_MS.length - 1)]!,
+      STATUS_RETRY_DELAYS_MS[Math.min(attempt, STATUS_RETRY_DELAYS_MS.length - 1)] ?? 3000,
     staleTime: 0,
     gcTime: 0,
     refetchOnWindowFocus: false,
@@ -45,7 +43,7 @@ export function useCareAgentConversation(familyId: string | undefined) {
 
   const ask = useCallback(
     async (question: string) => {
-      if (!familyId || isJudgeDemo()) return;
+      if (!familyId) return;
       const mine = ++seq.current;
       setPending(question);
       // Only answered turns that carry no refusal are re-sent as context; only the last few, each capped.

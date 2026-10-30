@@ -106,6 +106,12 @@ export function CareAgentPanel({ familyId, language }: { familyId: string; langu
               <span className="font-semibold">{c.youSaid}:</span> {t.question}
             </p>
             <Result result={t.result} language={language} />
+            {!t.result.ok && t.result.code === "provider_error" &&
+              (t.result.detail === undefined || /^(network_error|timeout|http_429|http_5\d\d|usage_guard_unavailable)$/.test(t.result.detail)) && (
+              <Button variant="outline" disabled={pending !== null} onClick={() => void ask(t.question)}>
+                {c.tryAgain}
+              </Button>
+            )}
           </li>
         ))}
         {pending !== null && (

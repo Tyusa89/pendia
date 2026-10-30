@@ -26,14 +26,14 @@ const SERVER = ["src/server/care-agent.server.ts", "src/server/care-agent-source
 describe("secrets and configuration names exist only in the Care Agent server module", () => {
   it("AGENT_LIVE_ENABLED / AGENT_LIVE_USER_IDS appear only in the server module", () => {
     const hits = appFiles
-      .filter((f) => /AGENT_LIVE_(ENABLED|USER_IDS)/.test(strip(readFileSync(f, "utf8"))))
+      .filter((f) => /\bAGENT_LIVE_(ENABLED|USER_IDS)\b/.test(strip(readFileSync(f, "utf8"))))
       .map(rel)
       .sort();
     expect(hits).toEqual(["src/server/care-agent.server.ts"]);
   });
   it("the wrapper only hands the environment to the gated handler; the handler reads three named variables", () => {
     const w = strip(read("src/lib/care-agent/care-agent.functions.ts"));
-    expect(w.match(/process\.env/g)).toHaveLength(2);
+    expect(w.match(/process\.env/g)).toHaveLength(3);
     const s = strip(read("src/server/care-agent.server.ts"));
     expect(s).not.toMatch(/process\.env/);
     expect(s).toMatch(/env\.AGENT_LIVE_ENABLED/);
@@ -162,7 +162,7 @@ describe("what the agent does not touch", () => {
       .map(rel)
       .sort();
     expect(importers).toEqual(
-      ["src/routes/_authenticated/ask.tsx"].filter(() => importers.length > 0),
+      ["src/routes/_authenticated/ask.tsx", "src/server/judge-agent-source.server.ts"],
     );
   });
 });

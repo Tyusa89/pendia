@@ -14,6 +14,7 @@ export const getCareAgentStatus = createServerFn({ method: "POST" })
     const { careAgentStatus } = await import("@/server/care-agent.server");
     const { createSupabasePackSource } = await import("@/server/care-agent-source.server");
     return careAgentStatus({
+      judgeSessionId: typeof context.claims.session_id === "string" ? context.claims.session_id : undefined,
       env: process.env,
       userId: context.userId,
       familyId: data.familyId,
@@ -27,7 +28,12 @@ export const askCareAgentFn = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { askCareAgent } = await import("@/server/care-agent.server");
     const { createSupabasePackSource } = await import("@/server/care-agent-source.server");
+    const { takeJudgeRateSlot } = await import("@/server/judge-agent-limits.server");
+    const { getRequestHeader } = await import("@tanstack/react-start/server");
+    const sessionId = typeof context.claims.session_id === "string" ? context.claims.session_id : undefined;
     return askCareAgent({
+      judgeSessionId: sessionId,
+      takeJudgeSlot: () => takeJudgeRateSlot(process.env, sessionId ?? "", getRequestHeader("cf-connecting-ip")),
       env: process.env,
       userId: context.userId,
       input: data,

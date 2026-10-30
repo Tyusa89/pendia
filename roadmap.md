@@ -1,4 +1,6 @@
 # Pendia layout repair
+- [x] Implement judge Ask Pendia through the existing Care Agent with fictional-only evidence and durable ad-hoc usage limits. 513 tests passed; build OK; real one-click guest entry and disabled Ask screen verified without page errors. No Meta calls, secret changes, schema changes or publication.
+- [ ] Activate and live-test judge Ask after separate authorization; blocked on Redis REST configuration, trusted edge-IP verification and live-test approval. See docs/judge-agent-activation.md.
 - [x] Add one-click hackathon demo entry, protect shared fictional records, and verify navigation and normal sign-in; do not publish or touch Document Upload.
   Verification: 32 relevant tests passed; phone/laptop entry, all completed care pages, reload and sign-out checked. Three simultaneous guest entries passed. Guest RLS reads returned zero live families/medications; demo delete blocked without a database write. Dedicated zero-membership account and private server-side demo sign-in secret configured. Fictional display snapshot only; no family data, schema, AI flags or Document Upload changes. Publishing remains approval-gated.
 - [x] Present hourly Coverage timeline redesign for approval.
