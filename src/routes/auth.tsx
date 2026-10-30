@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authService } from "@/services";
+import { TryPendiaDemo } from "@/components/TryPendiaDemo";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -52,6 +53,7 @@ function AuthPage() {
       <div className="w-full max-w-md rounded-3xl border bg-card p-8 shadow-card">
         <h1 className="font-display text-4xl font-semibold text-primary">Pendia</h1>
         <p className="mt-2 text-lg text-muted-foreground">Caring for someone, together.</p>
+        <div className="mt-6"><TryPendiaDemo /><p className="mt-2 text-sm text-muted-foreground">Fictional hackathon demo · Read-only</p></div>
         {sent ? (
           <p className="mt-8 rounded-xl bg-secondary p-5 text-secondary-foreground">
             Check <strong>{email}</strong> for a link to confirm your account, then come back and sign in.

@@ -112,6 +112,8 @@ describe("Ask page: the truthful placeholder stays whenever the agent is not ava
 describe("Ask page: available", () => {
   beforeEach(() => status.mockResolvedValue({ state: "available" }));
 
+  // Judges (Try Pendia Demo) are now served by the separate guest path; see guest-agent-ui.test.tsx. The member path below is unchanged.
+
   it("shows the demo banner, a counter and example prompts", async () => {
     mount();
     expect(await screen.findByText(/Demo family — synthetic records only/)).toBeInTheDocument();

@@ -8,6 +8,9 @@ import { useFamily } from "@/hooks/use-family";
 import { usePreferences } from "@/components/PreferencesProvider";
 import { UI_COPY } from "@/lib/care-agent/copy";
 import { useCareAgentStatus } from "@/lib/care-agent/useCareAgent";
+import { GuestAskPanel } from "@/components/GuestAskPanel";
+import { useGuestAgentStatus } from "@/lib/care-agent/useGuestAgent";
+import { isJudgeDemo } from "@/lib/judge-demo";
 
 export const Route = createFileRoute("/_authenticated/ask")({
   head: () => ({
@@ -29,7 +32,59 @@ export const Route = createFileRoute("/_authenticated/ask")({
   component: AskPage,
 });
 
+/** Judges (entered through "Try Pendia Demo") use the separate guest path; everyone else uses the audited member path below. */
 function AskPage() {
+  return isJudgeDemo() ? <GuestAskPage /> : <MemberAskPage />;
+}
+
+function GuestAskPage() {
+  const { preferences: p } = usePreferences();
+  const { loading, available, failed, retry } = useGuestAgentStatus();
+  const language = p.language ?? "en";
+  const c = UI_COPY[language];
+  return (
+    <div className="reading-view">
+      <Button asChild variant="link" className="mb-3 px-0">
+        <Link to="/family">
+          <ArrowLeft /> Family
+        </Link>
+      </Button>
+      <PageTitle title="Ask Pendia" />
+      {available ? (
+        <GuestAskPanel language={language} />
+      ) : (
+        <>
+          <div className="rounded-2xl bg-muted p-5 leading-relaxed">
+            <MessageCircle className="mb-3 size-7 text-primary" aria-hidden />
+            <p>
+              Ask Pendia isn’t available yet. No questions or family records are being sent to an AI
+              service.
+            </p>
+            <p className="mt-3 text-muted-foreground">
+              For medical questions, contact your care team. For an emergency, call your local
+              emergency number.
+            </p>
+          </div>
+          {loading && (
+            <p className="mt-4 text-sm text-muted-foreground" role="status">
+              {c.checking}
+            </p>
+          )}
+          {failed && !loading && (
+            <div className="mt-4" role="alert">
+              <p>{c.statusError}</p>
+              <Button variant="outline" className="mt-2" onClick={retry}>
+                {c.tryAgain}
+              </Button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function MemberAskPage() {
   const { data } = useFamily();
   const { preferences: p } = usePreferences();
   const language = p.language ?? (data?.me.language === "es" ? "es" : "en");

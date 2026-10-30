@@ -13,6 +13,7 @@ import {
   type TranscriptionStatus,
 } from "@/lib/meta-transcribe/status";
 import { getTranscriptionStatus, transcribeRecording } from "./transcribe.functions";
+import { isJudgeDemo } from "@/lib/judge-demo";
 
 /** What the caregiver reads for each fixed server code. Never provider text. */
 export const TRANSCRIBE_ERROR_MESSAGES: Record<string, string> = {
@@ -113,6 +114,7 @@ export function useMetaTranscriber(familyId: string): MetaTranscriberHandle {
   const status = useQuery<TranscriptionStatus>({
     queryKey: ["transcription-status", familyId],
     queryFn: async () => {
+      if (isJudgeDemo()) return { available: false, reason: "not_organizer" };
       const r = await getTranscriptionStatus({ data: { familyId } });
       // "could not find out" is an error, not an answer: the query keeps its last confirmed data and retries.
       if (!r.available && r.reason === "check_failed") throw new Error("status_check_failed");

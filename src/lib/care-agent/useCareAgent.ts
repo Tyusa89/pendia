@@ -12,11 +12,13 @@ export function useCareAgentStatus(familyId: string | undefined) {
   const q = useQuery<CareAgentStatus>({
     queryKey: ["care-agent-status", familyId],
     enabled: !!familyId,
-    queryFn: async () =>
-      (await getCareAgentStatus({ data: { familyId: familyId! } })) as CareAgentStatus,
+    queryFn: async () => {
+      if (!familyId) return { state: "not_member" };
+      return (await getCareAgentStatus({ data: { familyId } })) as CareAgentStatus;
+    },
     retry: STATUS_RETRY_DELAYS_MS.length,
     retryDelay: (attempt) =>
-      STATUS_RETRY_DELAYS_MS[Math.min(attempt, STATUS_RETRY_DELAYS_MS.length - 1)]!,
+      STATUS_RETRY_DELAYS_MS[Math.min(attempt, STATUS_RETRY_DELAYS_MS.length - 1)] ?? 3000,
     staleTime: 0,
     gcTime: 0,
     refetchOnWindowFocus: false,
