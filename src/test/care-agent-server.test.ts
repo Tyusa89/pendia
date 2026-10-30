@@ -196,6 +196,14 @@ describe("the pipeline order", () => {
     expect(src.calls.loadRows).toBe(0);
     expect(fetch).not.toHaveBeenCalled();
   });
+  it("dose-change questions naming a demo medication are refused with no record read and zero provider fetches (EN/ES)", async () => {
+    for (const q of ["Should I give her more Lisinopril?", "¿Debo darle más Lisinopril?"]) {
+      const { r, src, fetch } = await ask(q);
+      expect(r.ok && r.answer.refusal, q).toBe("medical_advice");
+      expect(src.calls.loadRows).toBe(0);
+      expect(fetch).not.toHaveBeenCalled();
+    }
+  });
   it("a rate-limited question reads no record content either", async () => {
     for (let i = 0; i < AGENT_RATE.perUser; i++) await ask(Q);
     const { r, src, fetch } = await ask(Q);

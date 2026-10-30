@@ -112,16 +112,7 @@ describe("Ask page: the truthful placeholder stays whenever the agent is not ava
 describe("Ask page: available", () => {
   beforeEach(() => status.mockResolvedValue({ state: "available" }));
 
-  it("lets a judge submit and manually retry a temporary failure through the existing agent", async () => {
-    sessionStorage.setItem("pendia.judgeDemo", "true");
-    askFn.mockResolvedValueOnce({ ok: false, code: "provider_error", language: "en", detail: "network_error" }).mockResolvedValueOnce(ok());
-    mount();
-    await typeAndAsk("What medications are listed?");
-    await act(async () => { fireEvent.click(await screen.findByRole("button", { name: "Try again" })); });
-    expect(await screen.findByText("Lisinopril 10 mg is listed.")).toBeInTheDocument();
-    expect(askFn).toHaveBeenCalledTimes(2);
-    sessionStorage.removeItem("pendia.judgeDemo");
-  });
+  // Judges (Try Pendia Demo) are now served by the separate guest path; see guest-agent-ui.test.tsx. The member path below is unchanged.
 
   it("shows the demo banner, a counter and example prompts", async () => {
     mount();

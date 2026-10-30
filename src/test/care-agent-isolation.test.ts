@@ -161,8 +161,11 @@ describe("what the agent does not touch", () => {
       .filter((f) => /care-agent|CareAgent/.test(strip(readFileSync(f, "utf8"))))
       .map(rel)
       .sort();
-    expect(importers).toEqual(
-      ["src/routes/_authenticated/ask.tsx", "src/server/judge-agent-source.server.ts"],
-    );
+    expect(importers).toEqual([
+      "src/components/GuestAskPanel.tsx", // guest (judge) path UI
+      "src/routes/_authenticated/ask.tsx",
+      "src/server/guest-agent.server.ts", // guest (judge) path: reuses pure Care Agent libraries only
+      "src/server/judge-agent-source.server.ts",
+    ]);
   });
 });
