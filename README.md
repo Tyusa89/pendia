@@ -285,7 +285,7 @@ For safety, live document extraction was disabled after the controlled test. The
 
 ### Demo Video
 
-Final hackathon demonstration video: **Link coming soon.**
+Final hackathon demonstration video: [Watch Pendia's Hackathon Demo](https://youtu.be/qvkRY72I8C0)
 
 ### Technology
 
