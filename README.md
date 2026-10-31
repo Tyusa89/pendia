@@ -190,3 +190,67 @@ user: Grandma Rosa; Maria (organizer, English), Carlos (Spanish), Jenny (English
 Lisinopril 10 mg daily plus other meds; next week's coverage with the only gap Tuesday 2–6 PM; and last week's
 digest in English and Spanish. Seed phone numbers are fictional (555-01xx). Set Carlos's number to a real phone
 on the Family page to receive texts in the demo.
+
+
+## Meta AI Hackathon — Judge Quick Start
+
+**Project:** Pendia  
+**Team:** EcoNest Systems  
+**Track:** Startup  
+**Built for:** Meta Global AI Developer Hackathon
+
+### What is Pendia?
+
+Pendia is an AI-assisted family caregiving coordination application. It helps families organize doctor appointments, medications, caregiving schedules, and handoffs in one shared workspace.
+
+### Try the live demo
+
+**Application:** https://pixel-perfect-matchmaker-36.lovable.app
+
+1. Open the application.
+2. Select **Try Pendia Demo**.
+3. Explore the fictional Rosa's Care Team family.
+4. Visit the Dashboard, Visits, Meds, Coverage, and Handoffs sections.
+5. Explore Ask Pendia if available in the demo.
+
+The public Judge Demo is read-only and uses fictional data. No account is required.
+
+### Meta Muse Spark AI Integration
+
+Pendia integrates **Meta Muse Spark 1.3** to help turn appointment letters into structured information.
+
+The demonstrated workflow:
+
+1. An authorized organizer uploads a fictional appointment letter.
+2. Pendia prepares the document for AI reading.
+3. Muse Spark extracts appointment details.
+4. The application populates the appointment form.
+5. The caregiver reviews the extracted information before saving.
+
+**Verification:** The live extraction workflow was successfully demonstrated on October 31, 2026.
+
+For safety, live document extraction was disabled after the controlled test. The recorded demonstration shows the real AI workflow, not a simulated result.
+
+### Demo Video
+
+Final hackathon demonstration video: **Link coming soon.**
+
+### Technology
+
+- React and TypeScript
+- Lovable
+- Supabase authentication, database, and private storage
+- Meta Muse Spark 1.3
+- Server-side AI integration with authorization controls
+
+### Privacy and Safety
+
+- The demonstration uses fictional family and appointment data.
+- The public Judge Demo is read-only.
+- Documents are stored privately with access controls.
+- AI-extracted information must be reviewed before saving.
+- Pendia does not provide medical advice.
+
+### Project Status
+
+Pendia is a working hackathon prototype. Some integrations and capabilities remain limited to controlled testing and are not available in the public Judge Demo.
