@@ -2,6 +2,16 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+vi.mock("@/services/documents", async (orig) => {
+  const actual = await orig<typeof import("@/services/documents")>();
+  return {
+    ...actual,
+    documentService: {
+      ...actual.documentService,
+      signedUrl: async () => "https://signed.example/doc?token=t",
+    },
+  };
+});
 import { DocumentUploadFlow, type FlowDeps } from "@/components/DocumentUploadFlow";
 import type { AppointmentInput } from "@/lib/appointments";
 import { SIMULATED_EXTRACTION } from "@/lib/doc-upload/contract";
@@ -146,6 +156,20 @@ describe("caregiver confirmation", () => {
     expect(screen.getByTestId("uploaded-document")).toHaveTextContent(/PDF/);
     expect(screen.getByTestId("uploaded-document")).toHaveTextContent(/stored privately/);
     expect(screen.getByRole("button", { name: /View uploaded document/ })).toBeInTheDocument();
+    expect(d.save).not.toHaveBeenCalled();
+  });
+  it("a pending (not yet saved) upload can be viewed: clicking the button offers Open in new tab, Download and Preview", async () => {
+    const d = deps();
+    mount(d);
+    await pick(pdfFile());
+    await act(async () => {
+      fireEvent.click(await screen.findByRole("button", { name: /View uploaded document/ }));
+    });
+    expect(await screen.findByRole("link", { name: /Open in new tab/ })).toHaveAttribute(
+      "href",
+      "https://signed.example/doc?token=t",
+    );
+    expect(screen.getByRole("button", { name: /Download/ })).toBeInTheDocument();
     expect(d.save).not.toHaveBeenCalled();
   });
   it("keeps the uploaded document visible when reading fails or is switched off (manual entry)", async () => {
