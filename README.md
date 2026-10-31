@@ -261,7 +261,7 @@ Pendia is an AI-assisted family caregiving coordination application. It helps fa
 
 1. Open the application.
 2. Select **Try Pendia Demo**.
-3. Explore the fictional Rosa's Care Team family.
+3. Explore the Pendia Hackathon — Fictional Demo Family, featuring Grandma Rosa.
 4. Visit the Dashboard, Visits, Meds, Coverage, and Handoffs sections.
 5. Explore Ask Pendia if available in the demo.
 
