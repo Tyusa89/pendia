@@ -815,6 +815,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      appt_doc_can_read: {
+        Args: { p: string; uploader: string }
+        Returns: boolean
+      }
+      appt_doc_can_write: { Args: { p: string }; Returns: boolean }
+      appt_doc_is_attached: { Args: { p: string }; Returns: boolean }
+      appt_doc_path_family: { Args: { p: string }; Returns: string }
       dose_occurrences: {
         Args: { _family_id: string; _from: string; _to: string }
         Returns: {

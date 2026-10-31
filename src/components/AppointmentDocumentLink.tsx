@@ -36,6 +36,14 @@ export function AppointmentDocumentLink({
 }) {
   const [busy, setBusy] = useState(false);
   const [url, setUrl] = useState<string | null>(null);
+  /** Same-origin copy of the file: some browsers (e.g. Edge with tracking prevention or blockers) refuse to open the storage link directly. */
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const blobRef = useRef<string | null>(null);
+  const dropBlob = () => {
+    if (blobRef.current) URL.revokeObjectURL(blobRef.current);
+    blobRef.current = null;
+    setBlobUrl(null);
+  };
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<string[] | null>(null);
   const [previewing, setPreviewing] = useState(false);
@@ -46,6 +54,7 @@ export function AppointmentDocumentLink({
     return () => {
       mounted.current = false;
       if (timer.current) clearTimeout(timer.current);
+      if (blobRef.current) URL.revokeObjectURL(blobRef.current);
     };
   }, []);
 
@@ -54,14 +63,29 @@ export function AppointmentDocumentLink({
     setError(null);
     setUrl(null);
     setPreview(null);
+    dropBlob();
     if (timer.current) clearTimeout(timer.current);
     try {
       const signed = await documentService.signedUrl(path);
       if (!mounted.current) return;
       setUrl(signed);
+      try {
+        const res = await fetch(signed, { credentials: "omit", referrerPolicy: "no-referrer" });
+        if (res.ok && mounted.current) {
+          const raw = await res.blob();
+          const typed = new Blob([raw], {
+            type: kindOf(path) === "pdf" ? "application/pdf" : kindOf(path) === "png" ? "image/png" : "image/jpeg",
+          });
+          blobRef.current = URL.createObjectURL(typed);
+          setBlobUrl(blobRef.current);
+        }
+      } catch {
+        /* fall back to the signed link */
+      }
       timer.current = setTimeout(() => {
         setUrl(null);
         setPreview(null);
+        dropBlob();
       }, HIDE_AFTER_MS);
     } catch {
       if (mounted.current) setError(COULD_NOT_OPEN);
@@ -115,7 +139,7 @@ export function AppointmentDocumentLink({
       {url && (
         <div className="flex flex-wrap items-center gap-2" data-testid="document-actions">
           <Button asChild variant="default">
-            <a href={url} target="_blank" rel="noopener noreferrer">
+            <a href={blobUrl ?? url} target="_blank" rel="noopener noreferrer">
               <ExternalLink /> Open in new tab
             </a>
           </Button>
