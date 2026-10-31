@@ -1,46 +1,61 @@
 # Pendia
 
-Pendia records a doctor's visit (with consent), transcribes it with speaker labels, and turns what the
-**doctor** said into family action: confirmed medication changes, tasks with named owners delivered by SMS,
-watch items, a weekly coverage schedule, handoff notes, and a 5-line Sunday digest sent to each family member
-in their own language. Only the organizer uses the app; everyone else works by SMS.
+Pendia is a family caregiving coordination app. One shared workspace holds a loved one's doctor appointments, medications and
+dose reports, shift coverage, caregiver handoffs and a weekly family digest view, and each family member sees only what the organizer
+allows. Meta Muse Spark 1.3 helps in a few bounded places: reading an uploaded appointment letter into a **draft** appointment,
+answering questions about the family's records with cited sources (Ask Pendia), and, in a synthetic walkthrough, suggesting items
+from a doctor-visit transcript. Meta Voice Transcribe turns a handoff voice note into a **draft** the caregiver reviews. Every AI
+result is a draft or a cited answer; nothing is saved without a person's confirmation. Pendia does **not** send text messages:
+there is no SMS or Twilio integration.
 
 Built for the Meta Global AI Developer Hackathon (Startup track). **All data in this repo is synthetic.**
 
-> Not medical advice. Check with your doctor or pharmacist. Pendia restates what the doctor said; it never
+> Not medical advice. Check with your doctor or pharmacist. Pendia restates what is in the family's records; it never
 > suggests doses, diagnoses, interactions, or treatment.
 
 ## Status
 
-| Phase | Scope | State |
-|---|---|---|
-| 1 | Schema, RLS, auth, family/member management, demo seed | done |
-| 2 | Consent, recording, `transcribeVisit()`, speaker mapping | in progress (diarization spike first) |
-| 3 | Spark extraction + review screen | not started |
-| 4 | Twilio SMS loop | not started |
-| 5 | Coverage, handoffs, bilingual digest | not started |
-| 6 | Demo mode + polish | not started |
+State as of the November 2026 hackathon submission. "Off by default" means the feature is built and tested but a server-side
+flag (not set in this repo) must be switched on, and it is only switched on for controlled windows.
+
+| Area | State |
+|---|---|
+| Schema, RLS, auth, family and member management, per-person visibility, per-user demo family | Implemented; SQL suites below; applied to the live database |
+| Appointments (create, edit, cancel, archive, computed flags) | Implemented; migration applied live |
+| **Document Upload**: private upload (PDF, JPG, PNG, up to 10 MB), review-before-save, view / open / download / preview, optional Muse Spark autofill | Implemented; migration applied live. **Live Muse Spark extraction was demonstrated on October 31, 2026 and then disabled**; it is off by default (see Appointments) |
+| Medication dose reporting (Given / Not given / Not confirmed, append-only history) and medication-value verification labels | Implemented and tested offline; dose migration applied live |
+| Coverage: add / edit / reassign / cancel shifts, "Cover it" claim flow | Implemented |
+| Handoffs: check-in, voice note, optional kept recordings, optional Meta Voice Transcribe draft (PR #51, #52) | Implemented; transcription is off by default and organizer-only |
+| **Ask Pendia (Care Agent)**: read-only, cited answers, refuses medical advice; member path for allow-listed demo accounts and a separate guest path for the Judge Demo | Implemented and audited; **off by default**; the public Judge Demo shows the "not available yet" placeholder unless a server flag is on |
+| Public **Judge Demo** (one click, fictional snapshot) | Live and **read-only** |
+| Weekly digest | Stored digests are displayed; generating and sending them is **not built** |
+| SMS, Twilio, texting family members, SMS-driven actions | **Not built** |
+| Recording a real doctor visit, live visit transcription, speaker-mapping review | **Not built** for real use; a synthetic walkthrough lives at `/visits/demo` |
+| Coverage requirements / gap detection; member invitations and access windows | Migrations committed (`20261022000001`, `20261022000002`), **not applied** to the live database as of October 30, 2026 |
+| Preferences (text size, language, contrast, motion) | Implemented; its notification toggles are placeholders marked "Not connected" |
 
 ## Meta models (Standard tier only)
 
 | Use | Model | Notes |
 |---|---|---|
-| Transcription | `muse-voice-transcribe-1.0` | DIARIZATION mode; per-turn speaker labels + timestamps. Patient medication names are passed as keyword-biasing context. |
-| Extraction / translation | `muse-spark-1.3` | Structured output; runs only on turns a human mapped to the doctor. |
-| Fridge chart (Phase 6, optional) | `muse-image-1.0` | First thing cut if time is short. |
+| Appointment-letter autofill (Document Upload), Ask Pendia answers, synthetic visit-extraction walkthrough | `muse-spark-1.3` | Structured JSON output validated before use; Document Upload sends rendered page images; every result is reviewed or cited; server-side and flag-gated. |
+| Handoff voice-note transcription | `muse-voice-transcribe-1.0` | `DIARIZATION` mode; anonymous speaker labels and timestamps returned as a draft; organizer-only; flag-gated. |
 
-**Privacy choice:** the app never calls any model ID containing `-contributor`. The Contributor tier trains on
-inputs, and Pendia handles health conversations, so only Standard-tier models are used. All Meta and Twilio
-calls run server-side in Supabase Edge Functions; API keys live in Supabase secrets, never in client code or
-this repo.
+**Privacy choice:** the app never calls any model ID containing `-contributor`. The Contributor tier trains on inputs, and
+Pendia handles health information, so only Standard-tier models are used. Meta calls run server-side only, in TanStack Start
+server functions (one request, no retry, redirects refused, fixed error codes). The Meta key (`META_API_KEY`) is a server
+secret in Lovable Cloud, never in client code or this repo, and the client bundle is checked for it. Live document extraction and
+Ask Pendia are limited to fictional demo families; real families' records are never sent. No image-generation model is used.
 
 ## Architecture
 
 - **Front end:** React 19 + TanStack Start (Lovable scaffold), Tailwind 4, shadcn/ui. All data access goes
   through `src/services/index.ts`.
-- **Back end:** Supabase (Postgres, Auth, Storage, RLS). Migrations live in `supabase/migrations/`.
-- **Tables:** `family, member, care_recipient, visit, medication, med_change, task, watch_item, shift, handoff, digest`.
-  Every table carries `family_id`.
+- **Back end:** Supabase through Lovable Cloud (Postgres, Auth, Storage, RLS) plus TanStack Start server functions for the Meta
+  calls. Migrations live in `supabase/migrations/`. There are no Supabase Edge Functions.
+- **Tables:** `family, member, care_recipient, visit, medication, med_change, task, watch_item, shift, handoff, digest`, plus
+  `medication_schedule` and `dose_administration` for dose reporting. Every table carries `family_id`.
+- **Storage:** two private buckets, `recordings` (handoff audio) and `appointment-docs` (appointment letters).
 
 ### Security model (enforced in Postgres, not just the UI)
 
@@ -49,8 +64,9 @@ this repo.
   `family_id` is immutable after insert.
 - **Per-person visibility:** `member.can_see_meds / can_see_visits / can_see_schedule` gate reads of
   medications + med changes, visits, and shifts + handoffs. Organizers see everything.
-- **Organizer-only writes.** SMS-driven writes (DONE, YES, handoffs) happen in edge functions with the service role.
-  Edge functions must also respect the visibility flags when composing texts and digests.
+- **Organizer-only writes.** Appointments, shifts, handoffs, recordings and documents are written by organizers and enforced by
+  RLS and storage policies. AI features read through the caller's own session; none uses a service-role client. (The Judge Demo
+  entry uses a server-side admin client only to look up and sign in its dedicated, zero-membership guest identity.)
 - **Confirm guard:** a med change is created `pending`; only a signed-in family member can confirm it, and the
   database stamps `confirmed_by` / `confirmed_at` (the client cannot spoof them). Confirmed changes are frozen.
 - **No anonymous access:** `anon` has no table privileges.
@@ -64,8 +80,12 @@ bun run test       # unit tests (vitest)
 npx tsc --noEmit   # typecheck
 ```
 
-Copy the Supabase URL and publishable key into `.env` (the Lovable scaffold already provides them). Secrets
-for Meta and Twilio are added in Supabase → Edge Functions → Secrets (Phases 2 and 4); never commit them.
+Copy the Supabase URL and publishable key into `.env` (the Lovable scaffold already provides them). Server secrets, including
+`META_API_KEY`, are added in Lovable Cloud and are never prefixed `VITE_` or committed. Every AI feature is off unless its server
+flag is exactly `"true"`: `META_TRANSCRIBE_ENABLED` (handoff transcription), `AGENT_LIVE_ENABLED` with `AGENT_LIVE_USER_IDS`
+(Ask Pendia for allow-listed demo accounts), `JUDGE_AGENT_LIVE_ENABLED` (Ask Pendia for the Judge Demo, which also needs its
+rate-limit store), and `DOC_EXTRACT_ENABLED` with `DOC_EXTRACT_USER_IDS` (document autofill; `DOC_EXTRACT_SIMULATED` shows a
+labelled sample with no Meta call). See `docs/design/` and `docs/judge-agent-activation.md`.
 
 ### Database: source of truth
 
@@ -81,7 +101,10 @@ for Meta and Twilio are added in Supabase → Edge Functions → Secrets (Phases
 
 ### RLS / integrity tests
 
-`supabase/tests/storage.test.sql` does the same for the recordings bucket and the handoff recording columns.
+`supabase/tests/storage.test.sql` does the same for the recordings bucket and the handoff recording columns. Other suites:
+`appointments`, `shift-writes`, `dose-administration`, `family-delete-guard`, and `appointment-docs` (the private document bucket in
+its pending and attached states, plus the `visit.document_path` constraint). `coverage-requirements` and `member-invites` apply
+only once their migrations are applied.
 
 `supabase/tests/rls.test.sql` is a single `DO` block that builds synthetic families and users, asserts
 isolation, visibility, the confirm guard, and the demo seed, then **always raises** so nothing persists.
@@ -95,8 +118,8 @@ The page follows the design: a Check-in card, a separate **Voice note** card, Sa
 page. The voice note records in the browser (`src/hooks/use-audio-recorder.ts`, `src/components/HandoffDictation.tsx`) with a
 large round Record button, a **Stop that is docked above the tab bar** while recording, playback, Record again and Discard.
 The note shows its state: **Temporary** ("stays on this phone, not saved") by default, and **Saved** ("will be saved privately
-with this handoff") only when the **Keep** switch is on. **By default nothing leaves the device.** Only with Keep on, when
-the caregiver presses Save handoff (after a one-time storage notice), is anything uploaded. For now only organizers can save a
+with this handoff") only when the **Keep** switch is on. **By default nothing leaves the device.** Audio is uploaded only with Keep on, when
+the caregiver presses Save handoff (after a one-time storage notice), or when the organizer presses Transcribe (below). For now only organizers can save a
 handoff (database rule); other members see why and can read past handoffs.
 
 **What is kept.** The browser's original recording (for playback) plus a transcription-ready **16 kHz mono 16-bit PCM
@@ -124,8 +147,15 @@ row is only written after its objects exist. Delete = clear the row's references
 created on demand under the user's own session: 5 minutes by default, never more than 10, never stored. If the
 original will not play, playback retries with a fresh link and then falls back to the WAV copy.
 
-**Transcription is not connected.** `src/services/dictation.ts` defines the `DictationTranscriber` seam and ships an
-unavailable default; no Meta endpoint is called or assumed. The WAV is stored so a verified service can use it later.
+**Transcription (PR #51, #52).** The voice note has an optional **Transcribe** action. It sends the recording's 16 kHz mono WAV
+to Meta Voice Transcribe (`muse-voice-transcribe-1.0`, `DIARIZATION` mode) through one server function, and only after the
+caregiver presses the button (the screen says the recording goes to Meta's speech service). Gates, in order: the flag
+`META_TRANSCRIBE_ENABLED` is exactly `true` (off by default), the server key is set, the caller is an organizer of the family,
+the audio is a valid mono 16-bit PCM WAV, and a small per-user rate limit applies. Then exactly one request, with a timeout,
+redirects refused, a bounded reply and no retry; the reply body never reaches an error message. The result is a **draft**:
+anonymous speaker labels with timestamps shown for review, and nothing is saved until the caregiver chooses to. The page explains
+why transcription is unavailable (still checking, switched off, organizer-only, or a temporary error) and never calls Meta just to
+check; the Judge Demo cannot transcribe. Code: `src/server/meta-transcribe.server.ts`, `src/lib/meta-transcribe/`.
 
 **Known limits.** An upload followed by a closed tab (before the row is written) leaves an unreferenced object until a
 cleanup job exists. Supabase blocks raw `DELETE` on `storage.objects`, so the storage DELETE policy is verified by
@@ -142,8 +172,27 @@ kept as a mirror of `provider_name` (trigger `visit_appointment_sync`), and `dat
 in the family's timezone. Organizers write; members read per `can_see_visits` (RLS unchanged).
 
 "Incomplete" (missing provider, address or phone) and "overlaps another appointment" are **computed, never stored**,
-and never block saving. Nothing is ever auto-filled. Routes: `/visits` (Upcoming / Past / Archived), `/visits/new`,
+and never block saving. A saved appointment is never created or changed automatically: the only fill-in is the optional document
+autofill below, and it is a draft the organizer reviews and saves. Routes: `/visits` (Upcoming / Past / Archived), `/visits/new`,
 `/visits/edit/$id`. Tests: `supabase/tests/appointments.test.sql` (same `PASS: N assertions` convention).
+
+**Document Upload.** Route `/visits/upload` ("From a document" on the Visits page; organizers only). An organizer uploads an appointment
+letter (PDF, JPG or PNG, up to 10 MB; the type is checked from the file's own bytes). It is stored in the private
+`appointment-docs` bucket under `{family_id}/doc/{id}/{file}`; the file name is kept (made safe) so the document stays recognisable.
+Nothing is written to the database until the organizer presses **Add appointment** on the review form; cancelling removes the
+upload, and unattached uploads older than 24 hours are swept. A document is *pending* (readable only by the organizer who uploaded
+it) until a saved appointment references it, then readable by members who can see visits (`visit.document_path`, migration
+`20261029000001`, applied to the live database after validation on an isolated project). **View document** opens a 5-minute signed link
+as **Open in new tab**, **Download**, or **Preview here** (rendered inside the page, which also works in sandboxed preview frames);
+the signed link is never shown as text.
+
+*AI-assisted autofill.* When enabled, the browser renders up to three pages to images, one server request sends them to Muse Spark 1.3
+with a strict JSON schema, and the validated date, time, provider, location and instructions prefill the standard appointment form,
+each field tagged *read from your document*, *hard to read* or *not found*. The reply cannot be machine-checked against the image, so
+review is mandatory. If reading is off, fails or returns nothing usable, the same form opens empty with the document still attached. Live
+autofill is limited to an allow-listed organizer in a demo family and is **off by default**; it was **successfully demonstrated on
+October 31, 2026 with a fictional letter and then disabled**. `DOC_EXTRACT_SIMULATED` shows a clearly labelled built-in sample, never
+presented as an AI reading. Details: `docs/design/document-upload.md`; SQL test: `supabase/tests/appointment-docs.test.sql`.
 
 **Migration status:** `20261021000004_visit_appointments.sql` was applied to the live database with the owner's approval after
 a rolled-back dry-run. Afterwards the appointments suite (44 assertions) and the RLS suite (40) passed against the live
@@ -163,15 +212,15 @@ lavender; Fraunces + Figtree), so this is a layout and touch-target pass, not a 
   compact week grid on phones (initials) with a large **Cover it** list underneath, and first names from 768 px.
 - **Family** opens with a greeting, who you are caring for, and "at a glance" tiles (next visit, open coverage blocks, latest
   handoff) built only from existing data and only for what that person may see.
-- **Optional AI assistant:** `src/lib/features.ts` has `assistant: false`. The shell reserves its place (a button in the top bar
-  and the sidebar) and renders nothing while it is off. There is no AI call, integration or route behind it; the app is complete
-  without it.
-- **Care Agent (Ask Pendia):** built but **disabled by default** (`docs/design/care-agent.md`). It is read-only and stateless, answers only
-  from a demo family's Pendia records with cited sources, refuses medical advice, and is switched on only on the server
-  (`AGENT_LIVE_ENABLED`) for an allow-listed demo account during a controlled test window. Until then `/ask` shows the placeholder.
-- Not built from the design (new features, awaiting approval): Preferences, "Ask Pendia" as a general assistant, "Questions to ask", "Today's meds /
-  Mark given", "I'll cover it / Ask the family" requests, "I'll take her", and the drafted-from-voice handoff text (all marked
-  "Proposed" in the design).
+- **Assistant button:** `src/lib/features.ts` keeps `assistant: false`, so the shell's reserved top-bar and sidebar button stays
+  hidden; Ask Pendia is reached at `/ask`. The app is complete without any AI feature.
+- **Care Agent (Ask Pendia):** `/ask` (`docs/design/care-agent.md`, `docs/design/care-agent-guest.md`). Read-only and stateless:
+  it answers only from a demo family's records, with sources derived from validated citations, and refuses medical advice
+  (English and Spanish) before any record is read or any model call. The member path serves allow-listed demo accounts; a separate
+  guest path serves the public Judge Demo from a fictional in-code snapshot, with no dose items and a hard global usage cap. Both are
+  **off by default** behind server flags; until one is switched on, `/ask` shows the "not available yet" placeholder.
+- Not built: "Questions to ask", a general-purpose assistant, requests like "Ask the family" / "I'll take her", drafted-from-voice
+  handoff text beyond the reviewed Transcribe draft, texting or reminders of any kind, and the digest generator.
 
 ### Coverage editing (C1)
 
@@ -185,11 +234,14 @@ unchanged. Tests: `supabase/tests/shift-writes.test.sql` (29 assertions), `shift
 
 ### Demo data
 
-Signing in and tapping **Open demo family** calls `join_demo_family()`, which creates a private copy for that
-user: Grandma Rosa; Maria (organizer, English), Carlos (Spanish), Jenny (English, no medication access);
-Lisinopril 10 mg daily plus other meds; next week's coverage with the only gap Tuesday 2–6 PM; and last week's
-digest in English and Spanish. Seed phone numbers are fictional (555-01xx). Set Carlos's number to a real phone
-on the Family page to receive texts in the demo.
+Two fictional demo experiences exist; both use invented people and 555-01xx phone numbers, and Pendia sends no text messages.
+
+- **Open demo family** (for a signed-in account) calls `join_demo_family()`, which creates a private copy for that user: Grandma
+  Rosa; Maria (organizer, English), Carlos (Spanish), Jenny (English, no medication access); Lisinopril 10 mg daily plus other meds;
+  next week's coverage with the only gap Tuesday 2–6 PM; and last week's digest in English and Spanish. It is a real, writable family
+  marked `is_demo`, which is what allows the demo-only AI features (autofill and Ask Pendia) for an allow-listed organizer.
+- **Try Pendia Demo** (no account) is the public, **read-only** Judge Demo: a fictional snapshot shown through service wrappers by a
+  dedicated guest identity with no family membership, so it can read and write nothing real.
 
 
 ## Meta AI Hackathon — Judge Quick Start
