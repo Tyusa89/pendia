@@ -154,3 +154,16 @@ Two live runs were made on Oct 26, after the re-verification above. Both are **p
 ---
 
 *Prepared by Pepper, Oct 26, 2026, from a direct GitHub pull. Andre's review pending. Nothing in this document has been published, committed to the repo, or shared.*
+
+---
+
+## Status addendum — October 31, 2026
+
+*Added after the document above was written. Everything above is the unchanged historical record of the October 26, 2026 baseline.*
+
+- **The baseline tag has been published.** The Git tag `pre-hackathon-baseline`, listed above as "prepared, awaiting approval — NOT executed", now exists on GitHub.
+- **It points to** `b0ad28676ee7bbc2e64ea6e88b82acfc6698a0d4`, the baseline commit named throughout this document.
+- **The published tag is lightweight, not annotated.** It is a plain pointer to that commit and does not carry the annotation text described above.
+- **Pendia has since been publicly deployed.** The application is no longer unpublished.
+- **The historical statements describe the October 26 baseline, not the current project status.** This applies to the statements that the repository is private, that the application is unpublished, and that tag creation is pending approval.
+- **Publishing the tag does not change the baseline.** The baseline commit remains `b0ad28676ee7bbc2e64ea6e88b82acfc6698a0d4`, and the classification of work merged before October 27, 2026 as pre-hackathon work is unchanged.
