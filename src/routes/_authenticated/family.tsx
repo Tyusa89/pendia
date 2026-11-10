@@ -1,5 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { ChevronRight, Users } from "lucide-react";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -8,8 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LoadingCard, PageTitle, Panel } from "@/components/AppShell";
 import { FamilyOverview, greeting } from "@/components/FamilyOverview";
-import { Recipient, initials } from "@/components/FamilyMembers";
-import { familyKey, useFamily, useMembers } from "@/hooks/use-family";
+import { familyKey, useFamily } from "@/hooks/use-family";
 import { familyService, type Member } from "@/services";
 
 export const Route = createFileRoute("/_authenticated/family")({
@@ -95,8 +93,6 @@ function Setup() {
 }
 
 function FamilyView({
-  familyId,
-  familyName,
   timeZone,
   me,
 }: {
@@ -105,37 +101,14 @@ function FamilyView({
   timeZone: string;
   me: Member;
 }) {
-  const { data: members = [], isLoading: membersLoading } = useMembers(familyId);
   return (
     <>
-      <PageTitle title={`${greeting(new Date())}, ${me.name.split(" ")[0]}`} subtitle={formatFamilyDate(timeZone)} />
-      <div className="grid items-start gap-5 lg:grid-cols-[minmax(15rem,0.8fr)_minmax(0,1.7fr)]">
-        <div className="min-w-0 space-y-5">
-          <Recipient familyId={familyId} editable={false} />
-          <MembersSummary members={members} familyName={familyName} loading={membersLoading} />
-        </div>
-        <div className="min-w-0 space-y-5">
-          <FamilyOverview me={me} timeZone={timeZone} />
-        </div>
+      <div className="mb-5">
+        <h1 className="font-display text-[1.75rem] font-semibold leading-tight md:text-4xl">{greeting(new Date())}, {me.name.split(" ")[0]}</h1>
+        <p className="mt-1 text-muted-foreground">{formatFamilyDate(timeZone)}</p>
       </div>
+      <FamilyOverview me={me} timeZone={timeZone} />
     </>
-  );
-}
-
-function MembersSummary({ members, familyName, loading }: { members: Member[]; familyName: string; loading: boolean }) {
-  const shown = members.slice(0, 3);
-  return (
-    <Panel aria-label="Family members summary">
-      <h2 className="flex items-center gap-2 text-xl font-semibold"><Users className="size-5 text-primary" aria-hidden /> Family members</h2>
-      <p className="mt-1 text-muted-foreground">{loading ? "Loading members…" : <>{members.length} {members.length === 1 ? "member" : "members"} in {familyName}</>}</p>
-      <div className="mt-4 flex items-center justify-between gap-3">
-        <div className="flex -space-x-2" aria-hidden>
-          {shown.map((m) => <span key={m.id} title={m.name} className={`grid size-11 place-items-center rounded-full border-2 border-card font-bold ${m.role === "organizer" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}>{initials(m.name)}</span>)}
-          {members.length > 3 && <span className="grid size-11 place-items-center rounded-full border-2 border-card bg-muted text-sm font-bold text-muted-foreground">+{members.length - 3}</span>}
-        </div>
-        <Link to="/members" className="inline-flex min-h-11 items-center gap-1 rounded-lg px-2 font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">View All Members <ChevronRight className="size-4" aria-hidden /></Link>
-      </div>
-    </Panel>
   );
 }
 

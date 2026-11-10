@@ -138,7 +138,7 @@ function Handoffs({ me }: { me: Member }) {
             </div>
           )}
           {!canSave && (
-            <p role="note" className="rounded-2xl bg-primary/10 p-3.5">
+            <p role="note" className="rounded-2xl bg-accent p-3.5">
               Only the organizer can save a handoff in the app for now. You can read past handoffs
               below.
             </p>
@@ -229,7 +229,7 @@ function Handoffs({ me }: { me: Member }) {
         <aside aria-label="Past handoffs" className="min-w-0">
           <h2 className="mb-3 text-xl">Past handoffs</h2>
           {list.length === 0 ? (
-            <div className="flex flex-col items-center gap-2.5 rounded-[1.25rem] bg-card p-5 text-center shadow-card">
+            <div className="flex flex-col items-center gap-2.5 rounded-[var(--radius-card)] bg-card p-5 text-center shadow-card">
               <span className="flex size-14 items-center justify-center rounded-full bg-muted text-muted-foreground">
                 <ClipboardCheck className="size-6" aria-hidden />
               </span>

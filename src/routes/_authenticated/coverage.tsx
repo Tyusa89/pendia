@@ -179,18 +179,18 @@ function Coverage({ me, family }: { me: Member; family: Family }) {
         {todayShifts.map((s) => {
           const who = members.find((m) => m.id === s.assigned_member_id);
           const now = Date.now() >= Date.parse(s.start) && Date.now() < Date.parse(s.end);
-          return <article key={s.id} className={`space-y-3 rounded-[1.25rem] p-5 shadow-card ${who ? "bg-card" : "border border-dashed border-unassigned-foreground/60 bg-unassigned text-unassigned-foreground"}`}>
+          return <article key={s.id} className={`space-y-3 rounded-[var(--radius-card)] p-5 shadow-card ${who ? "bg-card" : "border border-dashed border-unassigned-foreground/60 bg-unassigned text-unassigned-foreground"}`}>
             <div className="flex items-center justify-between gap-3"><p><strong>{time(s.start)}–{time(s.end)}</strong></p>{now && <span className="shrink-0 rounded-full bg-success px-3 py-1 text-sm font-bold text-success-foreground">Now</span>}</div>
             {who ? <div className="flex items-center gap-3"><span className="grid size-11 shrink-0 place-items-center rounded-full bg-secondary font-bold text-secondary-foreground">{initials(who.name)}</span><p className="font-bold">{who.name}</p>{organizer && <Button variant="ghost" className="ml-auto text-primary" onClick={() => openShift(s)}>Edit</Button>}</div> : <><p className="font-bold">Nobody is covering yet</p><Button className="w-full" disabled={claim.isPending} onClick={() => claim.mutate(s.id)}>I'll cover it</Button></>}
           </article>;
         })}
       </section>}
-      <section aria-label="Leaving soon" className="mb-5 space-y-2 rounded-[1.25rem] bg-primary/10 p-[1.125rem]">
+      <section aria-label="Leaving soon" className="mb-5 space-y-2 rounded-[var(--radius-card)] bg-accent p-5">
         <h2 className="font-sans text-base font-bold">Leaving soon?</h2>
         <p>A quick handoff tells the next person how she's doing.</p>
         <Button asChild size="lg" className="w-full"><Link to="/handoffs">Hand off my shift</Link></Button>
       </section>
-      <section aria-label="This week" className="space-y-4 rounded-[1.25rem] bg-card p-[1.125rem] shadow-card">
+      <section aria-label="This week" className="space-y-4 rounded-[var(--radius-card)] bg-card p-5 shadow-card">
       <div className="mb-3 flex items-center justify-between gap-2">
         <Button size="icon" variant="ghost" onClick={() => { setMonday(shiftWeek(monday, -1)); setSelectedDay(addDays(selected, -7)); }} aria-label="Previous week">
           <ChevronLeft />
@@ -236,7 +236,7 @@ function Coverage({ me, family }: { me: Member; family: Family }) {
                   aria-pressed={d === selected}
                   aria-label={`${dayLabel(d, "long")} ${Number(d.slice(8))}`}
                   onClick={() => setSelectedDay(d)}
-                  className={`flex min-h-12 flex-col items-center justify-center rounded-lg text-[0.8235rem] font-bold leading-tight ${d === selected ? "bg-primary text-primary-foreground" : d === today ? "bg-primary/10 text-primary" : "bg-muted"}`}
+                  className={`flex min-h-12 flex-col items-center justify-center rounded-lg text-[0.8235rem] font-bold leading-tight ${d === selected ? "bg-primary text-primary-foreground" : d === today ? "bg-accent text-primary" : "bg-muted"}`}
                 >
                   {dayLabel(d, "short")}
                   <span className="font-medium">{Number(d.slice(8))}</span>
@@ -282,7 +282,7 @@ function Coverage({ me, family }: { me: Member; family: Family }) {
       )}
       </section>
       {shifts.length > 0 && (
-        <section aria-label="Shifts this week" className="mt-4 space-y-3 rounded-[1.25rem] bg-card p-[1.125rem] shadow-card">
+        <section aria-label="Shifts this week" className="mt-4 space-y-3 rounded-[var(--radius-card)] bg-card p-5 shadow-card">
           <h2 className="font-sans text-base font-bold tracking-normal">Shifts this week</h2>
           <ul className="divide-y">
             {shifts.map((s) => (

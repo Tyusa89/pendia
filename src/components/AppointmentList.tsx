@@ -50,7 +50,7 @@ function Card({
       <Link
         to="/visits/$id"
         params={{ id: a.id }}
-        className="block h-full rounded-[1.25rem] bg-card p-[1.125rem] shadow-card focus-visible:outline-2 focus-visible:outline-ring"
+        className="block h-full rounded-[var(--radius-card)] border border-border-warm bg-card p-5 shadow-card"
       >
         <div
           className={`grid items-start gap-3 ${compact ? "grid-cols-[minmax(0,1fr)_auto]" : "grid-cols-[auto_minmax(0,1fr)_auto]"}`}
@@ -58,7 +58,7 @@ function Card({
           {!compact && (
             <span
               aria-hidden
-              className="flex size-14 shrink-0 flex-col items-center justify-center rounded-xl bg-primary/10 text-primary"
+              className="flex size-14 shrink-0 flex-col items-center justify-center rounded-xl bg-accent text-primary"
             >
               <span className="text-[0.7059rem] font-bold uppercase">
                 {new Date(`${a.date}T12:00:00Z`).toLocaleDateString(undefined, {
@@ -66,7 +66,7 @@ function Card({
                   timeZone: "UTC",
                 })}
               </span>
-              <span className="font-display text-2xl font-semibold">{Number(a.date.slice(8))}</span>
+              <span className="font-brand text-2xl font-extrabold">{Number(a.date.slice(8))}</span>
             </span>
           )}
           <div className="min-w-0">

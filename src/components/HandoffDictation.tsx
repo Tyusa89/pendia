@@ -287,7 +287,7 @@ export function HandoffDictation({
           <div
             role="region"
             aria-label="Recording in progress"
-            className="recording-dock fixed inset-x-0 bottom-[calc(var(--nav-h)+env(safe-area-inset-bottom))] z-40 flex items-center gap-3 border-t-2 border-destructive bg-card px-4 py-2.5 lg:left-[var(--side-w)] lg:bottom-0 lg:px-8"
+            className="recording-dock fixed inset-x-0 bottom-[calc(var(--nav-h)+env(safe-area-inset-bottom))] z-40 flex items-center gap-3 border-t-2 border-destructive bg-card px-4 py-2.5 md:bottom-0 md:px-8"
           >
             <span
               aria-hidden
@@ -321,7 +321,7 @@ export function HandoffDictation({
               {RECORDER_NOTICE_MESSAGES[rec.notice]}
             </p>
           )}
-          <div className="rounded-2xl bg-primary/10 p-3">
+          <div className="rounded-2xl bg-accent p-3">
             <audio
               controls
               src={rec.audio.url}

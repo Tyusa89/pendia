@@ -115,35 +115,50 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("app shell", () => {
-  it("keeps all seven desktop destinations reachable when navigation collapses and expands", () => {
+  it("keeps all seven destinations, in the same order, in the main navigation (header pills on tablet and desktop)", () => {
     render(wrap(<AppShell>page</AppShell>));
-    const desktop = screen.getByRole("navigation", { name: "Desktop main" });
-    expect(within(desktop).getAllByRole("link").map((link) => link.getAttribute("href"))).toEqual([
-      "/family", "/members", "/visits", "/meds", "/coverage", "/handoffs", "/digest",
+    const main = screen.getByRole("navigation", { name: "Main" });
+    expect(within(main).getAllByRole("link").map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
+      ["Dashboard", "/family"],
+      ["Family Members", "/members"],
+      ["Visits", "/visits"],
+      ["Meds", "/meds"],
+      ["Coverage", "/coverage"],
+      ["Handoffs", "/handoffs"],
+      ["Digest", "/digest"],
     ]);
-    fireEvent.click(screen.getByRole("button", { name: "Collapse navigation" }));
-    expect(screen.getByRole("button", { name: "Expand navigation" })).toHaveAttribute("aria-expanded", "false");
-    expect(within(desktop).getByRole("link", { name: "Dashboard" })).toHaveAttribute("href", "/family");
-    fireEvent.click(screen.getByRole("button", { name: "Expand navigation" }));
-    expect(screen.getByRole("button", { name: "Collapse navigation" })).toHaveAttribute("aria-expanded", "true");
   });
 
-  it("has the six tabs, in order, in a labelled main navigation", () => {
+  it("phone bottom bar: Home, Visits, a centred Handoff action, Meds, Coverage", () => {
     render(wrap(<AppShell>page</AppShell>));
-    const nav = screen.getByRole("navigation", { name: "Main" });
-    expect(
-      within(nav)
-        .getAllByRole("link")
-        .map((a) => a.textContent),
-    ).toEqual([
-      "Pendia", // desktop sidebar brand (hidden under 1024px by CSS)
-      "Family",
-      "Visits",
-      "Meds",
-      "Coverage",
-      "Handoffs",
-      "Digest",
+    const bar = screen.getByRole("navigation", { name: "Bottom" });
+    expect(within(bar).getAllByRole("link").map((a) => [a.textContent, a.getAttribute("href")])).toEqual([
+      ["Home", "/family"],
+      ["Visits", "/visits"],
+      ["Handoff", "/handoffs"],
+      ["Meds", "/meds"],
+      ["Coverage", "/coverage"],
     ]);
+  });
+
+  it("phone menu sheet holds the other destinations, Ask Pendia (not available), preferences and sign out", async () => {
+    render(wrap(<AppShell>page</AppShell>));
+    fireEvent.click(screen.getByRole("button", { name: "Menu" }));
+    const more = await screen.findByRole("navigation", { name: "More" });
+    expect(within(more).getAllByRole("link").map((a) => a.getAttribute("href"))).toEqual([
+      "/members", "/handoffs", "/digest", "/ask", "/preferences",
+    ]);
+    expect(within(more).getByText("Not available yet")).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(within(more).getByRole("button", { name: "Sign out" }));
+    });
+    await waitFor(() => expect(signOut).toHaveBeenCalled());
+  });
+
+  it("keeps Ask Pendia as a link to the availability page (it does not enable AI) and a Skip link", () => {
+    render(wrap(<AppShell>page</AppShell>));
+    expect(screen.getByTestId("assistant-slot")).toHaveAttribute("href", "/ask");
+    expect(screen.getByRole("link", { name: "Skip to care content" })).toHaveAttribute("href", "#care-content");
   });
 
   it("always shows the medical-advice footer", () => {
@@ -177,20 +192,31 @@ describe("family overview", () => {
     expect(screen.getByText("Next visit")).toBeInTheDocument();
     expect(screen.queryByText("None yet")).not.toBeInTheDocument();
     expect(screen.getByText("Latest handoff")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Add appointment" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /Add appointment/ })).toHaveAttribute(
       "href",
       "/visits/new",
     );
   });
 
+  it("Quick handoff only navigates to the Handoffs page, and today's coverage is labelled as scheduled, not presence", async () => {
+    render(wrap(<FamilyOverview me={world.me as never} timeZone="America/New_York" />));
+    await screen.findByText("2 blocks");
+    const start = screen.getByRole("link", { name: /Start a handoff/ });
+    expect(start).toHaveAttribute("href", "/handoffs");
+    expect(screen.getByRole("link", { name: /Voice note/ })).toHaveAttribute("href", "/handoffs");
+    expect(screen.getByText("Scheduled coverage today")).toBeInTheDocument();
+    expect(screen.getByText("Today · scheduled coverage")).toBeInTheDocument();
+  });
+
   it("a member without visit or schedule access sees none of those tiles, and no Add appointment", async () => {
     world.me = { ...world.me, role: "member", can_see_visits: false, can_see_schedule: false };
     render(wrap(<FamilyOverview me={world.me as never} timeZone="America/New_York" />));
-    await screen.findByRole("link", { name: "Quick handoff" });
+    await screen.findByRole("link", { name: /Start a handoff/ });
     expect(screen.queryByText("Next visit")).not.toBeInTheDocument();
     expect(screen.queryByText("Open this week")).not.toBeInTheDocument();
     expect(screen.queryByText("Latest handoff")).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Add appointment" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Scheduled coverage today")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Add appointment/ })).not.toBeInTheDocument();
   });
 });
 

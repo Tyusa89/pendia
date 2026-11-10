@@ -117,7 +117,7 @@ export function CoverageTimeline({
                 )}
               </>
             );
-            const cls = `flex min-w-0 flex-col items-center justify-center gap-0 py-1.5 text-[0.8235rem] font-bold leading-tight ${day === today ? "bg-primary/10 text-primary" : ""}`;
+            const cls = `flex min-w-0 flex-col items-center justify-center gap-0 py-1.5 text-[0.8235rem] font-bold leading-tight ${day === today ? "bg-accent text-primary" : ""}`;
             return organizer ? (
               <button
                 key={day}
