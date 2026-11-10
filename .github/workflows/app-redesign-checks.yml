@@ -1,0 +1,82 @@
+name: App redesign safety net
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: app-redesign-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frozen-files:
+    name: Frozen-files guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Guard self-test
+        run: bash scripts/check-frozen.test.sh
+      - name: Fetch base branch
+        run: git fetch --no-tags origin "${{ github.base_ref }}:refs/remotes/origin/${{ github.base_ref }}"
+      - name: Check frozen paths
+        env:
+          # Only an explicit PR label lets a frozen path change through; the label is applied by a maintainer, not by the PR author's code.
+          FROZEN_OVERRIDE: ${{ contains(github.event.pull_request.labels.*.name, 'frozen-change-approved') && '1' || '0' }}
+        run: bash scripts/check-frozen.sh "origin/${{ github.base_ref }}"
+
+  unit:
+    name: Typecheck, unit tests, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: bun install --frozen-lockfile
+      - run: npx tsc --noEmit -p .
+      - run: npm run typecheck:visual
+      - name: Unit tests (only the documented known failure is tolerated)
+        run: npm run test:ci
+      - run: npx vite build
+
+  browser:
+    name: Browser layout, accessibility and Document Upload checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: bun install --frozen-lockfile
+      - run: npx playwright install --with-deps chromium
+      - name: Ratchet checks (hermetic; every unexpected external request fails the test)
+        run: npx playwright test --project=chromium
+      - name: Capture review screenshots (fonts allowed so they look like the real site)
+        if: always()
+        env:
+          ALLOW_FONTS: "1"
+          CAPTURE_LABEL: ${{ github.event.pull_request.head.sha }}
+        run: npx playwright test --project=capture
+        continue-on-error: true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: visual-review-artifacts
+          path: |
+            visual-artifacts/
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 14

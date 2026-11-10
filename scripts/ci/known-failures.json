@@ -1,0 +1,10 @@
+{
+  "_comment": "Tests that already fail on main BEFORE the redesign work. They are tolerated (not fixed here) so CI can still catch NEW failures. Remove an entry when the underlying test is fixed in its own change.",
+  "failures": [
+    {
+      "file": "src/test/coverage-c1.test.tsx",
+      "name": "edit, reassign, cancel edits times and reassigns",
+      "reason": "Fails identically on unmodified main (expected '13:00' to be '14:00'). Unrelated to the redesign; intentionally left unchanged."
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+section [data-testid=uploaded-document]
+  p
+    text "Uploaded document"
+  p [data-testid=uploaded-document-name]
+    text "letter.pdf"
+  p
+    text "PDF"
+    text "·"
+    text "1 KB"
+    text "· stored privately. It is attached to the appointment when you press "Add appointment" below, and removed if you cancel."
+  button "View uploaded document" [type=button]
+p [role=status data-testid=doc-notice]
+  text "Automatic reading isn't switched on. Your document is saved; enter the details below."
+p
+  text "Nothing is added to the schedule until you press the button below."
+form
+  label
+  input "Starts" [type=datetime-local required]
+  p
+    text "Times are in your family's timezone ("
+    text "America/Chicago"
+    text ")."
+  label
+  input "Ends (optional)" [type=datetime-local]
+  label
+  input "Doctor or provider"
+  p
+    text "Not set. This appointment will show as incomplete until it is filled in."
+  label
+  input "Office or clinic name"
+  label
+  textarea "Office address"
+  p
+    text "Not set. This appointment will show as incomplete until it is filled in."
+  label
+  input "Office phone" [type=tel]
+  p
+    text "Not set. This appointment will show as incomplete until it is filled in."
+  label
+  input "Reason for the visit"
+  label
+  textarea "Notes"
+  label
+  button "Add appointment" [type=submit]
+  button "Cancel" [type=button]

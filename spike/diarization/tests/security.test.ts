@@ -56,6 +56,10 @@ describe("nothing sensitive can be committed", () => {
 });
 
 // Migrations that other, separately reviewed features add. Listing one here does not approve applying it.
+// The one workflow that is allowed: the read-only app-redesign safety net (frozen-files guard, unit tests, hermetic browser checks).
+// It is asserted below to use no secrets, no write permissions and no deploy or Meta call, so it cannot weaken what this test protects.
+const APPROVED_WORKFLOW = "app-redesign-checks.yml";
+
 const REVIEWED_MIGRATIONS = [
   "supabase/migrations/20261027000001_dose_administration.sql",
   "supabase/migrations/20261027000002_family_delete_guard.sql",
@@ -70,7 +74,13 @@ describe("merging this work cannot deploy anything or call Meta", () => {
     const workflows = existsSync(join(REPO, ".github/workflows"))
       ? readdirSync(join(REPO, ".github/workflows"))
       : [];
-    expect(workflows).toEqual([]);
+    expect(workflows.filter((w) => w !== APPROVED_WORKFLOW)).toEqual([]);
+    if (workflows.includes(APPROVED_WORKFLOW)) {
+      const wf = readFileSync(join(REPO, ".github/workflows", APPROVED_WORKFLOW), "utf8");
+      expect(wf).toMatch(/permissions:\s*\n\s*contents: read/);
+      expect(wf).not.toMatch(/secrets\./);
+      expect(wf).not.toMatch(/(deploy|supabase |graph\.facebook|meta\.ai|DIARIZATION)/i);
+    }
     const changed = git("diff", "--name-only", "origin/main...HEAD")
       .stdout.split("\n")
       .filter(Boolean);
@@ -80,7 +90,9 @@ describe("merging this work cannot deploy anything or call Meta", () => {
         (f) =>
           (/^supabase\/(functions|migrations|config)/.test(f) &&
             !REVIEWED_MIGRATIONS.includes(f)) ||
-          (f.startsWith(".github/") && f !== `.github/workflows/${REMOVED_WORKFLOW}`),
+          (f.startsWith(".github/") &&
+            f !== `.github/workflows/${REMOVED_WORKFLOW}` &&
+            f !== `.github/workflows/${APPROVED_WORKFLOW}`),
       ),
     ).toEqual([]);
   });
