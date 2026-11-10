@@ -58,7 +58,7 @@ export function Recipient({ familyId, editable }: { familyId: string; editable: 
           <span aria-hidden className="grid size-14 shrink-0 place-items-center rounded-full bg-[#f5efe6] font-display text-xl font-semibold text-[#1f2d4a] md:size-16 md:text-2xl">{initials(r.name)}</span>
           <div className="min-w-0">
             <p className="font-brand text-xs font-bold uppercase tracking-[0.08em] text-white/75">Caring for</p>
-            <p className="break-words font-display text-3xl font-semibold leading-tight md:text-4xl">{r.name}</p>
+            <p className="break-words font-display text-[clamp(1.5rem,8vw,1.875rem)] font-semibold leading-tight md:text-4xl">{r.name}</p>
           </div>
         </div>
         {editable && (

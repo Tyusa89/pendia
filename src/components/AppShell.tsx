@@ -10,8 +10,10 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from 
 import { phoneBarLeft, phoneBarRight, phoneMenu, pillDestinations } from "@/lib/app-nav";
 import { isJudgeDemo } from "@/lib/judge-demo";
 
+// Under large text the labels step down a size so every one stays whole ("Coverage" must not be cut to "Cover…").
+const barLabel = "max-w-full text-center [html[data-text-size=large]_&]:text-[min(0.5625rem,3.2vw)] [html[data-text-size=large]_&]:tracking-tight";
 const bar =
-  "group flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl px-1 text-[0.7059rem] font-semibold leading-tight text-muted-foreground focus-visible:outline-2";
+  "group flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl px-0.5 text-[0.7059rem] font-semibold leading-tight text-muted-foreground focus-visible:outline-2";
 
 /**
  * Link to the assistant's availability page; does not enable AI. Drawn as a dashed, locked control because Ask Pendia
@@ -149,7 +151,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         {phoneBarLeft.map(({ to, label, icon: Icon }) => (
           <Link key={to} to={to} className={bar} activeProps={{ className: "bg-accent font-bold text-primary", "aria-current": "page" }}>
             <Icon className="size-[22px]" aria-hidden />
-            <span className="max-w-full truncate">{label}</span>
+            <span className={barLabel}>{label}</span>
           </Link>
         ))}
         <Link
@@ -158,12 +160,12 @@ export function AppShell({ children }: { children: ReactNode }) {
           activeProps={{ "aria-current": "page" }}
         >
           <span className="grid size-14 place-items-center rounded-full border-4 border-card bg-primary text-primary-foreground shadow-warm"><Plus className="size-6" aria-hidden /></span>
-          <span className="max-w-full truncate">Handoff</span>
+          <span className={barLabel}>Handoff</span>
         </Link>
         {phoneBarRight.map(({ to, label, icon: Icon }) => (
           <Link key={to} to={to} className={bar} activeProps={{ className: "bg-accent font-bold text-primary", "aria-current": "page" }}>
             <Icon className="size-[22px]" aria-hidden />
-            <span className="max-w-full truncate">{label}</span>
+            <span className={barLabel}>{label}</span>
           </Link>
         ))}
       </nav>

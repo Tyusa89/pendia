@@ -109,7 +109,7 @@ export function FamilyOverview({ me, timeZone }: { me: Member; timeZone: string 
           <span aria-hidden className="grid size-14 shrink-0 place-items-center rounded-full bg-[#f5efe6] font-display text-xl font-semibold text-[#1f2d4a] md:size-20 md:text-3xl">{rName ? initialOf(rName) : "·"}</span>
           <div className="min-w-0">
             <p className="font-brand text-xs font-bold uppercase tracking-[0.08em] text-white/75">Caring for</p>
-            <p className="break-words font-display text-3xl font-semibold leading-tight md:text-5xl">{rName ?? (recipient.isLoading ? "…" : "No care recipient yet")}</p>
+            <p className="break-words font-display text-[clamp(1.5rem,8vw,1.875rem)] font-semibold leading-tight md:text-5xl">{rName ?? (recipient.isLoading ? "…" : "No care recipient yet")}</p>
           </div>
         </div>
         {recipient.data?.notes && <p className="text-base text-white/90 lg:hidden">{recipient.data.notes}</p>}
