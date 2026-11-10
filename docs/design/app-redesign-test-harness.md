@@ -25,3 +25,7 @@ the JSON diff, which must be reviewed. Never raise a number to make a PR green. 
 by 7px at 320px width on main.
 
 Shell tests (`design-shell.test.tsx`, the guard in `medical-integrations.test.tsx`) are deliberately untouched here; they are rewritten in PR 1D with a documented mapping.
+
+Known flake: `src/test/appointment-document-link.test.tsx` ("hides the actions shortly before the 5-minute link expires") is
+timing-dependent. It failed on GitHub runners on unmodified `main` (the file is frozen), so CI runs Vitest with `--retry=2`. A test that
+fails every attempt still fails the job.

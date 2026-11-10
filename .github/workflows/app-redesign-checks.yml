@@ -80,19 +80,3 @@ jobs:
             test-results/
           if-no-files-found: ignore
           retention-days: 14
-
-  probe-main:
-    name: TEMP probe - link test on unmodified main
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: main
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.4.4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - run: bun install --frozen-lockfile
-      - run: npx vitest run src/test/appointment-document-link.test.tsx
