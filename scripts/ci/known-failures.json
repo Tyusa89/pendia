@@ -8,7 +8,7 @@
     },
     {
       "file": "src/test/appointment-document-link.test.tsx",
-      "name": "hides the actions shortly before the 5-minute link expires, so a dead link is never offered",
+      "name": "AppointmentDocumentLink hides the actions shortly before the 5-minute link expires, so a dead link is never offered",
       "reason": "Fails on GitHub runners on unmodified main (probe job, run 42790472400); passes locally. Timing-dependent fake-timer test in a frozen file, so it is tolerated here and not edited. Needs the founder's approval to keep; remove when fixed in its own change."
     }
   ]
