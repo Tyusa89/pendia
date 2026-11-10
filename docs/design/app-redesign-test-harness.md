@@ -21,7 +21,7 @@ Running: `npm run visual` (checks), `npm run visual:capture` (screenshots into `
 committed). In a sandbox with a preinstalled browser set `PLAYWRIGHT_CHROMIUM_PATH`.
 
 Updating baselines: only when a change intentionally improves a count or the page set changes: `npm run visual:baselines` and commit
-the JSON diff, which must be reviewed. Never raise a number to make a PR green. Known pre-existing issue recorded: `/family` overflows
+the JSON diff, which must be reviewed. Never raise a number to make a PR green. Pixel overflow ratchets allow 16px of font-metric variance between machines (element counts are exact). Known pre-existing issue recorded: `/family` overflows
 by 7px at 320px width on main.
 
 Shell tests (`design-shell.test.tsx`, the guard in `medical-integrations.test.tsx`) are deliberately untouched here; they are rewritten in PR 1D with a documented mapping.

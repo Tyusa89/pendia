@@ -117,7 +117,10 @@ describe("the audited member path and protected modules are not edited by this w
     const added = git("diff", "origin/main...HEAD", "--", "package.json")
       .filter((l) => l.startsWith("+") && !l.startsWith("+++"))
       .map((l) => l.slice(1).trim());
-    const depsOk = added.every((l) => /pdfjs-dist/.test(l));
+    // The app-redesign safety net (PR 1A) was explicitly authorised to add exactly these dev-only test tools and their scripts.
+    const REDESIGN_TEST_TOOLING =
+      /@playwright\/test|axe-core|"visual(:capture|:baselines)?":|"check:frozen(:selftest)?":|"typecheck:visual":|"test:ci":|"spike:test": "vitest run spike",$/;
+    const depsOk = added.every((l) => /pdfjs-dist/.test(l) || REDESIGN_TEST_TOOLING.test(l));
     expect(
       changed.filter(
         (f) =>

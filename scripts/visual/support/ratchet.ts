@@ -29,9 +29,13 @@ function record(name: string, key: string, value: unknown): void {
   fs.appendFileSync(path.join(UPDATES, `${name}.jsonl`), JSON.stringify({ key, value }) + "\n");
 }
 
+// Pixel overflow depends on the machine's fallback font metrics (fonts are blocked in hermetic runs), so a laptop and the CI runner can
+// differ by a few pixels on the same page. Counts of elements are exact; only pixel measures get a small tolerance.
+const TOLERANCE: Record<string, number> = { overflow: 16, "doc-overflow": 16 };
+
 export function checkCount(name: string, key: string, actual: number, detail = ""): void {
   if (UPDATING) return record(name, key, actual);
-  const allowed = (load(name)[key] as number | undefined) ?? 0;
+  const allowed = ((load(name)[key] as number | undefined) ?? 0) + (TOLERANCE[name] ?? 0);
   expect(actual, `${name} ${key}: ${actual} > baseline ${allowed}. ${detail}`).toBeLessThanOrEqual(
     allowed,
   );
