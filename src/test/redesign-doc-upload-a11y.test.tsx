@@ -196,6 +196,8 @@ describe("AppointmentDocumentLink: accessible tree per state", () => {
     await waitFor(() =>
       expect(screen.getByRole("link", { name: /Open in new tab/ })).toBeInTheDocument(),
     );
+    // The button leaves its "Opening…" state a tick after the actions appear; wait for it so the snapshot is not racy.
+    await screen.findByRole("button", { name: /View document/ });
     await snap("link-ready", container);
   });
   it("error", async () => {
