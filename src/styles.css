@@ -7,6 +7,23 @@
 @theme inline {
   --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Fraunces", Georgia, serif;
+  --font-brand: "Plus Jakarta Sans", "Figtree", ui-sans-serif, system-ui, sans-serif;
+  /* Public website (Soft Harmony): deep navy, dusty blue, muted purple, muted sage, warm beige */
+  --color-pd-navy: #1f2d4a;
+  --color-pd-ink: #36445e;
+  --color-pd-muted: #4c5a73;
+  --color-pd-slate: #2c4560;
+  --color-pd-dusty: #4a6b88;
+  --color-pd-purple: #7a6a9e;
+  --color-pd-purple-deep: #5e4f82;
+  --color-pd-lilac: #d9d1ea;
+  --color-pd-sage: #4f7260;
+  --color-pd-sage-deep: #3a5a49;
+  --color-pd-beige: #f5efe6;
+  --color-pd-sand: #e9dfd0;
+  --color-pd-sky: #eef3f7;
+  --color-pd-mist: #e3eaf1;
+  --color-pd-line: #e3e7ee;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -112,6 +129,9 @@
 }
 @utility bg-hero {
   background: var(--gradient-hero);
+}
+@utility font-brand {
+  font-family: var(--font-brand);
 }
 @utility font-display {
   font-family: var(--font-display);

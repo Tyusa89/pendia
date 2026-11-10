@@ -5,7 +5,7 @@ import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { authService } from "@/services";
 
-export function TryPendiaDemo() {
+export function TryPendiaDemo({ variant, className }: { variant?: "link"; className?: string } = {}) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const qc = useQueryClient();
@@ -20,7 +20,7 @@ export function TryPendiaDemo() {
     finally { setBusy(false); }
   }
   return <div>
-    <Button size="lg" className="w-full" disabled={busy} onClick={enter}>{busy ? "Opening demo…" : "Try Pendia Demo"}<ArrowRight aria-hidden /></Button>
+    <Button size={variant === "link" ? "default" : "lg"} variant={variant} className={className ?? "w-full"} disabled={busy} onClick={enter}>{busy ? "Opening demo…" : "Try Pendia Demo"}<ArrowRight aria-hidden /></Button>
     {error && <p role="alert" className="mt-2 text-destructive">{error}</p>}
   </div>;
 }
