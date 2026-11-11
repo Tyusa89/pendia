@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { ChevronDown } from "lucide-react";
+import { useNarrow } from "@/hooks/use-narrow";
 import { UserRoundPlus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -50,26 +52,31 @@ export function Recipient({ familyId, editable }: { familyId: string; editable: 
     );
   if (!r) return <Empty>No care recipient yet.</Empty>;
   return (
-    <Panel className="bg-hero">
-      <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-        Caring for
-      </p>
-      <div className="mt-1 flex items-center gap-3">
-        <span aria-hidden className="grid size-14 shrink-0 place-items-center rounded-full bg-card font-display text-xl font-semibold">{r.name.split(/\s+/).slice(0, 2).map((part) => part[0]).join("")}</span>
-        <p className="min-w-0 font-display text-3xl font-semibold">{r.name}</p>
+    <section aria-label="Care recipient" className="rounded-[var(--radius-card)] bg-[#1f2d4a] p-5 text-white shadow-card md:p-7">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-4">
+          <span aria-hidden className="grid size-14 shrink-0 place-items-center rounded-full bg-[#f5efe6] font-display text-xl font-semibold text-[#1f2d4a] md:size-16 md:text-2xl">{initials(r.name)}</span>
+          <div className="min-w-0">
+            <p className="font-brand text-xs font-bold uppercase tracking-[0.08em] text-white/75">Caring for</p>
+            <p className="break-words font-display text-[clamp(1.5rem,8vw,1.875rem)] font-semibold leading-tight md:text-4xl">{r.name}</p>
+          </div>
+        </div>
+        {editable && (
+          <Button variant="outline" size="sm" className="border-white/60 bg-transparent text-white hover:bg-white/10" onClick={() => setEditing(true)}>
+            Edit care profile
+          </Button>
+        )}
       </div>
-      {r.notes && <p className="mt-2 text-lg">{r.notes}</p>}
-      {editable && (
-        <Button variant="outline" size="sm" className="mt-4" onClick={() => setEditing(true)}>
-          Edit care profile
-        </Button>
-      )}
-    </Panel>
+      {r.notes && <p className="mt-3 max-w-3xl text-lg text-white/90">{r.notes}</p>}
+    </section>
   );
 }
 
-export function MemberRow({ m, editable }: { m: Member; editable: boolean }) {
+export function MemberRow({ m, editable, defaultOpen = true }: { m: Member; editable: boolean; defaultOpen?: boolean }) {
   const qc = useQueryClient();
+  const narrow = useNarrow();
+  const [open, setOpen] = useState(defaultOpen);
+  const showSwitches = !narrow || open;
   const upd = useMutation({
     mutationFn: (patch: Partial<Member>) => familyService.updateMember(m.id, patch),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["members", m.family_id] }),
@@ -79,12 +86,12 @@ export function MemberRow({ m, editable }: { m: Member; editable: boolean }) {
     <Panel>
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
         <div className="flex min-w-0 items-center gap-3">
-          <span aria-hidden className={`grid size-11 shrink-0 place-items-center rounded-full font-bold ${m.role === "organizer" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}>{m.name.split(/\s+/).slice(0, 2).map((part) => part[0]).join("")}</span>
+          <span aria-hidden className={`grid size-12 shrink-0 place-items-center rounded-full font-brand font-bold ${m.role === "organizer" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}>{initials(m.name)}</span>
           <div className="min-w-0">
-          <p className="text-lg font-semibold">{m.name}</p>
-          <p className="break-words text-muted-foreground">
-            {m.phone || "No phone"} · {m.language === "es" ? "Español" : "English"}
-          </p>
+            <p className="font-brand text-lg font-bold">{m.name}</p>
+            <p className="break-words text-muted-foreground">
+              {m.phone || "No phone"} · {m.language === "es" ? "Español" : "English"}
+            </p>
           </div>
         </div>
         <span
@@ -93,18 +100,25 @@ export function MemberRow({ m, editable }: { m: Member; editable: boolean }) {
           {m.role === "organizer" ? "Organizer" : "Member"}
         </span>
       </div>
-      <div className="mt-4 divide-y divide-border border-t border-border">
-        {(["can_see_meds", "can_see_schedule", "can_see_visits"] as const).map((k) => (
-          <label key={k} className="flex min-h-12 flex-row-reverse items-center justify-between gap-3 text-[0.9412rem] font-medium">
-            <Switch
-              checked={m[k]}
-              disabled={!editable}
-              onCheckedChange={(v) => upd.mutate({ [k]: v })}
-            />
-            {k === "can_see_meds" ? "Medications" : k === "can_see_schedule" ? "Coverage schedule" : "Doctor visits & recordings"}
-          </label>
-        ))}
-      </div>
+      {narrow && (
+        <button type="button" aria-expanded={open} aria-controls={`access-${m.id}`} onClick={() => setOpen((v) => !v)} className="mt-3 flex min-h-11 w-full items-center justify-between rounded-xl bg-accent px-3 font-brand text-sm font-semibold text-primary">
+          Who can see what <ChevronDown className={`size-4 transition-transform ${open ? "rotate-180" : ""}`} aria-hidden />
+        </button>
+      )}
+      {showSwitches && (
+        <div id={`access-${m.id}`} className="mt-3 divide-y divide-border border-t border-border">
+          {(["can_see_meds", "can_see_schedule", "can_see_visits"] as const).map((k) => (
+            <label key={k} className="flex min-h-[3.25rem] flex-row-reverse items-center justify-between gap-3 text-[0.9412rem] font-medium">
+              <Switch
+                checked={m[k]}
+                disabled={!editable}
+                onCheckedChange={(v) => upd.mutate({ [k]: v })}
+              />
+              {k === "can_see_meds" ? "Medications" : k === "can_see_schedule" ? "Coverage schedule" : "Doctor visits & recordings"}
+            </label>
+          ))}
+        </div>
+      )}
     </Panel>
   );
 }
@@ -131,8 +145,8 @@ export function Invite({ familyId }: { familyId: string }) {
     onError: (e) => toast.error((e as Error).message),
   });
   return (
-    <Panel className="mt-6 space-y-4">
-      <h2 className="flex items-center gap-2 text-xl font-semibold"><UserRoundPlus className="size-5 text-primary" /> Invite a member</h2>
+    <Panel className="space-y-4">
+      <h2 className="flex items-center gap-2 text-xl"><UserRoundPlus className="size-5 text-primary" /> Invite a member</h2>
       <Input
         placeholder="Name"
         value={f.name}
@@ -196,13 +210,13 @@ function Seg({
   return (
     <div>
       <p className="mb-1 font-semibold">{label}</p>
-      <div className="flex rounded-xl bg-muted p-1">
+      <div className="flex rounded-xl bg-accent p-1">
         {options.map(([v, l]) => (
           <button
             key={v}
             type="button"
             onClick={() => onChange(v)}
-            className={`min-h-11 flex-1 rounded-lg px-2 font-bold ${value === v ? "bg-card shadow-card" : "text-muted-foreground"}`}
+            className={`min-h-11 flex-1 rounded-lg px-2 font-brand font-bold ${value === v ? "bg-card text-primary shadow-card" : "text-muted-foreground"}`}
           >
             {l}
           </button>

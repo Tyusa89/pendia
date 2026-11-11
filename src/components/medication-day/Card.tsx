@@ -13,7 +13,7 @@ export function Card({
   return (
     <section
       aria-label={ariaLabel}
-      className={`rounded-[1.25rem] border border-transparent bg-card p-[1.125rem] shadow-card ${className}`}
+      className={`rounded-[var(--radius-card)] border border-transparent bg-card p-5 shadow-card ${className}`}
     >
       {children}
     </section>

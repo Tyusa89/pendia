@@ -7,7 +7,7 @@ export function FamilySwitcher({ activeId, activeName }: { activeId: string; act
   const { data: families = [] } = useQuery({ queryKey: ["my-families"], queryFn: () => familyService.listMyFamilies() });
 
   if (families.length < 2) {
-    return <span className="hidden max-w-[10rem] truncate text-sm text-muted-foreground md:inline">{activeName}</span>;
+    return <span className="inline-flex min-h-11 max-w-[9rem] items-center rounded-full border-[1.5px] border-input bg-card px-3.5 font-brand text-sm font-semibold text-foreground md:max-w-[14rem]"><span className="truncate">{activeName}</span></span>;
   }
 
   async function onChange(id: string) {
@@ -25,7 +25,7 @@ export function FamilySwitcher({ activeId, activeName }: { activeId: string; act
         data-testid="family-switcher"
         value={activeId}
         onChange={(e) => void onChange(e.target.value)}
-        className="h-11 max-w-[9rem] truncate rounded-lg border border-input bg-card px-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:max-w-[14rem]"
+        className="h-11 max-w-[9rem] truncate rounded-full border-[1.5px] border-input bg-card px-3.5 font-brand text-sm font-semibold text-foreground md:max-w-[14rem]"
       >
         {families.map((f) => (
           <option key={f.id} value={f.id}>{f.name}</option>

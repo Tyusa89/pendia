@@ -34,8 +34,8 @@ export function FamilyTimeZone({
   const known = COMMON_TIME_ZONES.some((z) => z.id === timeZone);
   const check = validateFamilyTimeZone(value);
   return (
-    <Panel className="mt-5 space-y-2" aria-label="Family time zone">
-      <h2 className="text-xl font-semibold">Time zone</h2>
+    <Panel className="space-y-2" aria-label="Family time zone">
+      <h2 className="text-xl">Time zone</h2>
       {editable ? (
         <>
           <Label htmlFor="family-tz">Care team time zone</Label>
@@ -43,7 +43,7 @@ export function FamilyTimeZone({
             id="family-tz"
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            className="h-12 w-full rounded-md border border-input bg-background px-3"
+            className="h-12 w-full rounded-xl border-[1.5px] border-input bg-card px-3"
           >
             {!known && <option value={timeZone}>{timeZoneLabel(timeZone)}</option>}
             {COMMON_TIME_ZONES.map((z) => (

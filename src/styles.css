@@ -53,6 +53,7 @@
   --color-unassigned: var(--unassigned);
   --color-unassigned-foreground: var(--unassigned-foreground);
   --color-border: var(--border);
+  --color-border-warm: var(--border-warm);
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-ring-offset-background: var(--background);
@@ -73,39 +74,40 @@
 }
 
 :root {
-  --radius: 0.875rem;
-  --nav-h: 4.25rem; /* bottom tab bar height, content reserves this much room */
-  --side-w: 15rem; /* desktop sidebar width */
+  --radius: 0.75rem; /* controls 12px; cards use --radius-card */
+  --radius-card: 1.625rem;
+  --nav-h: 5.5rem; /* mobile floating bar height incl. gap; content and the recording dock reserve this much room */
   --overlay: oklch(0.18 0.02 235 / 0.65);
-  /* Soft Harmony: dusty blue + muted purple + sage on warm beige */
-  --background: oklch(0.945 0.02 85); /* warm beige #F5EFE6 */
-  --foreground: oklch(0.3 0.03 235); /* deep slate #263746 */
-  --card: oklch(1 0 0); /* white */
-  --card-foreground: oklch(0.3 0.03 235);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.3 0.03 235);
-  --primary: oklch(0.52 0.062 240); /* dusty blue #617F9B, darkened for AA white text */
-  --primary-foreground: oklch(0.99 0.005 240);
-  --secondary: oklch(0.86 0.045 155); /* muted sage tint, supportive surfaces */
-  --secondary-foreground: oklch(0.32 0.04 160);
-  --muted: oklch(0.91 0.02 300); /* soft lavender #E6E0EB */
-  --muted-foreground: oklch(0.42 0.03 235); /* slate, AA on lavender */
-  --accent: oklch(0.88 0.03 310); /* muted purple tint, selected states */
-  --accent-foreground: oklch(0.4 0.06 310); /* muted purple #827397 darkened */
+  /* App-0 hybrid: navy and white chrome, slate actions, warm beige canvas with sage and lilac tints */
+  --background: #f5efe6;
+  --foreground: #1f2d4a; /* navy */
+  --card: #ffffff;
+  --card-foreground: #1f2d4a;
+  --popover: #ffffff;
+  --popover-foreground: #1f2d4a;
+  --primary: #2c4560; /* slate */
+  --primary-foreground: #ffffff;
+  --secondary: #e3ece5; /* sage tint */
+  --secondary-foreground: #3a5a49; /* sage deep */
+  --muted: #ece8f3; /* lilac tint */
+  --muted-foreground: #4c5a73;
+  --accent: #eef3f7; /* sky: selected and hover */
+  --accent-foreground: #2c4560;
   --destructive: oklch(0.5 0.16 27);
   --destructive-foreground: oklch(0.99 0 0);
-  --success: oklch(0.5 0.07 155); /* sage, darkened for AA white text */
-  --success-foreground: oklch(0.99 0.01 150);
-  --warning: oklch(0.82 0.1 85);
-  --warning-foreground: oklch(0.32 0.05 70);
-  --unassigned: oklch(0.91 0.035 310); /* lavender surface for open items */
-  --unassigned-foreground: oklch(0.42 0.08 310); /* muted purple text, AA */
-  --border: oklch(0.87 0.015 250);
-  --input: oklch(0.84 0.02 250);
-  --ring: oklch(0.52 0.062 240);
-  --shadow-warm: 0 6px 20px -8px color-mix(in oklab, var(--primary) 45%, transparent);
+  --success: #3a5a49;
+  --success-foreground: #ffffff;
+  --warning: #f6e7c1;
+  --warning-foreground: #5a4310;
+  --unassigned: #ece8f3;
+  --unassigned-foreground: #5e4f82;
+  --border: #e3e7ee;
+  --border-warm: #e7dfd2;
+  --input: #4a6b88; /* dusty blue control outline */
+  --ring: #7a6a9e; /* purple focus ring */
+  --shadow-warm: 0 6px 16px -8px color-mix(in oklab, var(--primary) 55%, transparent);
   --shadow-card: 0 1px 2px color-mix(in oklab, var(--foreground) 6%, transparent), 0 8px 24px -16px color-mix(in oklab, var(--foreground) 20%, transparent);
-  --gradient-hero: linear-gradient(160deg, oklch(0.91 0.02 300), oklch(0.9 0.035 155));
+  --gradient-hero: linear-gradient(160deg, #ece8f3, #e3ece5);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -142,6 +144,10 @@
   * {
     border-color: var(--color-border);
   }
+  :where(a, button, input, select, textarea, summary, [role="switch"], [role="tab"], [tabindex]):focus-visible {
+    outline: 3px solid var(--ring);
+    outline-offset: 2px;
+  }
   html {
     /* 17px at the default text size, and it follows the phone's text-size setting */
     font-size: 106.25%;
@@ -153,92 +159,45 @@
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    background-image:
+      radial-gradient(60rem 28rem at 105% -5%, color-mix(in oklab, #e3ece5 70%, transparent), transparent),
+      radial-gradient(50rem 26rem at -10% 35%, color-mix(in oklab, #ece8f3 65%, transparent), transparent);
+    background-attachment: fixed;
   }
   h1, h2, h3 {
-    font-family: var(--font-display);
+    font-family: var(--font-brand);
     letter-spacing: 0;
   }
+  h1 { font-weight: 800; }
+  h2, h3 { font-weight: 700; }
 }
 
-/* Very large text on a narrow phone: the tab bar wraps to two rows of three so labels stay whole. */
+/* Very large text on a narrow phone: the bottom bar labels shrink and truncate; it grows a little taller. */
 @media (max-width: 17em) and (max-width: 767.98px) {
   :root {
-    --nav-h: 7.5rem;
+    --nav-h: 6.5rem;
   }
 }
-/* Short landscape phones: compact tab bar. */
+/* Short landscape phones: compact bar. */
 @media (max-height: 500px) and (orientation: landscape) {
   :root {
-    --nav-h: 3.25rem;
+    --nav-h: 4rem;
   }
 }
 
 html[data-text-size="large"] { font-size: 125%; }
-.pendia-workspace { --side-w: 224px; }
-.pendia-workspace.sidebar-collapsed { --side-w: 76px; }
-.desktop-navigation { width: var(--side-w); }
 .care-content:has(.reading-view) { max-width: 960px; }
 .recording-dock { box-shadow: var(--shadow-card); }
 @media (min-width: 1024px) {
   .care-content:has([aria-label="Recording in progress"]) { padding-bottom: 8rem; }
-
-  /* Coverage page density on desktop. The calendar itself (CoverageTimeline) sizes events by real time, so no minimum heights here. */
-  .care-content:has(> [aria-label="This week"]) {
-    max-width: 1280px;
-    padding-top: 1rem;
-    padding-bottom: 2rem;
-  }
-  .care-content:has(> [aria-label="This week"]) > :first-child { margin-bottom: 1rem; }
-  .care-content:has(> [aria-label="This week"]) > section { margin-bottom: 1rem; }
-  .care-content > [aria-label="Leaving soon"] {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-    column-gap: 1.25rem;
-    row-gap: 0.25rem;
-    padding: 0.75rem 1rem;
-  }
-  .care-content > [aria-label="Leaving soon"] > * { margin-block: 0; min-width: 0; }
-  .care-content > [aria-label="Leaving soon"] > h2 { grid-column: 1; }
-  .care-content > [aria-label="Leaving soon"] > p { grid-column: 1; }
-  .care-content > [aria-label="Leaving soon"] > a {
-    grid-column: 2;
-    grid-row: 1 / span 2;
-    justify-self: end;
-    width: auto;
-    min-height: 44px;
-    height: auto;
-    padding: 0.5rem 1rem;
-  }
-  .care-content > [aria-label="This week"] { padding: 1rem; }
-  .care-content > [aria-label="This week"] > * + * { margin-top: 0.75rem; }
-  .care-content > [aria-label="This week"] > :first-child { margin-bottom: 0; }
-  .care-content > [aria-label="Shifts this week"] { margin-top: 1rem; padding: 1rem; }
-  .care-content > [aria-label="Today's coverage"] {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.75rem;
-  }
-  .care-content > [aria-label="Today's coverage"] > h2 { grid-column: 1 / -1; }
-  .care-content > [aria-label="Today's coverage"] > * { margin-block: 0; }
-  .care-content > [aria-label="Today's coverage"] > article { padding: 0.75rem; }
-  .care-content > [aria-label="Today's coverage"] > article > * { margin-block: 0; }
-  .care-content > [aria-label="Today's coverage"] > article > * + * { margin-top: 0.5rem; }
-  .care-content > [aria-label="Today's coverage"] > article > div { flex-wrap: wrap; }
-  .care-content > [aria-label="Today's coverage"] > article p { min-width: 0; overflow-wrap: anywhere; }
-
-  .desktop-navigation > div:first-child { min-height: 72px; }
-  .desktop-navigation > p { padding-top: 1rem; }
-  .desktop-navigation > nav { padding-top: 0.75rem; padding-bottom: 0.75rem; }
-  .desktop-navigation > nav > * { min-height: 44px; }
-  .desktop-navigation > div:last-child { padding-top: 0.75rem; padding-bottom: 0.75rem; }
 }
 html[data-high-contrast="true"] {
-  --foreground: oklch(0.22 0.03 235);
+  --foreground: #14213b;
   --card-foreground: var(--foreground);
-  --muted-foreground: oklch(0.3 0.03 235);
-  --border: oklch(0.5 0.025 250);
-  --input: oklch(0.5 0.025 250);
+  --muted-foreground: #2e3a52;
+  --border: #5f6f87;
+  --border-warm: #5f6f87;
+  --input: #3a4f68;
 }
 html[data-reduce-motion="true"] *,
 html[data-reduce-motion="true"] *::before,

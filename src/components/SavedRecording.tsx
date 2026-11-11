@@ -137,7 +137,7 @@ export function SavedRecording({
   }
 
   return (
-    <div className="mt-3 space-y-3 rounded-2xl bg-primary/10 p-3" aria-label="Saved recording">
+    <div className="mt-3 space-y-3 rounded-2xl bg-accent p-3" aria-label="Saved recording">
       <div>
         <p className="font-bold">
           Recording{" "}

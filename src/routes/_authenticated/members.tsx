@@ -32,16 +32,20 @@ function MembersPage() {
       <PageTitle title="Family Members" subtitle={`${data.family.name} · ${isOrganizer ? "You're the organizer" : "You're a member"}`} />
       <div className="space-y-5">
         <Recipient familyId={data.family.id} editable={isOrganizer} />
-        <section aria-label="Care team" className="min-w-0">
-          <h2 className="mb-3 text-xl font-semibold">Care team · {members.length}</h2>
-          {loadingMembers ? <LoadingCard /> : (
-            <div className="grid items-start gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {members.map((m) => <MemberRow key={m.id} m={m} editable={isOrganizer} />)}
-            </div>
-          )}
-          {isOrganizer && <Invite familyId={data.family.id} />}
-          <FamilyTimeZone familyId={data.family.id} timeZone={data.family.timezone} editable={isOrganizer} />
-        </section>
+        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
+          <section aria-label="Care team" className="min-w-0">
+            <h2 className="mb-3 text-xl">Care team · {members.length}</h2>
+            {loadingMembers ? <LoadingCard /> : (
+              <div className="grid items-start gap-3 md:grid-cols-2">
+                {members.map((m, i) => <MemberRow key={m.id} m={m} editable={isOrganizer} defaultOpen={i === 0} />)}
+              </div>
+            )}
+          </section>
+          <div className="min-w-0 space-y-5">
+            {isOrganizer && <Invite familyId={data.family.id} />}
+            <FamilyTimeZone familyId={data.family.id} timeZone={data.family.timezone} editable={isOrganizer} />
+          </div>
+        </div>
       </div>
     </>
   );

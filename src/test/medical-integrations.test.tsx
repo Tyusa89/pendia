@@ -132,11 +132,13 @@ describe("how the page is reached", () => {
     );
   });
 
-  it("does not add a seventh tab: the shell is untouched and still six tabs", () => {
+  it("does not add a destination: the navigation lists seven pills and no Medical Integrations entry", () => {
+    const nav = strip(source("src/lib/app-nav.ts"));
     const shell = strip(source("src/components/AppShell.tsx"));
+    expect(nav).not.toMatch(/medical-integrations|Medical Integrations/);
     expect(shell).not.toMatch(/medical-integrations|Medical Integrations/);
-    expect(shell.match(/\{ to: "\/[a-z]+", label: "[A-Za-z]+", icon: \w+ \}/g)).toHaveLength(6);
-    expect(shell).toMatch(/grid-cols-6/);
+    const pills = nav.slice(nav.indexOf("pillDestinations"), nav.indexOf("phoneBarLeft"));
+    expect(pills.match(/\{ to: "\/[a-z]+", label: "[A-Za-z ]+", icon: \w+ \}/g)).toHaveLength(7);
   });
 
   it("is a real route inside the signed-in layout", () => {

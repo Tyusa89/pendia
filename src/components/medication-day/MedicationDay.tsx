@@ -25,8 +25,15 @@ export function MedicationDay({
   me: { id: string; role: string; can_see_meds: boolean };
   /** kept for callers; dose times are edited on each medication card */
   medications?: { id: string; name: string }[];
-  /** when given, each medication's doses for the day are placed inside that medication's own card (grouped by id) */
-  renderMedications?: (dosesFor: (medicationId: string) => ReactNode) => ReactNode;
+  /**
+   * When given, the page is laid out as two columns: the medication-day card (date, doses) on the left and whatever this
+   * returns on the right (medication list and dose times). `hasDosesFor` / `anyDoses` say what the day really holds, so
+   * empty states are accurate; nothing is invented here.
+   */
+  renderMedications?: (
+    dosesFor: (medicationId: string) => ReactNode,
+    day: { ready: boolean; anyDoses: boolean; hasDosesFor: (medicationId: string) => boolean },
+  ) => { left?: ReactNode; right: ReactNode };
 }) {
   const qc = useQueryClient();
   const isOrganizer = me.role === "organizer";
@@ -123,7 +130,9 @@ export function MedicationDay({
     <div className="grid items-start gap-4 md:grid-cols-2">{list.map((o) => card(o, false))}</div>
   );
   const listed = new Set((medications ?? []).map((m) => m.id));
-  const ready = !unavailable && !occ.isLoading && !occ.error;
+  // "Ready" means the dose service answered successfully. A disabled query (this person cannot see medications) or a
+  // loading, errored or unavailable one is not ready, so no "nothing scheduled" message may be drawn from it.
+  const ready = !unavailable && occ.isSuccess;
   const dosesFor = (medicationId: string): ReactNode => {
     if (!ready) return null;
     const mine = (occ.data ?? []).filter((o) => o.medication_id === medicationId);
@@ -134,49 +143,62 @@ export function MedicationDay({
   // doses whose medication isn't on the list stay visible on their own
   const orphans = (occ.data ?? []).filter((o) => !listed.has(o.medication_id));
 
-  return (
-    <section
-      className={`mb-6 space-y-4 ${renderMedications ? "" : "max-w-4xl"}`}
-      aria-labelledby="med-day-title"
-    >
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 id="med-day-title" className="text-2xl font-semibold">
-          Medication day
-        </h2>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            aria-label="Previous day"
-            onClick={() => setDay(addDays(day, -1))}
-          >
-            ←
-          </Button>
-          <span className="min-w-28 text-center font-semibold">
-            {day === today ? "Today" : day}
-          </span>
-          <Button variant="outline" aria-label="Next day" onClick={() => setDay(addDays(day, 1))}>
-            →
-          </Button>
-        </div>
+  const anyDoses = (occ.data ?? []).length > 0;
+  const hasDosesFor = (medicationId: string) => (occ.data ?? []).some((o) => o.medication_id === medicationId);
+  const parts = renderMedications?.(dosesFor, { ready, anyDoses, hasDosesFor });
+
+  const header = (
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <h2 id="med-day-title" className="text-2xl">
+        Medication day
+      </h2>
+      <div className="flex items-center gap-2">
+        <Button variant="outline" aria-label="Previous day" onClick={() => setDay(addDays(day, -1))}>
+          ←
+        </Button>
+        <span className="min-w-20 text-center font-brand font-semibold">{day === today ? "Today" : day}</span>
+        <Button variant="outline" aria-label="Next day" onClick={() => setDay(addDays(day, 1))}>
+          →
+        </Button>
       </div>
+    </div>
+  );
+  const status = unavailable ? (
+    <Empty>Dose reporting is not switched on for this family yet.</Empty>
+  ) : occ.isLoading ? (
+    <Empty>Loading dose times…</Empty>
+  ) : occ.error ? (
+    <Empty>{(occ.error as Error).message}</Empty>
+  ) : renderMedications ? (
+    orphans.length > 0 ? (
+      renderGrid(orphans)
+    ) : null
+  ) : (occ.data ?? []).length === 0 ? (
+    <Empty>No dose times on this day.{isOrganizer ? " Add dose times below." : ""}</Empty>
+  ) : (
+    renderGrid(occ.data!)
+  );
 
-      {unavailable ? (
-        <Empty>Dose reporting is not switched on for this family yet.</Empty>
-      ) : occ.isLoading ? (
-        <Empty>Loading dose times…</Empty>
-      ) : occ.error ? (
-        <Empty>{(occ.error as Error).message}</Empty>
-      ) : renderMedications ? (
-        orphans.length > 0 ? (
-          renderGrid(orphans)
-        ) : null
-      ) : (occ.data ?? []).length === 0 ? (
-        <Empty>No dose times on this day.{isOrganizer ? " Add dose times below." : ""}</Empty>
+  return (
+    <section className={`mb-6 ${renderMedications ? "" : "max-w-4xl space-y-4"}`} aria-labelledby="med-day-title">
+      {renderMedications ? (
+        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+          <Panel className="min-w-0 space-y-4">
+            {header}
+            <p className="font-brand text-xs font-bold uppercase tracking-[0.08em] text-[#5e4f82]">
+              {new Date(`${day}T12:00:00Z`).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" })}
+            </p>
+            {status}
+            {parts?.left}
+          </Panel>
+          <div className="min-w-0 space-y-5">{parts?.right}</div>
+        </div>
       ) : (
-        renderGrid(occ.data!)
+        <>
+          {header}
+          {status}
+        </>
       )}
-
-      {renderMedications?.(dosesFor)}
 
       {historyFor && (
         <Panel className="space-y-2" aria-label="History">
