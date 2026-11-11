@@ -51,10 +51,11 @@ function Meds({
   const qc = useQueryClient();
   const isOrganizer = me.role === "organizer";
   const today = dateInZone(new Date(), timeZone);
-  const { data = [] } = useQuery({
+  const medsQuery = useQuery({
     queryKey: ["meds", familyId],
     queryFn: () => medicationService.list(familyId),
   });
+  const data = medsQuery.data ?? [];
   const schedKey = ["dose-schedules", familyId] as const;
   const schedules = useQuery({
     queryKey: schedKey,
@@ -317,10 +318,11 @@ function Meds({
         me={me}
         medications={data.map((m) => ({ id: m.id, name: m.name }))}
         renderMedications={(dosesFor, day) => ({
-          left:
-            data.length === 0 ? (
+          // Only a successful, ready dose result may say anything about the day; loading, error and unavailable
+          // states are shown by the card itself.
+          left: !day.ready ? null : data.length === 0 ? (
               <Empty>No medications listed.</Empty>
-            ) : day.ready && !day.anyDoses ? (
+            ) : !day.anyDoses ? (
               <Empty>No doses scheduled on this day.</Empty>
             ) : (
               data
@@ -338,7 +340,9 @@ function Meds({
             <>
               <Panel aria-label="Medication list" className="space-y-3">
                 <h2 className="text-xl">Medications</h2>
-                {data.length === 0 ? (
+                {!medsQuery.isSuccess ? (
+                  <Empty>{medsQuery.isError ? "The medication list could not be loaded." : "Loading medications…"}</Empty>
+                ) : data.length === 0 ? (
                   <Empty>No medications listed.</Empty>
                 ) : (
                   <ul className="divide-y divide-border">

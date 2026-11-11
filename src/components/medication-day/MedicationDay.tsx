@@ -130,7 +130,9 @@ export function MedicationDay({
     <div className="grid items-start gap-4 md:grid-cols-2">{list.map((o) => card(o, false))}</div>
   );
   const listed = new Set((medications ?? []).map((m) => m.id));
-  const ready = !unavailable && !occ.isLoading && !occ.error;
+  // "Ready" means the dose service answered successfully. A disabled query (this person cannot see medications) or a
+  // loading, errored or unavailable one is not ready, so no "nothing scheduled" message may be drawn from it.
+  const ready = !unavailable && occ.isSuccess;
   const dosesFor = (medicationId: string): ReactNode => {
     if (!ready) return null;
     const mine = (occ.data ?? []).filter((o) => o.medication_id === medicationId);
