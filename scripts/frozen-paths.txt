@@ -1,0 +1,16 @@
+# Frozen paths for the application redesign (see docs/design/app-redesign-frozen-files.md).
+# One path or glob per line. A trailing "/**" or "/*" matches everything below that directory.
+# Document Upload components, services and tests:
+src/components/DocumentUploadFlow.tsx
+src/components/AppointmentDocumentLink.tsx
+src/routes/_authenticated/visits.upload.tsx
+src/services/documents.ts
+src/lib/doc-upload/**
+src/server/doc-extract.server.ts
+src/server/doc-extract-source.server.ts
+src/test/doc-upload-*
+src/test/doc-extract-server.test.ts
+src/test/appointment-document-link.test.tsx
+docs/design/document-upload.md
+# Database, migrations, policies and SQL tests:
+supabase/**

@@ -1,0 +1,51 @@
+section [data-testid=uploaded-document]
+  p
+    text "Uploaded document"
+  p [data-testid=uploaded-document-name]
+    text "letter.pdf"
+  p
+    text "PDF"
+    text "·"
+    text "1 KB"
+    text "· stored privately. It is attached to the appointment when you press "Add appointment" below, and removed if you cancel."
+  button "View uploaded document" [type=button]
+p [role=status data-testid=doc-notice]
+  text "Simulated sample: this is built-in example text, not a reading of your document. Check every field against the document."
+p
+  text "Nothing is added to the schedule until you press the button below."
+form
+  label
+  input "Starts" [type=datetime-local required value=2026-11-12T10:30]
+  p
+    text "Times are in your family's timezone ("
+    text "America/Chicago"
+    text ")."
+  p [data-testid=hint-extracted]
+    text "Read from your document. Please check it."
+  label
+  input "Ends (optional)" [type=datetime-local]
+  label
+  input "Doctor or provider" [value=Dr. Alma Reyes (fictional)]
+  p [data-testid=hint-extracted]
+    text "Read from your document. Please check it."
+  label
+  input "Office or clinic name"
+  label
+  textarea "Office address" [value=Maple Grove Family Clinic, 100 Example Street, Springfield (fictional)]
+    text "Maple Grove Family Clinic, 100 Example Street, Springfield (fictional)"
+  p [data-testid=hint-unclear]
+    text "Hard to read in the document. Please check it carefully."
+  label
+  input "Office phone" [type=tel]
+  p
+    text "Not set. This appointment will show as incomplete until it is filled in."
+  label
+  input "Reason for the visit"
+  label
+  textarea "Notes" [value=Bring your medication list. Arrive 15 minutes early.]
+    text "Bring your medication list. Arrive 15 minutes early."
+  p [data-testid=hint-extracted]
+    text "Read from your document. Please check it."
+  label
+  button "Add appointment" [type=submit]
+  button "Cancel" [type=button]

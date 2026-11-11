@@ -48,3 +48,9 @@ timings*.json
 adapter*.local.json
 .env.local
 .env.*.local
+
+# Browser harness output (reviewed as PR/CI artifacts, never committed)
+/test-results/
+/playwright-report/
+/visual-artifacts/
+/vitest-results.json

@@ -1,0 +1,3 @@
+button "View document" [type=button]
+p [role=alert]
+  text "Couldn't open the document. Please try again."

@@ -1,0 +1,2 @@
+p
+  text "Only the organizer can add appointments."

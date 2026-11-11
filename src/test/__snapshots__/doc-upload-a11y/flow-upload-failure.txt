@@ -1,0 +1,8 @@
+label
+input "Appointment letter (PDF, JPG or PNG, up to 10 MB)" [type=file accept=application/pdf,image/jpeg,image/png]
+p
+  text "Your document is stored privately and only family members who can see appointments can open it."
+  text "Reading is simulated for testing: example text will be shown, not your document's."
+p [role=alert]
+  text "We couldn't store that document. Nothing was saved. You can try again or add the appointment by hand."
+button "Cancel" [type=button]

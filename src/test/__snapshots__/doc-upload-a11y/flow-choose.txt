@@ -1,0 +1,6 @@
+label
+input "Appointment letter (PDF, JPG or PNG, up to 10 MB)" [type=file accept=application/pdf,image/jpeg,image/png]
+p
+  text "Your document is stored privately and only family members who can see appointments can open it."
+  text "Automatic reading is not switched on, so you will enter the details yourself."
+button "Cancel" [type=button]

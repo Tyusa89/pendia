@@ -1,0 +1,8 @@
+button "View document" [type=button]
+div [data-testid=document-actions]
+  a "Open in new tab" [target=_blank rel=noopener noreferrer href]
+  button "Preview here" [type=button]
+  button "Download" [type=button]
+  p
+    text "appointment-letter.pdf"
+    text "· this private link works for a few minutes."
