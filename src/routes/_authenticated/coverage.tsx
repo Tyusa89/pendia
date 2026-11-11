@@ -24,7 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { PageTitle, WithFamily } from "@/components/AppShell";
+import { WithFamily } from "@/components/AppShell";
 import { useMembers } from "@/hooks/use-family";
 import {
   BLOCKS,
@@ -172,24 +172,46 @@ function Coverage({ me, family }: { me: Member; family: Family }) {
 
   return (
     <>
-      <PageTitle title="Coverage" subtitle={coverageSummary(shifts)} action={organizer && <Button variant="outline" onClick={() => newShift()}><Plus /> Add shift</Button>} />
-      <p className="-mt-2 mb-4 text-muted-foreground">{NO_REQUIREMENTS_NOTE}</p>
-      {todayShifts.length > 0 && <section aria-label="Today's coverage" className="mb-5 space-y-3">
-        <h2 className="font-sans text-sm font-bold uppercase text-muted-foreground">Today · {new Date(`${today}T12:00:00Z`).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" })}</h2>
-        {todayShifts.map((s) => {
-          const who = members.find((m) => m.id === s.assigned_member_id);
-          const now = Date.now() >= Date.parse(s.start) && Date.now() < Date.parse(s.end);
-          return <article key={s.id} className={`space-y-3 rounded-[var(--radius-card)] p-5 shadow-card ${who ? "bg-card" : "border border-dashed border-unassigned-foreground/60 bg-unassigned text-unassigned-foreground"}`}>
-            <div className="flex items-center justify-between gap-3"><p><strong>{time(s.start)}–{time(s.end)}</strong></p>{now && <span className="shrink-0 rounded-full bg-success px-3 py-1 text-sm font-bold text-success-foreground">Now</span>}</div>
-            {who ? <div className="flex items-center gap-3"><span className="grid size-11 shrink-0 place-items-center rounded-full bg-secondary font-bold text-secondary-foreground">{initials(who.name)}</span><p className="font-bold">{who.name}</p>{organizer && <Button variant="ghost" className="ml-auto text-primary" onClick={() => openShift(s)}>Edit</Button>}</div> : <><p className="font-bold">Nobody is covering yet</p><Button className="w-full" disabled={claim.isPending} onClick={() => claim.mutate(s.id)}>I'll cover it</Button></>}
-          </article>;
-        })}
-      </section>}
-      <section aria-label="Leaving soon" className="mb-5 space-y-2 rounded-[var(--radius-card)] bg-accent p-5">
-        <h2 className="font-sans text-base font-bold">Leaving soon?</h2>
-        <p>A quick handoff tells the next person how she's doing.</p>
-        <Button asChild size="lg" className="w-full"><Link to="/handoffs">Hand off my shift</Link></Button>
-      </section>
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
+        <div className="min-w-0">
+          <h1 className="text-[1.75rem] leading-tight md:text-4xl">Coverage</h1>
+          <p className="mt-1 text-muted-foreground">{coverageSummary(shifts)}</p>
+          <p className="mt-1 text-[0.9412rem] text-muted-foreground">{NO_REQUIREMENTS_NOTE}</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <div role="group" aria-label="Calendar view" className="flex gap-1 rounded-full bg-accent p-1">
+            {(["day", "week"] as const).map((v) => (
+              <Button key={v} size="sm" variant="ghost" className={`rounded-full ${layout === v ? "bg-card text-primary shadow-card hover:bg-card" : ""}`} aria-pressed={layout === v} onClick={() => setLayout(v)}>
+                {v === "day" ? "Day" : "Week"}
+              </Button>
+            ))}
+          </div>
+          {organizer && <Button onClick={() => newShift()}><Plus /> Add shift</Button>}
+        </div>
+      </div>
+      <div className={`mb-5 grid items-stretch gap-5 ${todayShifts.length > 0 ? "lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]" : ""}`}>
+        {todayShifts.length > 0 && <section aria-label="Today's coverage" className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-brand text-sm font-bold uppercase tracking-[0.08em] text-[#5e4f82]">Today · {new Date(`${today}T12:00:00Z`).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" })}</h2>
+            <span className="rounded-full bg-secondary px-3 py-1 text-sm font-bold text-secondary-foreground">Scheduled</span>
+          </div>
+          {todayShifts.map((s) => {
+            const who = members.find((m) => m.id === s.assigned_member_id);
+            const now = Date.now() >= Date.parse(s.start) && Date.now() < Date.parse(s.end);
+            return <article key={s.id} className={`space-y-3 rounded-[var(--radius-card)] p-5 shadow-card ${who ? "bg-card" : "border border-dashed border-unassigned-foreground/60 bg-unassigned text-unassigned-foreground"}`}>
+              <div className="flex items-center justify-between gap-3"><p><strong>{time(s.start)}–{time(s.end)}</strong></p>{now && <span className="shrink-0 rounded-full bg-secondary px-3 py-1 text-sm font-bold text-secondary-foreground">Scheduled now</span>}</div>
+              {who ? <div className="flex items-center gap-3"><span className="grid size-11 shrink-0 place-items-center rounded-full bg-secondary font-bold text-secondary-foreground">{initials(who.name)}</span><p className="font-bold">{who.name}</p>{organizer && <Button variant="ghost" className="ml-auto text-primary" onClick={() => openShift(s)}>Edit</Button>}</div> : <><p className="font-bold">Nobody is covering yet</p><Button className="w-full" disabled={claim.isPending} onClick={() => claim.mutate(s.id)}>I'll cover it</Button></>}
+            </article>;
+          })}
+          <p className="text-sm text-muted-foreground">Shows who is on the calendar, not who is present.</p>
+        </section>}
+        <section aria-label="Leaving soon" className="flex flex-col justify-center space-y-3 rounded-[var(--radius-card)] bg-secondary p-5 text-secondary-foreground">
+          <h2 className="font-sans text-xl font-bold">Leaving soon?</h2>
+          <p>A quick handoff tells the next person how she's doing.</p>
+          <Button asChild size="lg" className="w-full sm:w-fit"><Link to="/handoffs">Hand off my shift <ChevronRight /></Link></Button>
+          <p className="text-sm text-muted-foreground">Opens the Handoffs page.</p>
+        </section>
+      </div>
       <section aria-label="This week" className="space-y-4 rounded-[var(--radius-card)] bg-card p-5 shadow-card">
       <div className="mb-3 flex items-center justify-between gap-2">
         <Button size="icon" variant="ghost" onClick={() => { setMonday(shiftWeek(monday, -1)); setSelectedDay(addDays(selected, -7)); }} aria-label="Previous week">
@@ -208,14 +230,7 @@ function Coverage({ me, family }: { me: Member; family: Family }) {
         </Button>
       </div>
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-[0.9412rem] text-muted-foreground">Times are in {timeZoneLabel(tz)}.</p>
-          <div role="group" aria-label="Calendar view" className="flex gap-1">
-            {(["day", "week"] as const).map((v) => (
-              <Button key={v} size="sm" variant={layout === v ? "default" : "outline"} aria-pressed={layout === v} onClick={() => setLayout(v)}>
-                {v === "day" ? "Day" : "Week"}
-              </Button>
-            ))}
-          </div>
+          <p className="text-[0.9412rem] text-muted-foreground">Times are in {timeZoneLabel(tz)}. Unscheduled time is shaded.</p>
         </div>
         {layout === "day" && (
           <div className="space-y-2">
