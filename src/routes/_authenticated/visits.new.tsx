@@ -9,11 +9,13 @@ export const Route = createFileRoute("/_authenticated/visits/new")({
       { name: "description", content: "Add a doctor appointment." }, { property: "og:title", content: "New appointment — Pendia" }, { property: "og:description", content: "Add a doctor appointment." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
+  validateSearch: (s: Record<string, unknown>): { doc?: string } => (typeof s["doc"] === "string" ? { doc: s["doc"] } : {}),
   component: NewAppointment,
 });
 
 function NewAppointment() {
   const navigate = useNavigate();
+  const { doc } = Route.useSearch();
   return (
     <WithFamily>
       {({ family, me }) => (
@@ -26,6 +28,7 @@ function NewAppointment() {
             familyId={family.id}
             timeZone={family.timezone}
             canWrite={me.role === "organizer"}
+            {...(doc ? { documentPath: doc } : {})}
             onDone={(id) => navigate({ to: "/visits/$id", params: { id } })}
             onCancel={() => navigate({ to: "/visits" })}
           />

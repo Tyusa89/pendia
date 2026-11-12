@@ -31,6 +31,7 @@ export type Shift = Tables<"shift">;
 export type Handoff = Tables<"handoff">;
 export type Digest = Tables<"digest">;
 /** One diarized turn. `speaker` is the anonymous session-scoped label ("A", "B", …). */
+export type PendingMemberDocument = { path: string; uploader_member_id: string; uploader_name: string; created_at: string };
 export type TranscriptLine = { speaker: string; start_s: number; end_s: number; text: string; unclear?: boolean };
 
 function ok<T>(res: { data: T; error: { message: string } | null }): NonNullable<T> {
@@ -156,6 +157,10 @@ const liveVisitService = {
       supabase.from("watch_item").select("*").eq("source_visit_id", id).order("created_at"),
     ]);
     return { visit, changes: ok(changes), tasks: ok(tasks), watch: ok(watch) };
+  },
+  /** Organizer only (the function returns nothing to anyone else): documents a family member uploaded that no appointment references yet. */
+  async pendingMemberDocuments(familyId: string) {
+    return ok(await supabase.rpc("pending_member_documents", { p_family: familyId })) as PendingMemberDocument[];
   },
   // ---- appointments (V1): the same `visit` rows; RLS is unchanged (organizer writes, members read per can_see_visits) ----
   async createAppointment(familyId: string, a: AppointmentInput) {
@@ -417,6 +422,7 @@ export const familyService = withJudgeDemo(liveFamilyService, {
 export const medicationService = withJudgeDemo(liveMedicationService, { list: (fid: string) => { const d = judgeDemoData(); return fid === d.family.id ? d.medications : []; } });
 export const visitService = withJudgeDemo(liveVisitService, {
   list: (fid: string) => { const d = judgeDemoData(); return fid === d.family.id ? d.visits : []; },
+  pendingMemberDocuments: () => [],
   get: (id: string) => { const visit = judgeDemoData().visits.find(v => v.id === id); if (!visit) throw new Error("Appointment not found."); return { visit, changes: [], tasks: [], watch: [] }; },
 });
 export const shiftService = withJudgeDemo(liveShiftService, {

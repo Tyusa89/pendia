@@ -5,7 +5,7 @@ import { JUDGE_DEMO_FAMILY_ID as fid, JUDGE_DEMO_USER_ID } from "./judge-demo";
 export function judgeDemoData(now = new Date()) {
   const created_at = "2026-10-29T12:00:00Z";
   const family: Tables<"family"> = { id: fid, name: "Pendia Hackathon — Fictional Demo Family", is_demo: true, timezone: "America/Chicago", created_by: null, created_at };
-  const member = (id: string, name: string, role: string, phone: string | null): Tables<"member"> => ({ id, family_id: fid, name, role, phone, language: "en", user_id: null, can_see_meds: true, can_see_schedule: true, can_see_visits: true, created_at });
+  const member = (id: string, name: string, role: string, phone: string | null): Tables<"member"> => ({ id, family_id: fid, name, role, phone, language: "en", user_id: null, can_see_meds: true, can_see_schedule: true, can_see_visits: true, can_upload_documents: false, created_at });
   const members = [member("demo-elena", "Elena", "organizer", "+12125550101"), member("demo-marco", "Marco", "member", "+12125550102"), member("demo-lucia", "Lucía", "member", "+12125550103")];
   const me = { ...member("demo-judge", "Demo Caregiver", "member", null), user_id: JUDGE_DEMO_USER_ID };
   const recipient: Tables<"care_recipient"> = { id: "demo-rosa", family_id: fid, name: "Grandma Rosa", notes: "Fictional care recipient. Enjoys gardening and afternoon walks.", created_at };

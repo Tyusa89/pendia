@@ -117,6 +117,22 @@ export function MemberRow({ m, editable, defaultOpen = true }: { m: Member; edit
               {k === "can_see_meds" ? "Medications" : k === "can_see_schedule" ? "Coverage schedule" : "Doctor visits & recordings"}
             </label>
           ))}
+          {m.role === "member" && (
+            <label className="flex min-h-[3.25rem] flex-row-reverse items-center justify-between gap-3 text-[0.9412rem] font-medium">
+              <Switch
+                checked={m.can_upload_documents}
+                disabled={!editable || upd.isPending}
+                onCheckedChange={(v) => upd.mutate({ can_upload_documents: v })}
+                aria-describedby={`upload-hint-${m.id}`}
+              />
+              <span>
+                Upload appointment documents
+                <span id={`upload-hint-${m.id}`} className="block text-sm font-normal text-muted-foreground">
+                  They upload; an organizer reviews and saves the appointment.
+                </span>
+              </span>
+            </label>
+          )}
         </div>
       )}
     </Panel>

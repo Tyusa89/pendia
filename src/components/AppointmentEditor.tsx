@@ -11,6 +11,7 @@ export function AppointmentEditor({
   timeZone,
   canWrite,
   appointmentId,
+  documentPath,
   onDone,
   onCancel,
 }: {
@@ -18,6 +19,8 @@ export function AppointmentEditor({
   timeZone: string;
   canWrite: boolean;
   appointmentId?: string;
+  /** A stored document to attach when a NEW appointment is created (an organizer confirming a member's upload). */
+  documentPath?: string;
   onDone: (id: string) => void;
   onCancel: () => void;
 }) {
@@ -32,7 +35,7 @@ export function AppointmentEditor({
     mutationFn: (input: AppointmentInput) =>
       appointmentId
         ? visitService.updateAppointment(appointmentId, input)
-        : visitService.createAppointment(familyId, input),
+        : visitService.createAppointment(familyId, documentPath ? { ...input, document_path: documentPath } : input),
     onSuccess: async (row) => {
       await Promise.all([
         qc.invalidateQueries({ queryKey: ["visits", familyId] }),
