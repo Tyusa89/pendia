@@ -151,6 +151,13 @@ describe("organizer switch on a member card", () => {
     });
     expect(updateMember).toHaveBeenCalledWith("mem-a", { can_upload_documents: true });
   });
+  it("the upload switch is a full-height touch target (44px or more), unlike the older 32px switches", () => {
+    render(wrap(<MemberRow m={member() as never} editable />));
+    expect(screen.getByRole("switch", { name: /Upload appointment documents/ }).className).toMatch(
+      /\bh-11\b/,
+    );
+    expect(screen.getByRole("switch", { name: /Medications/ }).className).toMatch(/\bh-8\b/); // older switches deliberately unchanged
+  });
   it("a non-organizer sees the state but cannot change it", () => {
     render(
       wrap(<MemberRow m={member({ can_upload_documents: true }) as never} editable={false} />),

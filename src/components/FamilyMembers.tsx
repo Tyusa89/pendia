@@ -120,6 +120,7 @@ export function MemberRow({ m, editable, defaultOpen = true }: { m: Member; edit
           {m.role === "member" && (
             <label className="flex min-h-[3.25rem] flex-row-reverse items-center justify-between gap-3 text-[0.9412rem] font-medium">
               <Switch
+                size="touch"
                 checked={m.can_upload_documents}
                 disabled={!editable || upd.isPending}
                 onCheckedChange={(v) => upd.mutate({ can_upload_documents: v })}
