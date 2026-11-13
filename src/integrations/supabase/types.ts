@@ -818,22 +818,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      appt_doc_can_delete: {
+        Args: { p: string; uploader: string }
+        Returns: boolean
+      }
       appt_doc_can_read: {
         Args: { p: string; uploader: string }
         Returns: boolean
       }
+      appt_doc_can_upload: { Args: { p: string }; Returns: boolean }
       appt_doc_can_write: { Args: { p: string }; Returns: boolean }
       appt_doc_is_attached: { Args: { p: string }; Returns: boolean }
-      appt_doc_can_upload: { Args: { p: string }; Returns: boolean }
+      appt_doc_is_granted_member: { Args: { fam: string }; Returns: boolean }
       appt_doc_path_family: { Args: { p: string }; Returns: string }
-      pending_member_documents: {
-        Args: { p_family: string }
-        Returns: {
-          path: string
-          uploader_member_id: string
-          uploader_name: string
-          created_at: string
-        }[]
+      appt_doc_uploader_is_member: {
+        Args: { p: string; uploader: string }
+        Returns: boolean
       }
       dose_occurrences: {
         Args: { _family_id: string; _from: string; _to: string }
@@ -907,6 +907,15 @@ export type Database = {
       member_can_see: {
         Args: { _family_id: string; _what: string }
         Returns: boolean
+      }
+      pending_member_documents: {
+        Args: { p_family: string }
+        Returns: {
+          created_at: string
+          path: string
+          uploader_member_id: string
+          uploader_name: string
+        }[]
       }
       recording_can_read: { Args: { p: string }; Returns: boolean }
       recording_can_write: { Args: { p: string }; Returns: boolean }
