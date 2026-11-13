@@ -468,6 +468,7 @@ export type Database = {
           can_see_meds: boolean
           can_see_schedule: boolean
           can_see_visits: boolean
+          can_upload_documents: boolean
           created_at: string
           family_id: string
           id: string
@@ -481,6 +482,7 @@ export type Database = {
           can_see_meds?: boolean
           can_see_schedule?: boolean
           can_see_visits?: boolean
+          can_upload_documents?: boolean
           created_at?: string
           family_id: string
           id?: string
@@ -494,6 +496,7 @@ export type Database = {
           can_see_meds?: boolean
           can_see_schedule?: boolean
           can_see_visits?: boolean
+          can_upload_documents?: boolean
           created_at?: string
           family_id?: string
           id?: string
@@ -821,7 +824,17 @@ export type Database = {
       }
       appt_doc_can_write: { Args: { p: string }; Returns: boolean }
       appt_doc_is_attached: { Args: { p: string }; Returns: boolean }
+      appt_doc_can_upload: { Args: { p: string }; Returns: boolean }
       appt_doc_path_family: { Args: { p: string }; Returns: string }
+      pending_member_documents: {
+        Args: { p_family: string }
+        Returns: {
+          path: string
+          uploader_member_id: string
+          uploader_name: string
+          created_at: string
+        }[]
+      }
       dose_occurrences: {
         Args: { _family_id: string; _from: string; _to: string }
         Returns: {

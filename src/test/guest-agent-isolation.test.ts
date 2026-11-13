@@ -113,6 +113,10 @@ describe("the audited member path and protected modules are not edited by this w
       "supabase/migrations/20261029000001_appointment_documents.sql",
       "supabase/tests/appointment-docs.test.sql",
       "supabase/tests/scratch/validate-document-upload-isolated.sh",
+      // Family-member upload capability (reviewed separately; not applied by this work): its migration, SQL test and scratch stand-in.
+      "supabase/migrations/20261112000001_member_upload_capability.sql",
+      "supabase/tests/member-upload-capability.test.sql",
+      "supabase/tests/scratch/storage-standin.sql",
     ]);
     const added = git("diff", "origin/main...HEAD", "--", "package.json")
       .filter((l) => l.startsWith("+") && !l.startsWith("+++"))
