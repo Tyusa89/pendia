@@ -115,6 +115,19 @@ function Landing() {
         </div>
       </section>
 
+      <section aria-labelledby="banner-title" className="bg-pd-sand">
+        <h2 id="banner-title" className="sr-only">
+          What Pendia keeps together
+        </h2>
+        <img
+          src={heroImage.url}
+          alt="A grandmother in a lilac cardigan sits at a table with her adult son, daughter, and granddaughter. Alongside them, cards list voice notes, documents, appointments, medications, and family updates."
+          width={1536}
+          height={1024}
+          className="mx-auto block h-auto w-full max-w-[1400px]"
+        />
+      </section>
+
       <section aria-labelledby="quick-title" className="bg-pd-beige py-14 md:py-[72px]">
         <div className={cn(wrap, "flex flex-col gap-8")}>
           <h2
