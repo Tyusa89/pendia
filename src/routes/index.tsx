@@ -2,8 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { CalendarDays, FileText, Users } from "lucide-react";
 import { TryPendiaDemo } from "@/components/TryPendiaDemo";
 import { SiteLayout } from "@/components/site/SiteLayout";
-import { btn, Eyebrow, H2, PhotoSlot, focusRing } from "@/components/site/parts";
+import { btn, Eyebrow, H2, focusRing } from "@/components/site/parts";
 import { cn } from "@/lib/utils";
+import heroImage from "@/assets/pendia-family-caregiving-connection.jpg.asset.json";
 
 const DESCRIPTION =
   "Keep your family connected around appointments, important updates, documents, and everyday caregiving responsibilities, all in one place.";
@@ -87,7 +88,15 @@ function Landing() {
   return (
     <SiteLayout>
       <section aria-labelledby="hero-title" className="flex flex-col lg:flex-row">
-        <PhotoSlot className="min-h-[240px] md:min-h-[320px] lg:min-h-[420px] lg:flex-1" />
+        <div className="relative min-h-[240px] overflow-hidden bg-pd-sand md:min-h-[320px] lg:min-h-[420px] lg:flex-1">
+          <img
+            src={heroImage.url}
+            alt="A grandmother in a lilac cardigan sits at a table with her adult son, daughter, and granddaughter, beside cards for voice notes, documents, appointments, medications, and family updates."
+            width={1536}
+            height={1024}
+            className="absolute inset-0 size-full object-cover"
+          />
+        </div>
         <div className="flex flex-col justify-center gap-6 bg-pd-slate px-5 py-12 text-white md:px-12 md:py-16 lg:flex-1 lg:px-[72px] lg:py-[88px]">
           <div className="text-sm font-semibold uppercase tracking-[0.08em] text-pd-lilac">
             Family caregiver coordination
