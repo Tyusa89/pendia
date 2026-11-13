@@ -9,7 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Empty, Panel } from "@/components/AppShell";
-import { familyService, type Member } from "@/services";
+import { MemberInvite } from "@/components/MemberInvite";
+import { SEND_MESSAGES, looksLikeEmail } from "@/lib/invitations";
+import { familyService, inviteService, type Member } from "@/services";
 
 export const initials = (name: string) => name.split(/\s+/).slice(0, 2).map((part) => part[0]).join("");
 
@@ -136,6 +138,7 @@ export function MemberRow({ m, editable, defaultOpen = true }: { m: Member; edit
           )}
         </div>
       )}
+      {editable && m.role === "member" && !m.user_id && <MemberInvite m={m} />}
     </Panel>
   );
 }
@@ -144,6 +147,7 @@ export function Invite({ familyId }: { familyId: string }) {
   const qc = useQueryClient();
   const empty = {
     name: "",
+    email: "",
     phone: "",
     language: "en",
     role: "member",
@@ -153,14 +157,24 @@ export function Invite({ familyId }: { familyId: string }) {
   };
   const [f, setF] = useState(empty);
   const add = useMutation({
-    mutationFn: () => familyService.addMember({ ...f, family_id: familyId }),
-    onSuccess: () => {
+    mutationFn: async () => {
+      const { email, ...row } = f;
+      const created = await familyService.addMember({ ...row, family_id: familyId });
+      // with an email (Member role): also send the invitation. The member row exists either way.
+      const invite = email.trim() && f.role === "member" ? await inviteService.send(created.id, email.trim()) : null;
+      return { invite };
+    },
+    onSuccess: ({ invite }) => {
       setF(empty);
       qc.invalidateQueries({ queryKey: ["members", familyId] });
-      toast.success("Member added");
+      qc.invalidateQueries({ queryKey: ["family-invites", familyId] });
+      if (!invite) toast.success("Member added");
+      else if (invite.code === "sent") toast.success("Member added and invitation sent");
+      else toast.error(`Member added. ${SEND_MESSAGES[invite.code]}`);
     },
     onError: (e) => toast.error((e as Error).message),
   });
+  const emailBad = f.email.trim() !== "" && !looksLikeEmail(f.email);
   return (
     <Panel className="space-y-4">
       <h2 className="flex items-center gap-2 text-xl"><UserRoundPlus className="size-5 text-primary" /> Invite a member</h2>
@@ -169,6 +183,18 @@ export function Invite({ familyId }: { familyId: string }) {
         value={f.name}
         onChange={(e) => setF({ ...f, name: e.target.value })}
       />
+      <Input
+        aria-label="Email for the invitation"
+        placeholder="Email (optional) — we send a secure sign-in link"
+        type="email"
+        autoComplete="off"
+        value={f.email}
+        onChange={(e) => setF({ ...f, email: e.target.value })}
+      />
+      {f.email.trim() !== "" && f.role === "organizer" && (
+        <p role="note" className="text-sm text-muted-foreground">Invitations are for the Member role. Add them as a Member, then change their role after they join.</p>
+      )}
+      {emailBad && <p role="alert" className="text-sm font-semibold text-destructive">Enter a valid email address.</p>}
       <Input
         placeholder="Phone, e.g. (212) 555-0102"
         type="tel"
@@ -203,11 +229,11 @@ export function Invite({ familyId }: { familyId: string }) {
           </label>
         ))}
       </div>
-      <Button className="w-full" disabled={!f.name || add.isPending} onClick={() => add.mutate()}>
-        Add to family
+      <Button className="w-full" disabled={!f.name || emailBad || add.isPending} onClick={() => add.mutate()}>
+        {f.email.trim() && f.role === "member" ? "Add and send invitation" : "Add to family"}
       </Button>
       <p className="text-sm text-muted-foreground">
-        Text invites come later — for now they're added to your team list.
+        Without an email, they're only added to your team list. Text invitations come later.
       </p>
     </Panel>
   );

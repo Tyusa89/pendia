@@ -16,6 +16,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as DemoRouteImport } from './routes/demo'
 import { Route as DemoMedsRouteImport } from './routes/demo-meds'
+import { Route as InviteRouteImport } from './routes/invite'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as TermsRouteImport } from './routes/terms'
@@ -68,6 +69,11 @@ const DemoRoute = DemoRouteImport.update({
 const DemoMedsRoute = DemoMedsRouteImport.update({
   id: '/demo-meds',
   path: '/demo-meds',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InviteRoute = InviteRouteImport.update({
+  id: '/invite',
+  path: '/invite',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PricingRoute = PricingRouteImport.update({
@@ -178,6 +184,7 @@ export interface FileRoutesByFullPath {
   '/contact': typeof ContactRoute
   '/demo': typeof DemoRoute
   '/demo-meds': typeof DemoMedsRoute
+  '/invite': typeof InviteRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
@@ -205,6 +212,7 @@ export interface FileRoutesByTo {
   '/contact': typeof ContactRoute
   '/demo': typeof DemoRoute
   '/demo-meds': typeof DemoMedsRoute
+  '/invite': typeof InviteRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
@@ -234,6 +242,7 @@ export interface FileRoutesById {
   '/contact': typeof ContactRoute
   '/demo': typeof DemoRoute
   '/demo-meds': typeof DemoMedsRoute
+  '/invite': typeof InviteRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
@@ -263,6 +272,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/demo'
     | '/demo-meds'
+    | '/invite'
     | '/pricing'
     | '/privacy'
     | '/terms'
@@ -290,6 +300,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/demo'
     | '/demo-meds'
+    | '/invite'
     | '/pricing'
     | '/privacy'
     | '/terms'
@@ -318,6 +329,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/demo'
     | '/demo-meds'
+    | '/invite'
     | '/pricing'
     | '/privacy'
     | '/terms'
@@ -347,6 +359,7 @@ export interface RootRouteChildren {
   ContactRoute: typeof ContactRoute
   DemoRoute: typeof DemoRoute
   DemoMedsRoute: typeof DemoMedsRoute
+  InviteRoute: typeof InviteRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
@@ -401,6 +414,13 @@ declare module '@tanstack/react-router' {
       path: '/demo-meds'
       fullPath: '/demo-meds'
       preLoaderRoute: typeof DemoMedsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invite': {
+      id: '/invite'
+      path: '/invite'
+      fullPath: '/invite'
+      preLoaderRoute: typeof InviteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pricing': {
@@ -588,6 +608,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContactRoute: ContactRoute,
   DemoRoute: DemoRoute,
   DemoMedsRoute: DemoMedsRoute,
+  InviteRoute: InviteRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,

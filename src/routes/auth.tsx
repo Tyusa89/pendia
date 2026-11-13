@@ -22,8 +22,11 @@ export const Route = createFileRoute("/auth")({
     ],
   }),
   // ?mode=up opens the account-creation form (used by every "Get Started" button on the public site).
-  validateSearch: (search: Record<string, unknown>): { mode?: "up" } =>
-    search["mode"] === "up" ? { mode: "up" } : {},
+  // ?redirect=/invite lets the invitation page send an existing password user back after signing in (only that one path is allowed).
+  validateSearch: (search: Record<string, unknown>): { mode?: "up"; redirect?: "/invite" } => ({
+    ...(search["mode"] === "up" ? { mode: "up" as const } : {}),
+    ...(search["redirect"] === "/invite" ? { redirect: "/invite" as const } : {}),
+  }),
   component: AuthPage,
 });
 
@@ -36,7 +39,7 @@ function AuthPage() {
   const [sent, setSent] = useState(false);
   const navigate = useNavigate();
   const switchMode = () =>
-    navigate({ to: "/auth", search: mode === "in" ? { mode: "up" } : {}, replace: true });
+    navigate({ to: "/auth", search: { ...(mode === "in" ? { mode: "up" as const } : {}), ...(search.redirect ? { redirect: search.redirect } : {}) }, replace: true });
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -45,7 +48,7 @@ function AuthPage() {
       if (mode === "in") {
         const { error } = await authService.signIn(email, password);
         if (error) throw error;
-        navigate({ to: "/family" });
+        navigate({ to: search.redirect ?? "/family" });
       } else {
         const { data, error } = await authService.signUp(email, password);
         if (error) throw error;
