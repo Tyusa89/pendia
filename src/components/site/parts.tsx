@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import type { SiteLink } from "@/lib/site";
+import pendiaLogo from "@/assets/pendia-logo.png.asset.json";
 
 export const focusRing =
   "focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-pd-purple";
@@ -26,18 +27,14 @@ export const btn = {
   ),
 };
 
-export function Wordmark({ className, light }: { className?: string; light?: boolean }) {
+export function Wordmark({ className }: { className?: string }) {
   return (
     <Link
       to="/"
-      className={cn(
-        "inline-flex min-h-11 items-center font-brand text-[22px] font-extrabold tracking-tight no-underline",
-        light ? "text-white" : "text-pd-navy",
-        focusRing,
-        className,
-      )}
+      aria-label="Pendia — home"
+      className={cn("inline-flex min-h-11 items-center no-underline", focusRing, className)}
     >
-      Pendia
+      <img src={pendiaLogo.url} alt="Pendia" className="h-8 w-auto" width={1721} height={518} />
     </Link>
   );
 }
