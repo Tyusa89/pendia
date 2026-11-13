@@ -97,13 +97,13 @@ function Landing() {
             className="absolute inset-0 size-full object-cover object-[34%_center]"
           />
         </div>
-        <div className="flex flex-col justify-center gap-6 bg-pd-slate px-5 py-12 text-white md:px-12 md:py-16 lg:flex-1 lg:px-[72px] lg:py-[48px]">
+        <div className="flex flex-col justify-center gap-6 bg-pd-slate px-5 py-12 text-white md:px-12 md:py-16 lg:flex-1 lg:px-[40px] lg:py-[44px]">
           <div className="text-sm font-semibold uppercase tracking-[0.08em] text-pd-lilac">
             Family caregiver coordination
           </div>
           <h1
             id="hero-title"
-            className="max-w-[13em] font-brand text-[34px] font-extrabold leading-[1.08] tracking-[-0.02em] md:text-[44px] lg:text-[54px]"
+            className="max-w-[13em] font-brand text-[34px] font-extrabold leading-[1.08] tracking-[-0.02em] md:text-[44px] lg:text-[44px]"
           >
             Coordinate Care for the People You Love.
           </h1>
