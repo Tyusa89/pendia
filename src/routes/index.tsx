@@ -88,13 +88,13 @@ function Landing() {
   return (
     <SiteLayout>
       <section aria-labelledby="hero-title" className="flex flex-col lg:flex-row">
-        <div className="relative min-h-[240px] overflow-hidden bg-pd-sand md:min-h-[320px] lg:min-h-[420px] lg:flex-1">
+        <div className="relative aspect-[1052/824] w-full overflow-hidden bg-pd-sand lg:aspect-auto lg:min-h-[420px] lg:flex-[1.15]">
           <img
             src={heroPhoto.url}
             alt="A grandmother in a lilac cardigan sits at a table with her adult son, daughter, and granddaughter."
             width={1052}
             height={824}
-            className="absolute inset-0 size-full object-cover"
+            className="absolute inset-0 size-full object-cover object-[34%_center]"
           />
         </div>
         <div className="flex flex-col justify-center gap-6 bg-pd-slate px-5 py-12 text-white md:px-12 md:py-16 lg:flex-1 lg:px-[72px] lg:py-[88px]">
