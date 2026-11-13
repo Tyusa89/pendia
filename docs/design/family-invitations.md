@@ -29,7 +29,8 @@ Status: **implemented in a draft PR; the migration is NOT applied anywhere.** Ap
 | Several families | allowed; the family switcher chooses the active one |
 
 ## Relation to I-1 (`20261022000002_member_access_invites.sql`)
-This replaces I-1's token-based invitation part with a smaller, token-free one. The two define different `family_invite` tables: **do not apply both as they stand**. If I-1 is approved later, its invitation section must first be removed or reconciled. The `member_user_id_guard` function is identical in both.
+This replaces I-1's token-based invitation part with a smaller, token-free one, and the migration runs on either schema.
+`pendia-hackathon-test` was found (schema fingerprint, Nov 13) to already have I-1 applied from the repo text, with Windows line endings in the function bodies (the three differing hashes match the repo's I-1 exactly once line endings are normalised); its `family_invite` is empty. On such a database the migration converts the empty table in place (drops the `token_hash` column and the old one-pending index, replaces two checks), drops the four token-era function signatures and installs the new functions. It stops with an error, changing nothing, if the table has any row. Access windows, member read rules, `member_user_id_guard` logic and `can_upload_documents` are untouched, and an `ended` member row cannot be invited or accept. I-1's "one current family per person" rule is intentionally not carried over: the app now has a family switcher. **Do not apply I-1 after this migration.** Where I-1 is not installed (production), this migration alone creates the invitation part; I-1's access-window part is a separate later decision.
 
 ## Email delivery: not assumed production-ready
 First version uses **Supabase Auth's built-in magic-link email**. Verify before relying on it:

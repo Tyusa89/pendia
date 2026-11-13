@@ -10,9 +10,14 @@
 -- row can only be linked to an account by accept_family_invite (or the family creator adding their own organizer row, or join_demo_family).
 -- A person may belong to several families (the app has a family switcher). Existing member permissions (can_see_*, can_upload_documents)
 -- are not touched by invitations.
--- RELATION TO 20261022000002 (I-1, still unapplied): this is the smaller, token-free replacement for I-1's INVITATION part. The two define
--- different family_invite tables, so do NOT apply both as they stand: if I-1 is ever approved, its invitation section (table, token functions)
--- must first be removed or reconciled with this one. The user_id guard function below is identical to I-1's. Re-running this file is safe.
+-- RELATION TO 20261022000002 (I-1): this is the smaller, token-free replacement for I-1's INVITATION part, and it runs on either schema:
+--   * no family_invite yet (e.g. a database without I-1): the table is created as below.
+--   * I-1's token-based family_invite already exists (pendia-hackathon-test was found in this state): an EMPTY table is converted in place
+--     (token_hash column, one-pending index and the two looser checks are replaced); the token functions that cannot coexist are dropped
+--     (accept_family_invite(text), preview_family_invite(text), invite_token_hash(text) and create_family_invite(uuid,text) returning text).
+--     If that table holds any row the migration stops with an error and changes nothing. No table is dropped and no member row is touched.
+-- Do NOT apply I-1 after this file. member_user_id_guard below has the same logic as I-1's (verified by behaviour tests). Re-running is safe.
+-- When I-1 is present, invitations also respect its access window: an ended member row cannot be invited or accept.
 
 begin;
 
@@ -49,6 +54,30 @@ drop trigger if exists member_user_id_guard on public.member;
 create trigger member_user_id_guard before insert or update on public.member
   for each row execute function public.member_user_id_guard();
 revoke all on function public.member_user_id_guard() from public, anon, authenticated;
+
+------------------------------------------------------------------ upgrade from I-1's token design (no-op elsewhere)
+do $$ declare r regprocedure; begin
+  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'family_invite' and column_name = 'token_hash') then
+    if exists (select 1 from public.family_invite) then
+      raise exception 'family_invite already holds token-design rows; convert or clear them deliberately first' using errcode = 'P0001';
+    end if;
+    alter table public.family_invite drop column token_hash;               -- also drops its unique constraint
+    drop index if exists public.family_invite_one_pending;                 -- replaced by family_invite_one_open below
+    alter table public.family_invite alter column invited_email set not null;
+    alter table public.family_invite drop constraint if exists family_invite_email;
+    alter table public.family_invite add constraint family_invite_email check (invited_email = lower(invited_email) and char_length(invited_email) <= 254
+      and invited_email ~ '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$');
+    alter table public.family_invite drop constraint if exists family_invite_delivery;
+    alter table public.family_invite add constraint family_invite_delivery check (delivery_status is null or delivery_status in ('queued', 'sent', 'failed'));
+  end if;
+  -- token-era functions: only I-1 defines these signatures
+  foreach r in array array[to_regprocedure('public.accept_family_invite(text)'), to_regprocedure('public.preview_family_invite(text)'),
+                           to_regprocedure('public.invite_token_hash(text)')] loop
+    if r is not null then execute 'drop function ' || r::text; end if;
+  end loop;
+  r := to_regprocedure('public.create_family_invite(uuid, text)');
+  if r is not null and (select prorettype from pg_proc where oid = r) = 'text'::regtype then execute 'drop function ' || r::text; end if;
+end $$;
 
 ------------------------------------------------------------------ the invitation table (no token)
 create table if not exists public.family_invite (
@@ -101,6 +130,8 @@ begin
   end if;
   if m.user_id is not null then raise exception 'That person already has an account linked.' using errcode = '23514'; end if;
   if m.role <> 'member' then raise exception 'Invitations can only be created for the Member role.' using errcode = '23514'; end if;
+  -- access_status exists only where the access-window migration (I-1) is installed; to_jsonb keeps this valid on both schemas
+  if coalesce(to_jsonb(m) ->> 'access_status', 'active') = 'ended' then raise exception 'Restore this person''s access before inviting them.' using errcode = '23514'; end if;
   mail := lower(btrim(coalesce(_email, '')));
   if mail = '' or char_length(mail) > 254 or mail !~ '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$' then
     raise exception 'Enter a valid email address.' using errcode = '23514';
@@ -165,7 +196,7 @@ begin
     join public.family f on f.id = i.family_id
     join public.member m on m.id = i.member_id and m.family_id = i.family_id
     where i.invited_email = u_email and i.accepted_at is null and i.revoked_at is null and i.expires_at > now()
-      and m.user_id is null and m.role = 'member'
+      and m.user_id is null and m.role = 'member' and coalesce(to_jsonb(m) ->> 'access_status', 'active') <> 'ended'
     order by i.created_at desc;
 end $$;
 
@@ -184,7 +215,7 @@ begin
   if u_confirmed is null then raise exception 'invite_email_unverified' using errcode = 'P0001'; end if;
   if u_email is distinct from i.invited_email then raise exception 'invite_invalid' using errcode = 'P0001'; end if; -- generic on purpose
   select * into m from public.member where id = i.member_id and family_id = i.family_id for update;
-  if not found or m.user_id is not null or m.role <> 'member' then
+  if not found or m.user_id is not null or m.role <> 'member' or coalesce(to_jsonb(m) ->> 'access_status', 'active') = 'ended' then
     raise exception 'invite_invalid' using errcode = 'P0001';
   end if;
   -- one membership per person per family
