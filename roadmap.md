@@ -1,4 +1,5 @@
 # Pendia layout repair
+- [ ] Add OAuth-protected MCP family lookup, consent and browser-local care-team reading; verify tools and sign-in returns without Meta calls or publication.
 - [ ] Refresh deep security findings after PR #56 session correction; awaiting scan result. Implemented verified automatic judge-token guard; 73 focused tests passed, build OK, real one-click dashboard/Ask/reload verified with 3600-second token and zero browser errors. No publication, flags, migrations or Meta calls.
 - [ ] Verify hosted Judge Demo trusted IP and run exactly one authorized fictional Meta test only if trust is verified; blocked by hosted preview HTTP 401 and hosted invocation/dev endpoint HTTP 404. Temporary diagnostic removed; no Meta request made and no publication.
 - [x] Implement judge Ask Pendia through the existing Care Agent with fictional-only evidence and durable ad-hoc usage limits. 513 tests passed; build OK; real one-click guest entry and disabled Ask screen verified without page errors. No Meta calls, secret changes, schema changes or publication.

@@ -7,6 +7,8 @@ import { Invite, MemberRow, Recipient } from "@/components/FamilyMembers";
 import { JoinRequests } from "@/components/JoinRequests";
 import { ShareFamilyCode } from "@/components/FamilyJoinCode";
 import { useFamily, useMembers } from "@/hooks/use-family";
+import { useWebMCP } from "use-webmcp-tool";
+import { runWebMCPTool } from "@/lib/webmcp-telemetry";
 
 export const Route = createFileRoute("/_authenticated/members")({
   head: () => ({
@@ -25,6 +27,16 @@ export const Route = createFileRoute("/_authenticated/members")({
 function MembersPage() {
   const { data, isLoading } = useFamily();
   const { data: members = [], isLoading: loadingMembers } = useMembers(data?.family.id);
+  useWebMCP({
+    name: "read_visible_care_team",
+    description: "Read names and roles on the current family's care team screen, without contact details or permission changes.",
+    enabled: !!data && !isLoading && !loadingMembers,
+    annotations: { readOnlyHint: true, untrustedContentHint: true },
+    execute: () => runWebMCPTool("read_visible_care_team", () => {
+      if (!data || isLoading || loadingMembers) throw new Error("Care team is not ready.");
+      return members.length ? members.map(m => `${m.name}: ${m.role}`).join("\n") : "No care team members shown.";
+    }),
+  });
   if (isLoading) return <LoadingCard />;
   if (!data) return <Empty>Join or create a family first.</Empty>;
   const isOrganizer = data.me.role === "organizer";

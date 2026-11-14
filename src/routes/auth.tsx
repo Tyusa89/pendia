@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authService } from "@/services";
 import { TryPendiaDemo } from "@/components/TryPendiaDemo";
+import { oauthReturnPath } from "@/lib/oauth-return-path";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -23,9 +24,10 @@ export const Route = createFileRoute("/auth")({
   }),
   // ?mode=up opens the account-creation form (used by every "Get Started" button on the public site).
   // ?redirect=/invite lets the invitation page send an existing password user back after signing in (only that one path is allowed).
-  validateSearch: (search: Record<string, unknown>): { mode?: "up"; redirect?: "/invite" } => ({
+  validateSearch: (search: Record<string, unknown>): { mode?: "up"; redirect?: "/invite"; next?: string } => ({
     ...(search["mode"] === "up" ? { mode: "up" as const } : {}),
     ...(search["redirect"] === "/invite" ? { redirect: "/invite" as const } : {}),
+    ...(typeof search["next"] === "string" ? { next: oauthReturnPath(search["next"]) } : {}),
   }),
   component: AuthPage,
 });
@@ -39,7 +41,7 @@ function AuthPage() {
   const [sent, setSent] = useState(false);
   const navigate = useNavigate();
   const switchMode = () =>
-    navigate({ to: "/auth", search: { ...(mode === "in" ? { mode: "up" as const } : {}), ...(search.redirect ? { redirect: search.redirect } : {}) }, replace: true });
+    navigate({ to: "/auth", search: { ...(mode === "in" ? { mode: "up" as const } : {}), ...(search.redirect ? { redirect: search.redirect } : {}), ...(search.next ? { next: search.next } : {}) }, replace: true });
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -48,11 +50,15 @@ function AuthPage() {
       if (mode === "in") {
         const { error } = await authService.signIn(email, password);
         if (error) throw error;
-        navigate({ to: search.redirect ?? "/family" });
+        if (search.next) window.location.assign(search.next);
+        else navigate({ to: search.redirect ?? "/family" });
       } else {
-        const { data, error } = await authService.signUp(email, password);
+        const { data, error } = await authService.signUp(email, password, search.next);
         if (error) throw error;
-        if (data.session) navigate({ to: "/family" });
+        if (data.session) {
+          if (search.next) window.location.assign(search.next);
+          else navigate({ to: "/family" });
+        }
         else setSent(true);
       }
     } catch (err) {
