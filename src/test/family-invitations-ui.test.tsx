@@ -175,6 +175,22 @@ describe("organizer invitation controls on a member card", () => {
     expect(await screen.findByText("Invitation withdrawn")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Send invitation" })).toBeInTheDocument();
   });
+  it("the card says WHO is being invited, and that the organizer sends it (the member is the invitee, never the inviter)", async () => {
+    render(wrap(<MemberRow m={member({ name: "EcoNest" }) as never} editable />));
+    expect(await screen.findByText("Invite EcoNest to connect their account")).toBeInTheDocument();
+    expect(screen.getByText(/You send this from your own organizer account/)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Email for the invitation"), { target: { value: "econest@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send invitation" }));
+    // the call carries the INVITEE's member row id and the typed address; no inviter value exists to send
+    await waitFor(() => expect(send).toHaveBeenCalledTimes(1));
+    expect(send.mock.calls[0]).toHaveLength(2);
+    expect(send.mock.calls[0]![1]).toBe("econest@example.com");
+  });
+  it("an ordinary member (not editable) gets no invitation controls on any card", () => {
+    render(wrap(<MemberRow m={member({ name: "EcoNest" }) as never} editable={false} />));
+    expect(screen.queryByText(/to connect their account/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Send invitation|Resend invitation/ })).not.toBeInTheDocument();
+  });
   it("a refused or failed send is reported with a fixed message and no raw text", async () => {
     send.mockResolvedValueOnce({ code: "email_failed" } as never);
     render(wrap(<MemberRow m={member() as never} editable />));
@@ -217,7 +233,7 @@ describe("invite form", () => {
       target: { value: "pat@example.com" },
     });
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Add and send invitation" }));
+      fireEvent.click(screen.getByRole("button", { name: "Add and invite member" }));
     });
     await waitFor(() => expect(send).toHaveBeenCalledWith("new-member", "pat@example.com"));
     expect(addMember).toHaveBeenCalledTimes(1);
