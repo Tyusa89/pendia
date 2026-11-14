@@ -43,7 +43,7 @@ function MembersPage() {
               </div>
             )}
           </section>
-          <aside aria-label="Organizer tools" className="min-w-0 space-y-5 lg:sticky lg:top-24">
+          <aside aria-label="Organizer tools" className="min-w-0 space-y-5">
             {isOrganizer && <Invite familyId={data.family.id} />}
             {isOrganizer && <ShareFamilyCode familyId={data.family.id} />}
             {isOrganizer && <JoinRequests familyId={data.family.id} />}
