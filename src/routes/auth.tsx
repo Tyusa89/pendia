@@ -124,7 +124,7 @@ function AuthPage() {
           </p>
           <div className="mt-6">
             <TryPendiaDemo />
-            <p className="mt-2 text-sm text-pd-muted">Fictional hackathon demo · Read-only</p>
+            <p className="mt-2 text-sm text-pd-muted">Interactive demo · Sample data only · Read-only</p>
           </div>
           {sent ? (
             <p role="status" className="mt-8 rounded-xl bg-pd-sky p-5 text-pd-navy">

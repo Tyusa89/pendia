@@ -63,7 +63,7 @@ export async function collectLayout(page: Page): Promise<LayoutFacts> {
       navs: [...document.querySelectorAll("nav")].filter(visible).length,
       skipLink: !!document.querySelector('a[href="#care-content"]'),
       judgeBanner: text.includes(
-        "Fictional hackathon demo · Read-only · No real patient information",
+        "Interactive demo · Sample data only · Read-only · No real patient information",
       ),
       medicalNote: text.includes("Not medical advice. Check with your doctor or pharmacist."),
       smallTargets: small.map(label),
