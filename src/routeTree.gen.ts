@@ -17,9 +17,11 @@ import { Route as ContactRouteImport } from './routes/contact'
 import { Route as DemoRouteImport } from './routes/demo'
 import { Route as DemoMedsRouteImport } from './routes/demo-meds'
 import { Route as InviteRouteImport } from './routes/invite'
+import { Route as McpRouteImport } from './routes/mcp'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as AuthenticatedAskRouteImport } from './routes/_authenticated/ask'
 import { Route as AuthenticatedCoverageRouteImport } from './routes/_authenticated/coverage'
 import { Route as AuthenticatedDevSparkRouteImport } from './routes/_authenticated/dev-spark'
@@ -30,6 +32,7 @@ import { Route as AuthenticatedMedicalIntegrationsRouteImport } from './routes/_
 import { Route as AuthenticatedMedsRouteImport } from './routes/_authenticated/meds'
 import { Route as AuthenticatedMembersRouteImport } from './routes/_authenticated/members'
 import { Route as AuthenticatedPreferencesRouteImport } from './routes/_authenticated/preferences'
+import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as AuthenticatedVisitsIndexRouteImport } from './routes/_authenticated/visits.index'
 import { Route as AuthenticatedVisitsIdRouteImport } from './routes/_authenticated/visits.$id'
 import { Route as AuthenticatedVisitsDemoRouteImport } from './routes/_authenticated/visits.demo'
@@ -76,6 +79,11 @@ const InviteRoute = InviteRouteImport.update({
   path: '/invite',
   getParentRoute: () => rootRouteImport,
 } as any)
+const McpRoute = McpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PricingRoute = PricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
@@ -91,6 +99,12 @@ const TermsRoute = TermsRouteImport.update({
   path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const Char91DotwellKnownChar93OauthProtectedResourceRoute =
+  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
+    id: '/.well-known/oauth-protected-resource',
+    path: '/.well-known/oauth-protected-resource',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedAskRoute = AuthenticatedAskRouteImport.update({
   id: '/ask',
   path: '/ask',
@@ -143,6 +157,11 @@ const AuthenticatedPreferencesRoute =
     path: '/preferences',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
+  id: '/.lovable/oauth/consent',
+  path: '/.lovable/oauth/consent',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedVisitsIndexRoute =
   AuthenticatedVisitsIndexRouteImport.update({
     id: '/visits/',
@@ -185,9 +204,11 @@ export interface FileRoutesByFullPath {
   '/demo': typeof DemoRoute
   '/demo-meds': typeof DemoMedsRoute
   '/invite': typeof InviteRoute
+  '/mcp': typeof McpRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/ask': typeof AuthenticatedAskRoute
   '/coverage': typeof AuthenticatedCoverageRoute
   '/dev-spark': typeof AuthenticatedDevSparkRoute
@@ -198,6 +219,7 @@ export interface FileRoutesByFullPath {
   '/meds': typeof AuthenticatedMedsRoute
   '/members': typeof AuthenticatedMembersRoute
   '/preferences': typeof AuthenticatedPreferencesRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/visits/$id': typeof AuthenticatedVisitsIdRoute
   '/visits/demo': typeof AuthenticatedVisitsDemoRoute
   '/visits/new': typeof AuthenticatedVisitsNewRoute
@@ -213,9 +235,11 @@ export interface FileRoutesByTo {
   '/demo': typeof DemoRoute
   '/demo-meds': typeof DemoMedsRoute
   '/invite': typeof InviteRoute
+  '/mcp': typeof McpRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/ask': typeof AuthenticatedAskRoute
   '/coverage': typeof AuthenticatedCoverageRoute
   '/dev-spark': typeof AuthenticatedDevSparkRoute
@@ -226,6 +250,7 @@ export interface FileRoutesByTo {
   '/meds': typeof AuthenticatedMedsRoute
   '/members': typeof AuthenticatedMembersRoute
   '/preferences': typeof AuthenticatedPreferencesRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/visits/$id': typeof AuthenticatedVisitsIdRoute
   '/visits/demo': typeof AuthenticatedVisitsDemoRoute
   '/visits/new': typeof AuthenticatedVisitsNewRoute
@@ -243,9 +268,11 @@ export interface FileRoutesById {
   '/demo': typeof DemoRoute
   '/demo-meds': typeof DemoMedsRoute
   '/invite': typeof InviteRoute
+  '/mcp': typeof McpRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/_authenticated/ask': typeof AuthenticatedAskRoute
   '/_authenticated/coverage': typeof AuthenticatedCoverageRoute
   '/_authenticated/dev-spark': typeof AuthenticatedDevSparkRoute
@@ -256,6 +283,7 @@ export interface FileRoutesById {
   '/_authenticated/meds': typeof AuthenticatedMedsRoute
   '/_authenticated/members': typeof AuthenticatedMembersRoute
   '/_authenticated/preferences': typeof AuthenticatedPreferencesRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/_authenticated/visits/$id': typeof AuthenticatedVisitsIdRoute
   '/_authenticated/visits/demo': typeof AuthenticatedVisitsDemoRoute
   '/_authenticated/visits/new': typeof AuthenticatedVisitsNewRoute
@@ -273,9 +301,11 @@ export interface FileRouteTypes {
     | '/demo'
     | '/demo-meds'
     | '/invite'
+    | '/mcp'
     | '/pricing'
     | '/privacy'
     | '/terms'
+    | '/.well-known/oauth-protected-resource'
     | '/ask'
     | '/coverage'
     | '/dev-spark'
@@ -286,6 +316,7 @@ export interface FileRouteTypes {
     | '/meds'
     | '/members'
     | '/preferences'
+    | '/.lovable/oauth/consent'
     | '/visits/$id'
     | '/visits/demo'
     | '/visits/new'
@@ -301,9 +332,11 @@ export interface FileRouteTypes {
     | '/demo'
     | '/demo-meds'
     | '/invite'
+    | '/mcp'
     | '/pricing'
     | '/privacy'
     | '/terms'
+    | '/.well-known/oauth-protected-resource'
     | '/ask'
     | '/coverage'
     | '/dev-spark'
@@ -314,6 +347,7 @@ export interface FileRouteTypes {
     | '/meds'
     | '/members'
     | '/preferences'
+    | '/.lovable/oauth/consent'
     | '/visits/$id'
     | '/visits/demo'
     | '/visits/new'
@@ -330,9 +364,11 @@ export interface FileRouteTypes {
     | '/demo'
     | '/demo-meds'
     | '/invite'
+    | '/mcp'
     | '/pricing'
     | '/privacy'
     | '/terms'
+    | '/.well-known/oauth-protected-resource'
     | '/_authenticated/ask'
     | '/_authenticated/coverage'
     | '/_authenticated/dev-spark'
@@ -343,6 +379,7 @@ export interface FileRouteTypes {
     | '/_authenticated/meds'
     | '/_authenticated/members'
     | '/_authenticated/preferences'
+    | '/.lovable/oauth/consent'
     | '/_authenticated/visits/$id'
     | '/_authenticated/visits/demo'
     | '/_authenticated/visits/new'
@@ -360,9 +397,12 @@ export interface RootRouteChildren {
   DemoRoute: typeof DemoRoute
   DemoMedsRoute: typeof DemoMedsRoute
   InviteRoute: typeof InviteRoute
+  McpRoute: typeof McpRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
+  Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -423,6 +463,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InviteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mcp': {
+      id: '/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof McpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pricing': {
       id: '/pricing'
       path: '/pricing'
@@ -442,6 +489,13 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/oauth-protected-resource': {
+      id: '/.well-known/oauth-protected-resource'
+      path: '/.well-known/oauth-protected-resource'
+      fullPath: '/.well-known/oauth-protected-resource'
+      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/ask': {
@@ -513,6 +567,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/preferences'
       preLoaderRoute: typeof AuthenticatedPreferencesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/.lovable/oauth/consent': {
+      id: '/.lovable/oauth/consent'
+      path: '/.lovable/oauth/consent'
+      fullPath: '/.lovable/oauth/consent'
+      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/visits/': {
       id: '/_authenticated/visits/'
@@ -609,9 +670,13 @@ const rootRouteChildren: RootRouteChildren = {
   DemoRoute: DemoRoute,
   DemoMedsRoute: DemoMedsRoute,
   InviteRoute: InviteRoute,
+  McpRoute: McpRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
+  Char91DotwellKnownChar93OauthProtectedResourceRoute:
+    Char91DotwellKnownChar93OauthProtectedResourceRoute,
+  DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

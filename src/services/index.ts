@@ -21,6 +21,7 @@ import type { FamilyJoinRequest, JoinCodeStatus, MyJoinRequest } from "@/lib/joi
 import { startJudgeDemo } from "@/lib/judge-demo.functions";
 import { doseService as liveDoseService } from "./dose-service";
 import { recordingService as liveRecordingService } from "./recordings";
+import { oauthReturnPath } from "@/lib/oauth-return-path";
 
 export type Family = Tables<"family">;
 export type Member = Tables<"member">;
@@ -63,10 +64,14 @@ export const authService = {
     return data.user?.id ?? null;
   },
   signIn: (email: string, password: string) => { setJudgeDemo(false); return supabase.auth.signInWithPassword({ email, password }); },
-  signUp: (email: string, password: string) => {
+  signUp: (email: string, password: string, next?: string) => {
     setJudgeDemo(false);
-    return supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin } });
+    return supabase.auth.signUp({ email, password, options: { emailRedirectTo: new URL(oauthReturnPath(next), window.location.origin).href } });
   },
+  session: () => supabase.auth.getSession(),
+  authorizationDetails: (id: string) => supabase.auth.oauth.getAuthorizationDetails(id),
+  approveAuthorization: (id: string) => supabase.auth.oauth.approveAuthorization(id),
+  denyAuthorization: (id: string) => supabase.auth.oauth.denyAuthorization(id),
   signOut: () => { setJudgeDemo(false); return supabase.auth.signOut(); },
   /** Passwordless sign-in or registration: Supabase Auth emails a magic link that proves the address. It carries no invitation. */
   async sendMagicLink(email: string) {
