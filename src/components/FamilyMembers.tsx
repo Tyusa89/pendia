@@ -108,9 +108,9 @@ export function MemberRow({ m, editable, defaultOpen = true }: { m: Member; edit
         </button>
       )}
       {showSwitches && (
-        <div id={`access-${m.id}`} className="mt-3 divide-y divide-border border-t border-border">
+        <div id={`access-${m.id}`} className="mt-4 grid gap-2 border-t border-border pt-4 sm:grid-cols-2">
           {(["can_see_meds", "can_see_schedule", "can_see_visits"] as const).map((k) => (
-            <label key={k} className="flex min-h-[3.25rem] flex-row-reverse items-center justify-between gap-3 text-[0.9412rem] font-medium">
+            <label key={k} className="flex min-h-[3.25rem] flex-row-reverse items-center justify-between gap-3 rounded-xl bg-accent/50 px-3 text-[0.9412rem] font-medium">
               <Switch
                 checked={m[k]}
                 disabled={!editable}
@@ -120,7 +120,7 @@ export function MemberRow({ m, editable, defaultOpen = true }: { m: Member; edit
             </label>
           ))}
           {m.role === "member" && (
-            <label className="flex min-h-[3.25rem] flex-row-reverse items-center justify-between gap-3 text-[0.9412rem] font-medium">
+            <label className="flex min-h-[3.25rem] flex-row-reverse items-center justify-between gap-3 rounded-xl bg-accent/50 px-3 py-2 text-[0.9412rem] font-medium">
               <Switch
                 size="touch"
                 checked={m.can_upload_documents}

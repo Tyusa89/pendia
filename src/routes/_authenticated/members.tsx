@@ -34,21 +34,21 @@ function MembersPage() {
       <PageTitle title="Family Members" subtitle={`${data.family.name} · ${isOrganizer ? "You're the organizer" : "You're a member"}`} />
       <div className="space-y-5">
         <Recipient familyId={data.family.id} editable={isOrganizer} />
-        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
+        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
           <section aria-label="Care team" className="min-w-0">
             <h2 className="mb-3 text-xl">Care team · {members.length}</h2>
             {loadingMembers ? <LoadingCard /> : (
-              <div className="grid items-start gap-3 md:grid-cols-2">
+              <div className="flex flex-col gap-4">
                 {members.map((m, i) => <MemberRow key={m.id} m={m} editable={isOrganizer} defaultOpen={i === 0} />)}
               </div>
             )}
           </section>
-          <div className="min-w-0 space-y-5">
+          <aside aria-label="Organizer tools" className="min-w-0 space-y-5 lg:sticky lg:top-24">
             {isOrganizer && <Invite familyId={data.family.id} />}
             {isOrganizer && <ShareFamilyCode familyId={data.family.id} />}
             {isOrganizer && <JoinRequests familyId={data.family.id} />}
             <FamilyTimeZone familyId={data.family.id} timeZone={data.family.timezone} editable={isOrganizer} />
-          </div>
+          </aside>
         </div>
       </div>
     </>
