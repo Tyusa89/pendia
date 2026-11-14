@@ -42,16 +42,18 @@ export async function sendFamilyInvite(args: {
   if (!EMAIL.test(email) || email.length > 254) return { code: "invalid_email" };
   const redirect = inviteRedirect(args.origin);
   if (!redirect) return { code: "failed" };
-  const created = await args.supabase.rpc("create_family_invite", { _member_id: args.memberId, _email: email });
+  // Invitation functions are not in generated types until their migration is applied.
+  const db = args.supabase as unknown as SupabaseClient;
+  const created = await db.rpc("create_family_invite", { _member_id: args.memberId, _email: email });
   if (created.error || !created.data) return { code: createErrorCode(created.error) };
-  const inviteId = created.data;
+  const inviteId = created.data as string;
   let sent = false;
   try {
     sent = (await args.sendMagicLink(email, redirect)).ok;
   } catch {
     sent = false;
   }
-  await args.supabase.rpc("set_family_invite_delivery", { _invite_id: inviteId, _status: sent ? "sent" : "failed" });
+  await db.rpc("set_family_invite_delivery", { _invite_id: inviteId, _status: sent ? "sent" : "failed" });
   return { code: sent ? "sent" : "email_failed", inviteId };
 }
 
