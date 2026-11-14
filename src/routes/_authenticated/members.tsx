@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Empty, LoadingCard, PageTitle } from "@/components/AppShell";
 import { FamilyTimeZone } from "@/components/FamilyTimeZone";
 import { Invite, MemberRow, Recipient } from "@/components/FamilyMembers";
+import { JoinRequests } from "@/components/JoinRequests";
+import { ShareFamilyCode } from "@/components/FamilyJoinCode";
 import { useFamily, useMembers } from "@/hooks/use-family";
 
 export const Route = createFileRoute("/_authenticated/members")({
@@ -43,6 +45,8 @@ function MembersPage() {
           </section>
           <div className="min-w-0 space-y-5">
             {isOrganizer && <Invite familyId={data.family.id} />}
+            {isOrganizer && <ShareFamilyCode familyId={data.family.id} />}
+            {isOrganizer && <JoinRequests familyId={data.family.id} />}
             <FamilyTimeZone familyId={data.family.id} timeZone={data.family.timezone} editable={isOrganizer} />
           </div>
         </div>
