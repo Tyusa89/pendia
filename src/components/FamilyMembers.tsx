@@ -230,7 +230,7 @@ export function Invite({ familyId }: { familyId: string }) {
         ))}
       </div>
       <Button className="w-full" disabled={!f.name || emailBad || add.isPending} onClick={() => add.mutate()}>
-        {f.email.trim() && f.role === "member" ? "Add and send invitation" : "Add to family"}
+        {f.email.trim() && f.role === "member" ? "Add and invite member" : "Add to family"}
       </Button>
       <p className="text-sm text-muted-foreground">
         Without an email, they're only added to your team list. Text invitations come later.

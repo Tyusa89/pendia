@@ -45,6 +45,7 @@ export function MemberInvite({ m }: { m: Member }) {
 
   return (
     <div className="mt-3 space-y-2 border-t border-border pt-3" aria-label={`Invitation for ${m.name}`} role="group">
+      <p className="font-semibold">Invite {m.name} to connect their account</p>
       {latest && status !== "accepted" && (
         <p className="flex flex-wrap items-center gap-2 text-[0.9412rem]">
           <span
@@ -73,7 +74,7 @@ export function MemberInvite({ m }: { m: Member }) {
           </Button>
         )}
       </div>
-      {!latest && <p className="text-sm text-muted-foreground">We email them a secure sign-in link. They confirm the invitation after signing in.</p>}
+      {!latest && <p className="text-sm text-muted-foreground">You send this from your own organizer account. We email them a secure sign-in link, and they confirm after signing in.</p>}
     </div>
   );
 }
