@@ -134,7 +134,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </header>
 
       <main id="care-content" tabIndex={-1} className="care-content mx-auto w-full max-w-[1440px] flex-1 px-4 pb-[calc(var(--nav-h)+2rem+env(safe-area-inset-bottom))] pt-5 md:px-7 md:pb-12 md:pt-8 lg:px-8">
-        {isJudgeDemo() && <p role="note" className="mb-5 block w-fit rounded-full bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground">Fictional hackathon demo · Read-only · No real patient information</p>}
+        {isJudgeDemo() && <p role="note" className="mb-5 block w-fit rounded-full bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground">Interactive demo · Sample data only · Read-only · No real patient information</p>}
         <Fragment key={data?.family.id ?? "none"}>{children}</Fragment>
         <p className="mt-10 text-center text-[0.9412rem] text-muted-foreground">
           Ask Pendia isn't available yet. No questions or family records are being sent to an AI service.

@@ -20,7 +20,7 @@ export function TryPendiaDemo({ variant, className }: { variant?: "link"; classN
     finally { setBusy(false); }
   }
   return <div>
-    <Button size={variant === "link" ? "default" : "lg"} variant={variant} className={className ?? "w-full"} disabled={busy} onClick={enter}>{busy ? "Opening demo…" : "Try Pendia Demo"}<ArrowRight aria-hidden /></Button>
+    <Button size={variant === "link" ? "default" : "lg"} variant={variant} className={className ?? "w-full"} disabled={busy} onClick={enter}>{busy ? "Opening demo…" : "Explore Pendia"}<ArrowRight aria-hidden /></Button>
     {error && <p role="alert" className="mt-2 text-destructive">{error}</p>}
   </div>;
 }

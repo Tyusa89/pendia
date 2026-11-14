@@ -42,7 +42,7 @@ test.describe("network fence", () => {
   test("the fake Judge session is what makes the app render signed-in pages", async ({ page }) => {
     await page.goto("/family", { waitUntil: "networkidle" });
     await expect(
-      page.getByText("Fictional hackathon demo · Read-only · No real patient information"),
+      page.getByText("Interactive demo · Sample data only · Read-only · No real patient information"),
     ).toBeVisible();
   });
 });

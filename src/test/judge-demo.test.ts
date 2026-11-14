@@ -26,7 +26,7 @@ describe("hackathon guest boundaries", () => {
   });
   it("uses the fictional family, not Morales, with a non-organizer guest", () => {
     const d = judgeDemoData();
-    expect(d.family.name).toBe("Pendia Hackathon — Fictional Demo Family");
+    expect(d.family.name).toBe("Pendia Sample Family");
     expect(d.family.is_demo).toBe(true);
     expect(d.me.role).toBe("member");
     expect(d.me.can_see_meds).toBe(true);
