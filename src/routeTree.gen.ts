@@ -32,6 +32,7 @@ import { Route as AuthenticatedMedicalIntegrationsRouteImport } from './routes/_
 import { Route as AuthenticatedMedsRouteImport } from './routes/_authenticated/meds'
 import { Route as AuthenticatedMembersRouteImport } from './routes/_authenticated/members'
 import { Route as AuthenticatedPreferencesRouteImport } from './routes/_authenticated/preferences'
+import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as AuthenticatedVisitsIndexRouteImport } from './routes/_authenticated/visits.index'
 import { Route as AuthenticatedVisitsIdRouteImport } from './routes/_authenticated/visits.$id'
 import { Route as AuthenticatedVisitsDemoRouteImport } from './routes/_authenticated/visits.demo'
@@ -156,6 +157,11 @@ const AuthenticatedPreferencesRoute =
     path: '/preferences',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
+  id: '/.lovable/oauth/consent',
+  path: '/.lovable/oauth/consent',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedVisitsIndexRoute =
   AuthenticatedVisitsIndexRouteImport.update({
     id: '/visits/',
@@ -213,6 +219,7 @@ export interface FileRoutesByFullPath {
   '/meds': typeof AuthenticatedMedsRoute
   '/members': typeof AuthenticatedMembersRoute
   '/preferences': typeof AuthenticatedPreferencesRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/visits/$id': typeof AuthenticatedVisitsIdRoute
   '/visits/demo': typeof AuthenticatedVisitsDemoRoute
   '/visits/new': typeof AuthenticatedVisitsNewRoute
@@ -243,6 +250,7 @@ export interface FileRoutesByTo {
   '/meds': typeof AuthenticatedMedsRoute
   '/members': typeof AuthenticatedMembersRoute
   '/preferences': typeof AuthenticatedPreferencesRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/visits/$id': typeof AuthenticatedVisitsIdRoute
   '/visits/demo': typeof AuthenticatedVisitsDemoRoute
   '/visits/new': typeof AuthenticatedVisitsNewRoute
@@ -275,6 +283,7 @@ export interface FileRoutesById {
   '/_authenticated/meds': typeof AuthenticatedMedsRoute
   '/_authenticated/members': typeof AuthenticatedMembersRoute
   '/_authenticated/preferences': typeof AuthenticatedPreferencesRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/_authenticated/visits/$id': typeof AuthenticatedVisitsIdRoute
   '/_authenticated/visits/demo': typeof AuthenticatedVisitsDemoRoute
   '/_authenticated/visits/new': typeof AuthenticatedVisitsNewRoute
@@ -307,6 +316,7 @@ export interface FileRouteTypes {
     | '/meds'
     | '/members'
     | '/preferences'
+    | '/.lovable/oauth/consent'
     | '/visits/$id'
     | '/visits/demo'
     | '/visits/new'
@@ -337,6 +347,7 @@ export interface FileRouteTypes {
     | '/meds'
     | '/members'
     | '/preferences'
+    | '/.lovable/oauth/consent'
     | '/visits/$id'
     | '/visits/demo'
     | '/visits/new'
@@ -368,6 +379,7 @@ export interface FileRouteTypes {
     | '/_authenticated/meds'
     | '/_authenticated/members'
     | '/_authenticated/preferences'
+    | '/.lovable/oauth/consent'
     | '/_authenticated/visits/$id'
     | '/_authenticated/visits/demo'
     | '/_authenticated/visits/new'
@@ -390,6 +402,7 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -555,6 +568,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPreferencesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/.lovable/oauth/consent': {
+      id: '/.lovable/oauth/consent'
+      path: '/.lovable/oauth/consent'
+      fullPath: '/.lovable/oauth/consent'
+      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/visits/': {
       id: '/_authenticated/visits/'
       path: '/visits'
@@ -656,6 +676,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
+  DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
