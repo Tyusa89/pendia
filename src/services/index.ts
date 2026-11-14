@@ -17,6 +17,7 @@ import { judgeDemoData } from "@/lib/judge-demo-data";
 import { withJudgeDemo } from "./judge-demo-service";
 import { sendFamilyInviteFn } from "@/lib/family-invite.functions";
 import type { FamilyInvite, SendInviteCode } from "@/lib/invitations";
+import type { FamilyJoinRequest, JoinCodeStatus, MyJoinRequest } from "@/lib/join-family";
 import { startJudgeDemo } from "@/lib/judge-demo.functions";
 import { doseService as liveDoseService } from "./dose-service";
 import { recordingService as liveRecordingService } from "./recordings";
@@ -458,6 +459,41 @@ const liveInviteService = {
   },
 };
 export const inviteService = withJudgeDemo(liveInviteService, { listForFamily: () => [], myPending: () => [] });
+
+// ---------- Join with a family code (migration 20261114000001, pending approval: types are not generated yet) ----------
+const liveJoinService = {
+  /** Returns the request id, or null when the code did not work (one answer for every reason). Never returns family details. */
+  async request(code: string, name: string): Promise<string | null> {
+    return ok(await pending.rpc("request_to_join_family", { _code: code, _name: name })) as string | null;
+  },
+  async myRequests(): Promise<MyJoinRequest[]> {
+    return ok(await pending.rpc("my_join_requests")) as MyJoinRequest[];
+  },
+  async cancel(requestId: string) {
+    ok(await pending.rpc("cancel_join_request", { _request_id: requestId }));
+  },
+  /** Organizer: is there a code and is it on? (never the code itself) */
+  async codeStatus(familyId: string): Promise<JoinCodeStatus> {
+    const rows = ok(await pending.rpc("family_join_code_status", { _family_id: familyId })) as { enabled: boolean; rotated_at: string }[];
+    return rows[0] ?? null;
+  },
+  /** Organizer: makes a new code (turning joining on) and returns it ONCE. The previous code stops working. */
+  async rotateCode(familyId: string): Promise<string> {
+    return ok(await pending.rpc("rotate_family_join_code", { _family_id: familyId })) as string;
+  },
+  async disableCode(familyId: string) {
+    ok(await pending.rpc("disable_family_join_code", { _family_id: familyId }));
+  },
+  async requestsForFamily(familyId: string): Promise<FamilyJoinRequest[]> {
+    return ok(await pending.rpc("family_join_requests", { _family_id: familyId })) as FamilyJoinRequest[];
+  },
+  async decide(requestId: string, approve: boolean, flags = { meds: true, schedule: true, visits: true }) {
+    return ok(
+      await pending.rpc("decide_join_request", { _request_id: requestId, _approve: approve, _can_see_meds: flags.meds, _can_see_schedule: flags.schedule, _can_see_visits: flags.visits }),
+    ) as string | null;
+  },
+};
+export const joinService = withJudgeDemo(liveJoinService, { myRequests: () => [], codeStatus: () => null, requestsForFamily: () => [] });
 
 export const familyService = withJudgeDemo(liveFamilyService, {
   getMyFamily: () => { const { family, me } = judgeDemoData(); return { family, me }; },
