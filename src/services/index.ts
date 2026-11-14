@@ -15,6 +15,8 @@ import { normalizePhone } from "@/lib/format";
 import { setJudgeDemo } from "@/lib/judge-demo";
 import { judgeDemoData } from "@/lib/judge-demo-data";
 import { withJudgeDemo } from "./judge-demo-service";
+import { sendFamilyInviteFn } from "@/lib/family-invite.functions";
+import type { FamilyInvite, SendInviteCode } from "@/lib/invitations";
 import { startJudgeDemo } from "@/lib/judge-demo.functions";
 import { doseService as liveDoseService } from "./dose-service";
 import { recordingService as liveRecordingService } from "./recordings";
@@ -65,6 +67,21 @@ export const authService = {
     return supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin } });
   },
   signOut: () => { setJudgeDemo(false); return supabase.auth.signOut(); },
+  /** Passwordless sign-in or registration: Supabase Auth emails a magic link that proves the address. It carries no invitation. */
+  async sendMagicLink(email: string) {
+    setJudgeDemo(false);
+    return supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true, emailRedirectTo: `${window.location.origin}/invite` } });
+  },
+  async currentEmail(): Promise<string | null> {
+    const { data } = await supabase.auth.getUser();
+    return data.user?.email ?? null;
+  },
+  /** Reports the signed-in state (true/false) now and whenever it changes; returns an unsubscribe function. */
+  onSignedInChange(cb: (signedIn: boolean) => void) {
+    void supabase.auth.getSession().then(({ data }) => cb(!!data.session));
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => cb(!!session));
+    return () => data.subscription.unsubscribe();
+  },
 };
 
 // ---------- Family ----------
@@ -412,6 +429,35 @@ const liveCoverageRequirementService = {
     if (!res.data?.length) throw new Error(`No date override to remove for ${d}, or ${ORGANIZER_ONLY.toLowerCase()}`);
   },
 };
+
+// ---------- Family invitations (email-bound; no token) ----------
+const liveInviteService = {
+  /** Organizer view: this family's invitations (RLS limits it to organizers). */
+  async listForFamily(familyId: string): Promise<FamilyInvite[]> {
+    return ok(
+      await supabase
+        .from("family_invite")
+        .select("id, family_id, member_id, invited_email, created_at, expires_at, accepted_at, revoked_at, delivery_status, last_sent_at")
+        .eq("family_id", familyId)
+        .order("created_at", { ascending: false }),
+    ) as FamilyInvite[];
+  },
+  /** Invitations bound to the signed-in person's verified email. */
+  async myPending() {
+    return ok(await supabase.rpc("my_pending_family_invites")) as { invite_id: string; family_name: string; member_name: string; invited_by_name: string | null; expires_at: string }[];
+  },
+  async accept(inviteId: string): Promise<string> {
+    return ok(await supabase.rpc("accept_family_invite", { _invite_id: inviteId })) as string;
+  },
+  async revoke(inviteId: string) {
+    ok(await supabase.rpc("revoke_family_invite", { _invite_id: inviteId }));
+  },
+  /** Creates (or replaces) the invitation and emails the sign-in link. Returns a fixed code, never provider text. */
+  async send(memberId: string, email: string): Promise<{ code: SendInviteCode; inviteId?: string }> {
+    return (await sendFamilyInviteFn({ data: { memberId, email } })) as { code: SendInviteCode; inviteId?: string };
+  },
+};
+export const inviteService = withJudgeDemo(liveInviteService, { listForFamily: () => [], myPending: () => [] });
 
 export const familyService = withJudgeDemo(liveFamilyService, {
   getMyFamily: () => { const { family, me } = judgeDemoData(); return { family, me }; },

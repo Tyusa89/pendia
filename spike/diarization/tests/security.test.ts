@@ -65,6 +65,7 @@ const REVIEWED_MIGRATIONS = [
   "supabase/migrations/20261027000002_family_delete_guard.sql",
   "supabase/migrations/20261029000001_appointment_documents.sql",
   "supabase/migrations/20261112000001_member_upload_capability.sql",
+  "supabase/migrations/20261113000001_family_invitations.sql",
 ];
 
 describe("merging this work cannot deploy anything or call Meta", () => {

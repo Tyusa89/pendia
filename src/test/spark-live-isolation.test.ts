@@ -115,6 +115,7 @@ describe("Demo Mode cannot reach any of it", () => {
       "src/lib/care-agent/guest.functions.ts", // guest (judge) wrapper: imports its server module inside handlers only
       "src/lib/doc-upload/doc-extract.functions.ts", // Document Upload wrapper (server modules imported inside handlers only)
       "src/lib/doc-upload/prompt.ts", // Document Upload request builder (pure; reuses Spark wire primitives)
+      "src/lib/family-invite.functions.ts", // organizer invitation wrapper (server module imported inside the handler only); not a Spark module
       "src/lib/meta-transcribe/transcribe.functions.ts",
       "src/routes/_authenticated/dev-spark.tsx",
     ]);
