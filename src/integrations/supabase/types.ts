@@ -222,54 +222,6 @@ export type Database = {
         }
         Relationships: []
       }
-      family_invite: {
-        Row: {
-          accepted_at: string | null
-          accepted_by: string | null
-          created_at: string
-          created_by: string
-          delivery_status: string | null
-          expires_at: string
-          family_id: string
-          id: string
-          invited_email: string
-          last_sent_at: string | null
-          member_id: string
-          revoked_at: string | null
-          revoked_by: string | null
-        }
-        Insert: {
-          accepted_at?: string | null
-          accepted_by?: string | null
-          created_at?: string
-          created_by: string
-          delivery_status?: string | null
-          expires_at?: string
-          family_id: string
-          id?: string
-          invited_email: string
-          last_sent_at?: string | null
-          member_id: string
-          revoked_at?: string | null
-          revoked_by?: string | null
-        }
-        Update: {
-          accepted_at?: string | null
-          accepted_by?: string | null
-          created_at?: string
-          created_by?: string
-          delivery_status?: string | null
-          expires_at?: string
-          family_id?: string
-          id?: string
-          invited_email?: string
-          last_sent_at?: string | null
-          member_id?: string
-          revoked_at?: string | null
-          revoked_by?: string | null
-        }
-        Relationships: []
-      }
       handoff: {
         Row: {
           ate: boolean | null
@@ -866,20 +818,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      accept_family_invite: { Args: { _invite_id: string }; Returns: string }
-      create_family_invite: { Args: { _member_id: string; _email: string }; Returns: string }
-      revoke_family_invite: { Args: { _invite_id: string }; Returns: undefined }
-      set_family_invite_delivery: { Args: { _invite_id: string; _status: string }; Returns: undefined }
-      my_pending_family_invites: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          invite_id: string
-          family_name: string
-          member_name: string
-          invited_by_name: string
-          expires_at: string
-        }[]
-      }
       appt_doc_can_delete: {
         Args: { p: string; uploader: string }
         Returns: boolean
