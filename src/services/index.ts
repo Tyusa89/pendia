@@ -432,11 +432,13 @@ const liveCoverageRequirementService = {
 };
 
 // ---------- Family invitations (email-bound; no token) ----------
+// Invitation tables/functions are not in generated types until their migration is applied.
+const inviteDb = supabase as unknown as import("@supabase/supabase-js").SupabaseClient;
 const liveInviteService = {
   /** Organizer view: this family's invitations (RLS limits it to organizers). */
   async listForFamily(familyId: string): Promise<FamilyInvite[]> {
     return ok(
-      await supabase
+      await inviteDb
         .from("family_invite")
         .select("id, family_id, member_id, invited_email, created_at, expires_at, accepted_at, revoked_at, delivery_status, last_sent_at")
         .eq("family_id", familyId)
@@ -445,13 +447,13 @@ const liveInviteService = {
   },
   /** Invitations bound to the signed-in person's verified email. */
   async myPending() {
-    return ok(await supabase.rpc("my_pending_family_invites")) as { invite_id: string; family_name: string; member_name: string; invited_by_name: string | null; expires_at: string }[];
+    return ok(await inviteDb.rpc("my_pending_family_invites")) as { invite_id: string; family_name: string; member_name: string; invited_by_name: string | null; expires_at: string }[];
   },
   async accept(inviteId: string): Promise<string> {
-    return ok(await supabase.rpc("accept_family_invite", { _invite_id: inviteId })) as string;
+    return ok(await inviteDb.rpc("accept_family_invite", { _invite_id: inviteId })) as string;
   },
   async revoke(inviteId: string) {
-    ok(await supabase.rpc("revoke_family_invite", { _invite_id: inviteId }));
+    ok(await inviteDb.rpc("revoke_family_invite", { _invite_id: inviteId }));
   },
   /** Creates (or replaces) the invitation and emails the sign-in link. Returns a fixed code, never provider text. */
   async send(memberId: string, email: string): Promise<{ code: SendInviteCode; inviteId?: string }> {

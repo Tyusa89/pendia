@@ -1,11 +1,19 @@
 // Pure helpers for family invitations: the status an organizer sees, and plain-language messages for the codes the database returns.
 // Nothing here touches a token: invitations are bound to a verified email and have no token (see docs/design/family-invitations.md).
-import type { Tables } from "@/integrations/supabase/types";
 
-export type FamilyInvite = Pick<
-  Tables<"family_invite">,
-  "id" | "family_id" | "member_id" | "invited_email" | "created_at" | "expires_at" | "accepted_at" | "revoked_at" | "delivery_status" | "last_sent_at"
->;
+// Defined by hand: the invitation migration is not applied yet, so generated types don't include it.
+export type FamilyInvite = {
+  id: string;
+  family_id: string;
+  member_id: string;
+  invited_email: string;
+  created_at: string;
+  expires_at: string;
+  accepted_at: string | null;
+  revoked_at: string | null;
+  delivery_status: string;
+  last_sent_at: string | null;
+};
 export type InviteStatus = "pending" | "expired" | "revoked" | "accepted";
 
 export function inviteStatus(i: Pick<FamilyInvite, "accepted_at" | "revoked_at" | "expires_at">, now: Date = new Date()): InviteStatus {
