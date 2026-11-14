@@ -17,9 +17,11 @@ import { Route as ContactRouteImport } from './routes/contact'
 import { Route as DemoRouteImport } from './routes/demo'
 import { Route as DemoMedsRouteImport } from './routes/demo-meds'
 import { Route as InviteRouteImport } from './routes/invite'
+import { Route as McpRouteImport } from './routes/mcp'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as AuthenticatedAskRouteImport } from './routes/_authenticated/ask'
 import { Route as AuthenticatedCoverageRouteImport } from './routes/_authenticated/coverage'
 import { Route as AuthenticatedDevSparkRouteImport } from './routes/_authenticated/dev-spark'
@@ -76,6 +78,11 @@ const InviteRoute = InviteRouteImport.update({
   path: '/invite',
   getParentRoute: () => rootRouteImport,
 } as any)
+const McpRoute = McpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PricingRoute = PricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
@@ -91,6 +98,12 @@ const TermsRoute = TermsRouteImport.update({
   path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const Char91DotwellKnownChar93OauthProtectedResourceRoute =
+  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
+    id: '/.well-known/oauth-protected-resource',
+    path: '/.well-known/oauth-protected-resource',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedAskRoute = AuthenticatedAskRouteImport.update({
   id: '/ask',
   path: '/ask',
@@ -185,9 +198,11 @@ export interface FileRoutesByFullPath {
   '/demo': typeof DemoRoute
   '/demo-meds': typeof DemoMedsRoute
   '/invite': typeof InviteRoute
+  '/mcp': typeof McpRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/ask': typeof AuthenticatedAskRoute
   '/coverage': typeof AuthenticatedCoverageRoute
   '/dev-spark': typeof AuthenticatedDevSparkRoute
@@ -213,9 +228,11 @@ export interface FileRoutesByTo {
   '/demo': typeof DemoRoute
   '/demo-meds': typeof DemoMedsRoute
   '/invite': typeof InviteRoute
+  '/mcp': typeof McpRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/ask': typeof AuthenticatedAskRoute
   '/coverage': typeof AuthenticatedCoverageRoute
   '/dev-spark': typeof AuthenticatedDevSparkRoute
@@ -243,9 +260,11 @@ export interface FileRoutesById {
   '/demo': typeof DemoRoute
   '/demo-meds': typeof DemoMedsRoute
   '/invite': typeof InviteRoute
+  '/mcp': typeof McpRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/_authenticated/ask': typeof AuthenticatedAskRoute
   '/_authenticated/coverage': typeof AuthenticatedCoverageRoute
   '/_authenticated/dev-spark': typeof AuthenticatedDevSparkRoute
@@ -273,9 +292,11 @@ export interface FileRouteTypes {
     | '/demo'
     | '/demo-meds'
     | '/invite'
+    | '/mcp'
     | '/pricing'
     | '/privacy'
     | '/terms'
+    | '/.well-known/oauth-protected-resource'
     | '/ask'
     | '/coverage'
     | '/dev-spark'
@@ -301,9 +322,11 @@ export interface FileRouteTypes {
     | '/demo'
     | '/demo-meds'
     | '/invite'
+    | '/mcp'
     | '/pricing'
     | '/privacy'
     | '/terms'
+    | '/.well-known/oauth-protected-resource'
     | '/ask'
     | '/coverage'
     | '/dev-spark'
@@ -330,9 +353,11 @@ export interface FileRouteTypes {
     | '/demo'
     | '/demo-meds'
     | '/invite'
+    | '/mcp'
     | '/pricing'
     | '/privacy'
     | '/terms'
+    | '/.well-known/oauth-protected-resource'
     | '/_authenticated/ask'
     | '/_authenticated/coverage'
     | '/_authenticated/dev-spark'
@@ -360,9 +385,11 @@ export interface RootRouteChildren {
   DemoRoute: typeof DemoRoute
   DemoMedsRoute: typeof DemoMedsRoute
   InviteRoute: typeof InviteRoute
+  McpRoute: typeof McpRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
+  Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -423,6 +450,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InviteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mcp': {
+      id: '/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof McpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pricing': {
       id: '/pricing'
       path: '/pricing'
@@ -442,6 +476,13 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/oauth-protected-resource': {
+      id: '/.well-known/oauth-protected-resource'
+      path: '/.well-known/oauth-protected-resource'
+      fullPath: '/.well-known/oauth-protected-resource'
+      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/ask': {
@@ -609,9 +650,12 @@ const rootRouteChildren: RootRouteChildren = {
   DemoRoute: DemoRoute,
   DemoMedsRoute: DemoMedsRoute,
   InviteRoute: InviteRoute,
+  McpRoute: McpRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
+  Char91DotwellKnownChar93OauthProtectedResourceRoute:
+    Char91DotwellKnownChar93OauthProtectedResourceRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
