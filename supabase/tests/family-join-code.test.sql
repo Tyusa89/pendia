@@ -28,7 +28,7 @@ begin execute q; return 'OK'; exception when others then return sqlerrm; end $f$
 
 do $test$
 declare
-  n int := 0; c int; t text; fa uuid; fb uuid; fc uuid; fd uuid; code text; code2 text; rid uuid; rid2 uuid; rid3 uuid; mid uuid; r record; i int;
+  n int := 0; c int; t text; fa uuid; fb uuid; fc uuid; fd uuid; fdm uuid; code text; code2 text; rid uuid; rid2 uuid; rid3 uuid; mid uuid; r record; i int;
   uo uuid := gen_random_uuid();  -- organizer A
   ub uuid := gen_random_uuid();  -- organizer B
   um uuid := gen_random_uuid();  -- plain member of A
@@ -182,7 +182,7 @@ begin
   select public.decide_join_request(rid, true) into mid; if mid is null then raise exception 'FAIL: approve after rotate'; end if; n := n + 1;
   perform pg_temp.admin();
   select count(*) into c from public.member where user_id = ur; if c <> 2 then raise exception 'FAIL: multi-family membership'; end if; n := n + 1;
-  select count(*) into c from public.member where user_id = ur and family_id = fb and can_see_meds and can_see_schedule and can_see_visits; if c <> 1 then raise exception 'FAIL: default viewing flags'; end if; n := n + 1;
+  select count(*) into c from public.member where user_id = ur and family_id = fb and not can_see_meds and not can_see_schedule and not can_see_visits; if c <> 1 then raise exception 'FAIL: approval without explicit choices must leave every viewing flag OFF'; end if; n := n + 1;
   insert into public.family_join_code (family_id, code_hash, created_by) values (fd, public.family_join_code_hash('DDDD-DDDD-DDDD'), ub);
   -- the pending cap: three open requests at most per account
   perform pg_temp.login(us);
@@ -196,7 +196,34 @@ begin
   perform pg_temp.admin();
   select count(*) into c from public.family_join_request where user_id = us and status = 'pending'; if c <> 3 then raise exception 'FAIL: pending count %', c; end if; n := n + 1;
 
-  -------------------------------------------------------------- 10. coexistence with the invitation system
+  -------------------------------------------------------------- 10. the public demo cannot use any of it, enforced by the database
+  insert into auth.users (id, aud, role, email, email_confirmed_at) values ('cd7b5f56-40b6-4416-9951-af5a3cf651d4', 'authenticated', 'authenticated', 'demo-guest@test.invalid', now());
+  perform pg_temp.login('cd7b5f56-40b6-4416-9951-af5a3cf651d4');
+  foreach t in array array[
+    format('select public.request_to_join_family(%L, %L)', code, 'Demo'),
+    'select * from public.my_join_requests()',
+    format('select public.cancel_join_request(%L)', rid),
+    format('select public.rotate_family_join_code(%L)', fa),
+    format('select public.disable_family_join_code(%L)', fa),
+    format('select * from public.family_join_code_status(%L)', fa),
+    format('select * from public.family_join_requests(%L)', fa),
+    format('select public.decide_join_request(%L, true)', rid)] loop
+    if pg_temp.trymsg(t) <> 'The demo cannot use family codes.' then raise exception 'FAIL: the demo guest reached %', t; end if; n := n + 1;
+  end loop;
+  perform pg_temp.admin();
+  select count(*) into c from public.family_join_request where user_id = 'cd7b5f56-40b6-4416-9951-af5a3cf651d4'; if c <> 0 then raise exception 'FAIL: the demo guest has a request'; end if; n := n + 1;
+  select count(*) into c from public.member where user_id = 'cd7b5f56-40b6-4416-9951-af5a3cf651d4'; if c <> 0 then raise exception 'FAIL: the demo guest got a membership'; end if; n := n + 1;
+  -- the seeded sample family (is_demo) never takes a code either
+  insert into public.family (name, created_by, is_demo) values ('Sample', ub, true) returning id into fdm;
+  insert into public.member (family_id, user_id, name, role) values (fdm, ub, 'Organizer B', 'organizer');
+  perform pg_temp.login(ub);
+  if pg_temp.trymsg(format('select public.rotate_family_join_code(%L)', fdm)) <> 'The demo family cannot use family codes.' then raise exception 'FAIL: a code was made for the demo family'; end if; n := n + 1;
+  perform pg_temp.admin();
+  insert into public.family_join_code (family_id, code_hash, created_by) values (fdm, public.family_join_code_hash('EEEE-EEEE-EEEE'), ub);
+  perform pg_temp.login(um);
+  if public.request_to_join_family('EEEE-EEEE-EEEE', 'Member') is not null then raise exception 'FAIL: a request reached the demo family'; end if; n := n + 1;
+
+  -------------------------------------------------------------- 11. coexistence with the invitation system
   select count(*) into c from pg_proc where pronamespace = 'public'::regnamespace and proname in ('create_family_invite', 'accept_family_invite', 'my_pending_family_invites', 'revoke_family_invite');
   if c < 4 then raise exception 'FAIL: invitation functions missing'; end if; n := n + 1;
 

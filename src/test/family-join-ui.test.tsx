@@ -257,19 +257,34 @@ describe("organizer: Join requests", () => {
     wrap(<JoinRequests familyId={FAM} />);
     expect(await screen.findByText(/No one is waiting/)).toBeTruthy();
   });
-  it("approves with the chosen viewing permissions and states that upload stays off", async () => {
+  it("starts with every viewing permission OFF and needs an explicit choice to approve", async () => {
+    world.requests = [row];
+    wrap(<JoinRequests familyId={FAM} />);
+    expect(await screen.findByText("Rita Requester")).toBeTruthy();
+    for (const label of ["Medications", "Schedule", "Visits"])
+      expect(
+        screen
+          .getByRole("switch", { name: `Rita Requester can see ${label}` })
+          .getAttribute("aria-checked"),
+      ).toBe("false");
+    const approve = screen.getByRole("button", { name: "Approve" }) as HTMLButtonElement;
+    expect(approve.disabled).toBe(true);
+    fireEvent.click(approve);
+    expect(decide).not.toHaveBeenCalled();
+  });
+  it("approves with exactly the chosen permissions and states that upload stays off", async () => {
     world.requests = [row];
     wrap(<JoinRequests familyId={FAM} />);
     expect(await screen.findByText("Rita Requester")).toBeTruthy();
     expect(screen.getByText("rita@example.com")).toBeTruthy();
-    expect(screen.getByText(/Document upload is off until you grant it/)).toBeTruthy();
-    fireEvent.click(screen.getByRole("switch", { name: "Rita Requester can see Medications" }));
+    expect(screen.getByText(/document upload stays off until you grant it/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("switch", { name: "Rita Requester can see Schedule" }));
     fireEvent.click(screen.getByRole("button", { name: "Approve" }));
     await waitFor(() =>
       expect(decide).toHaveBeenCalledWith("q1", true, {
         meds: false,
         schedule: true,
-        visits: true,
+        visits: false,
       }),
     );
     expect(toastSpy.success).toHaveBeenCalled();
@@ -284,7 +299,8 @@ describe("organizer: Join requests", () => {
     world.requests = [row];
     decide.mockRejectedValueOnce(new Error("request_not_pending"));
     wrap(<JoinRequests familyId={FAM} />);
-    fireEvent.click(await screen.findByRole("button", { name: "Approve" }));
+    fireEvent.click(await screen.findByRole("switch", { name: "Rita Requester can see Visits" }));
+    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
     await waitFor(() =>
       expect(toastSpy.error).toHaveBeenCalledWith("That request was already answered."),
     );

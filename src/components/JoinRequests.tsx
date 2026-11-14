@@ -31,7 +31,7 @@ export function JoinRequests({ familyId }: { familyId: string }) {
 
 function RequestRow({ familyId, r }: { familyId: string; r: FamilyJoinRequest }) {
   const qc = useQueryClient();
-  const [flags, setFlags] = useState({ meds: true, schedule: true, visits: true });
+  const [flags, setFlags] = useState({ meds: false, schedule: false, visits: false });
   const done = (msg: string) => {
     toast.success(msg);
     void qc.invalidateQueries({ queryKey: ["join-requests", familyId] });
@@ -47,6 +47,7 @@ function RequestRow({ familyId, r }: { familyId: string; r: FamilyJoinRequest })
     onSuccess: () => done("Request declined"),
     onError: (e) => toast.error(joinErrorMessage((e as Error).message)),
   });
+  const chosen = flags.meds || flags.schedule || flags.visits;
   const busy = approve.isPending || decline.isPending;
   const opts: [keyof typeof flags, string][] = [
     ["meds", "Medications"],
@@ -60,7 +61,7 @@ function RequestRow({ familyId, r }: { familyId: string; r: FamilyJoinRequest })
         <p className="break-all text-sm text-muted-foreground">{r.requester_email}</p>
       </div>
       <fieldset className="space-y-1">
-        <legend className="text-sm font-semibold">They can see</legend>
+        <legend className="text-sm font-semibold">Choose what they can see</legend>
         {opts.map(([k, label]) => (
           <label key={k} className="flex min-h-11 items-center justify-between gap-3 text-sm">
             {label}
@@ -73,11 +74,12 @@ function RequestRow({ familyId, r }: { familyId: string; r: FamilyJoinRequest })
           </label>
         ))}
         <p className="text-xs text-muted-foreground">
-          Joins as a Member. Document upload is off until you grant it on their card.
+          Nothing is shared until you select it; choose at least one to approve. Joins as a Member;
+          document upload stays off until you grant it on their card.
         </p>
       </fieldset>
       <div className="flex gap-3">
-        <Button disabled={busy} onClick={() => approve.mutate()}>
+        <Button disabled={busy || !chosen} onClick={() => approve.mutate()}>
           Approve
         </Button>
         <Button variant="outline" disabled={busy} onClick={() => decline.mutate()}>

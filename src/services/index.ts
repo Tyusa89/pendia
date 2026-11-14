@@ -487,7 +487,7 @@ const liveJoinService = {
   async requestsForFamily(familyId: string): Promise<FamilyJoinRequest[]> {
     return ok(await pending.rpc("family_join_requests", { _family_id: familyId })) as FamilyJoinRequest[];
   },
-  async decide(requestId: string, approve: boolean, flags = { meds: true, schedule: true, visits: true }) {
+  async decide(requestId: string, approve: boolean, flags = { meds: false, schedule: false, visits: false }) {
     return ok(
       await pending.rpc("decide_join_request", { _request_id: requestId, _approve: approve, _can_see_meds: flags.meds, _can_see_schedule: flags.schedule, _can_see_visits: flags.visits }),
     ) as string | null;

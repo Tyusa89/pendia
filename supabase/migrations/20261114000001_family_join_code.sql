@@ -7,7 +7,7 @@
 --   request     : sees NOTHING about the family (no name, members, patient or permissions) until approved; the answer is only "pending/declined/approved"
 --   attempts    : every wrong code is logged; 8 wrong codes per account per hour => 'too_many_attempts' (fails closed even for a correct code)
 --   approval    : organizer of THAT family only; request row is locked, so two organizers or a replay cannot approve twice; the new member row has
---                 role member, the viewing flags the organizer chose, and can_upload_documents left at its default (off)
+--                 role member, the viewing flags the organizer explicitly chose (ALL OFF unless selected), and can_upload_documents left at its default (off)
 -- Clients have no direct access to the three tables; every operation is a SECURITY DEFINER function with a fixed search path.
 -- DEPENDENCIES: public.family, public.member, public.is_family_organizer(uuid), the unique index member_family_user_uniq (phase-1 hardening).
 -- No dependency on, and no conflict with, the invitation migration 20261113000001 (family_invite*): different objects. member.user_id stays protected:
@@ -54,6 +54,17 @@ alter table public.family_join_attempt enable row level security;
 revoke all on public.family_join_code, public.family_join_request, public.family_join_attempt from anon, public, authenticated;
 
 ------------------------------------------------------------------ helpers (not callable by clients)
+-- Every client-facing function starts here. The public demo's guest account (the dedicated identity in src/lib/judge-demo.ts) is refused in
+-- the database itself, not only hidden in the app, so a demo session cannot request, cancel, list or manage anything even by calling the API directly.
+create or replace function public.family_join_assert_caller() returns void
+language plpgsql stable set search_path = public as $$
+begin
+  if auth.uid() is null then raise exception 'not signed in' using errcode = '28000'; end if;
+  if auth.uid() = 'cd7b5f56-40b6-4416-9951-af5a3cf651d4'::uuid then
+    raise exception 'The demo cannot use family codes.' using errcode = '42501';
+  end if;
+end $$;
+
 -- upper-case, drop separators, map the look-alikes (O->0, I/L->1); the hash is over the cleaned 12 characters
 create or replace function public.family_join_code_normalize(_code text) returns text
 language sql immutable set search_path = public as $$
@@ -73,9 +84,12 @@ declare
   alphabet constant text := '0123456789ABCDEFGHJKMNPQRSTVWXYZ';   -- 32 symbols, no I L O U
   raw bytea; code text := ''; i int;
 begin
-  if uid is null then raise exception 'not signed in' using errcode = '28000'; end if;
+  perform public.family_join_assert_caller();
   if not public.is_family_organizer(_family_id) then
     raise exception 'Only an organizer can manage the family code.' using errcode = '42501';
+  end if;
+  if exists (select 1 from public.family f where f.id = _family_id and f.is_demo) then
+    raise exception 'The demo family cannot use family codes.' using errcode = '42501';
   end if;
   raw := decode(replace(gen_random_uuid()::text, '-', ''), 'hex');            -- 16 random bytes from the server's strong generator
   for i in 0..11 loop code := code || substr(alphabet, (get_byte(raw, i) % 32) + 1, 1); end loop;   -- 256 is a multiple of 32: no bias
@@ -88,7 +102,7 @@ end $$;
 create or replace function public.disable_family_join_code(_family_id uuid) returns void
 language plpgsql security definer set search_path = public as $$
 begin
-  if auth.uid() is null then raise exception 'not signed in' using errcode = '28000'; end if;
+  perform public.family_join_assert_caller();
   if not public.is_family_organizer(_family_id) then
     raise exception 'Only an organizer can manage the family code.' using errcode = '42501';
   end if;
@@ -100,7 +114,7 @@ create or replace function public.family_join_code_status(_family_id uuid)
 returns table (enabled boolean, rotated_at timestamptz)
 language plpgsql stable security definer set search_path = public as $$
 begin
-  if auth.uid() is null then raise exception 'not signed in' using errcode = '28000'; end if;
+  perform public.family_join_assert_caller();
   if not public.is_family_organizer(_family_id) then
     raise exception 'Only an organizer can manage the family code.' using errcode = '42501';
   end if;
@@ -111,7 +125,7 @@ create or replace function public.family_join_requests(_family_id uuid)
 returns table (request_id uuid, requester_name text, requester_email text, created_at timestamptz)
 language plpgsql stable security definer set search_path = public as $$
 begin
-  if auth.uid() is null then raise exception 'not signed in' using errcode = '28000'; end if;
+  perform public.family_join_assert_caller();
   if not public.is_family_organizer(_family_id) then
     raise exception 'Only an organizer can see join requests.' using errcode = '42501';
   end if;
@@ -124,16 +138,19 @@ end $$;
 
 -- Approve (creates the Member row) or decline. Single-use: only a PENDING request can be decided, and the row is locked while it is.
 create or replace function public.decide_join_request(_request_id uuid, _approve boolean,
-    _can_see_meds boolean default true, _can_see_schedule boolean default true, _can_see_visits boolean default true) returns uuid
+    _can_see_meds boolean default false, _can_see_schedule boolean default false, _can_see_visits boolean default false) returns uuid
 language plpgsql security definer set search_path = public as $$
 declare uid uuid := auth.uid(); r public.family_join_request; confirmed timestamptz; new_member uuid;
 begin
-  if uid is null then raise exception 'not signed in' using errcode = '28000'; end if;
+  perform public.family_join_assert_caller();
   select * into r from public.family_join_request where id = _request_id for update;
   if not found or not public.is_family_organizer(r.family_id) then
     raise exception 'Only an organizer can decide join requests.' using errcode = '42501';
   end if;
   if r.status <> 'pending' then raise exception 'request_not_pending' using errcode = 'P0001'; end if;
+  if _approve and exists (select 1 from public.family f where f.id = r.family_id and f.is_demo) then
+    raise exception 'The demo family cannot use family codes.' using errcode = '42501';
+  end if;
   if not _approve then
     update public.family_join_request set status = 'declined', decided_at = now(), decided_by = uid where id = r.id;
     return null;
@@ -143,7 +160,7 @@ begin
   if exists (select 1 from public.member x where x.family_id = r.family_id and x.user_id = r.user_id) then
     raise exception 'already_member' using errcode = 'P0001';
   end if;
-  -- role member; the three viewing flags are the organizer's choice; every other column (including can_upload_documents) keeps its default
+  -- role member; the three viewing flags are the organizer's explicit choice (default off); every other column (including can_upload_documents) keeps its default
   insert into public.member (family_id, user_id, name, role, can_see_meds, can_see_schedule, can_see_visits)
   values (r.family_id, r.user_id, btrim(r.requester_name), 'member',
           coalesce(_can_see_meds, false), coalesce(_can_see_schedule, false), coalesce(_can_see_visits, false))
@@ -159,7 +176,7 @@ language plpgsql security definer set search_path = public as $$
 declare
   uid uuid := auth.uid(); confirmed timestamptz; clean text; fam uuid; nm text := btrim(coalesce(_name, '')); rid uuid; fails int;
 begin
-  if uid is null then raise exception 'not signed in' using errcode = '28000'; end if;
+  perform public.family_join_assert_caller();
   select u.email_confirmed_at into confirmed from auth.users u where u.id = uid;
   if confirmed is null then raise exception 'email_unverified' using errcode = 'P0001'; end if;
   if char_length(nm) < 1 or char_length(nm) > 80 then raise exception 'name_required' using errcode = '23514'; end if;
@@ -167,7 +184,7 @@ begin
   select count(*) into fails from public.family_join_attempt where user_id = uid and created_at > now() - interval '1 hour';
   if fails >= 8 then raise exception 'too_many_attempts' using errcode = 'P0001'; end if;
   clean := public.family_join_code_normalize(_code);
-  select c.family_id into fam from public.family_join_code c
+  select c.family_id into fam from public.family_join_code c join public.family f on f.id = c.family_id and not f.is_demo
    where c.enabled and char_length(clean) = 12 and c.code_hash = public.family_join_code_hash(clean);
   if fam is null then
     -- the attempt is logged and the function RETURNS (a raise would roll the log back); null = "that code did not work", said the same way
@@ -195,7 +212,7 @@ create or replace function public.my_join_requests()
 returns table (request_id uuid, status text, created_at timestamptz, decided_at timestamptz)
 language plpgsql stable security definer set search_path = public as $$
 begin
-  if auth.uid() is null then raise exception 'not signed in' using errcode = '28000'; end if;
+  perform public.family_join_assert_caller();
   return query
     select r.id, r.status, r.created_at, r.decided_at from public.family_join_request r
     where r.user_id = auth.uid() and r.created_at > now() - interval '30 days' order by r.created_at desc;
@@ -205,7 +222,7 @@ create or replace function public.cancel_join_request(_request_id uuid) returns 
 language plpgsql security definer set search_path = public as $$
 declare uid uuid := auth.uid(); r public.family_join_request;
 begin
-  if uid is null then raise exception 'not signed in' using errcode = '28000'; end if;
+  perform public.family_join_assert_caller();
   select * into r from public.family_join_request where id = _request_id and user_id = uid for update;
   if not found or r.status <> 'pending' then raise exception 'request_not_pending' using errcode = 'P0001'; end if;
   update public.family_join_request set status = 'canceled', decided_at = now() where id = r.id;
@@ -219,6 +236,7 @@ do $$ declare fn text; begin
     execute format('grant execute on function public.%s to authenticated', fn);
   end loop;
 end $$;
+revoke all on function public.family_join_assert_caller() from public, anon, authenticated;
 revoke all on function public.family_join_code_normalize(text) from public, anon, authenticated;
 revoke all on function public.family_join_code_hash(text) from public, anon, authenticated;
 
