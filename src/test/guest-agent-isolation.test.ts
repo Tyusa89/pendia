@@ -128,7 +128,9 @@ describe("the audited member path and protected modules are not edited by this w
     // The app-redesign safety net (PR 1A) was explicitly authorised to add exactly these dev-only test tools and their scripts.
     const REDESIGN_TEST_TOOLING =
       /@playwright\/test|axe-core|"visual(:capture|:baselines)?":|"check:frozen(:selftest)?":|"typecheck:visual":|"test:ci":|"spike:test": "vitest run spike",$/;
-    const depsOk = added.every((l) => /pdfjs-dist/.test(l) || REDESIGN_TEST_TOOLING.test(l));
+    // Agent integrations explicitly authorize these two dependencies; validation stays on Zod 3.
+    const MCP_TOOLING = /^"(?:@lovable\.dev\/mcp-js|use-webmcp-tool)": "\^[0-9.]+",?$/;
+    const depsOk = added.every((l) => /pdfjs-dist/.test(l) || REDESIGN_TEST_TOOLING.test(l) || MCP_TOOLING.test(l));
     expect(
       changed.filter(
         (f) =>

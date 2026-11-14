@@ -7,6 +7,7 @@ function runtimeEnv(name: string): string | undefined {
 }
 function configuredEnv(names: readonly string[]) {
   for (const name of names) { const value = runtimeEnv(name)?.trim(); if (value) return value; }
+  return undefined;
 }
 function supabaseProjectUrl() {
   const url = configuredEnv(["SUPABASE_URL", "VITE_SUPABASE_URL"]);
@@ -22,7 +23,7 @@ function supabasePublishableKey() {
       const parsed: unknown = JSON.parse(keyset);
       if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
         const keys = parsed as Record<string, unknown>;
-        const key = [keys.default, ...Object.values(keys)].find((v): v is string => typeof v === "string" && v.trim().startsWith("sb_publishable_"))?.trim();
+        const key = [keys["default"], ...Object.values(keys)].find((v): v is string => typeof v === "string" && v.trim().startsWith("sb_publishable_"))?.trim();
         if (key) return key;
       }
     } catch { /* Legacy key may still work. */ }
